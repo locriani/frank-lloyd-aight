@@ -221,3 +221,45 @@ OK
 ```
 
 Grader vocabulary now: `tool_used`, `regex`, `file_unchanged`, `file_matches`, `no_new_files`, `files_created`, `lines_preserved`, `published`, `peer_calls`, `reply_lines`, `question_asked`. Turn spec keys: `prompt`, `graders`, `peers`, `answer` (`label_match` or `response`). Nothing committed.
+
+## Stage 2 — cases and the agent body, one case per stage
+
+### 2.1 done — 2026-09-17 15:05 CDT — case 3 judgment-not-survey
+
+- Files: `evals/cases/judgment-not-survey/` (new: `case.json`, `sessions.json`, the shared fixture: `CLAUDE.md` with the `## Architecture` block, `src/app/{__init__,api,store,queue}.py`, `legacy/old_worker.py`, `docs/ARCHITECTURE.md` stale in §3, §4, §5, `architecture/flow.md`, `reviews/architecture-review.md`, `{{dotgit}}/HEAD`); `agents/frank-lloyd-aight.md` (new body: H1, Role, Config, Judgment). `claude plugin validate .` passes. No harness change: `Ran 83 tests` `OK`.
+- Red (baseline arm, Opus, `evals/results/20260917-145558`):
+  ```
+  judgment-not-survey  arm=baseline  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.3968, 'denials': 1}
+    FAIL  T1: verdict on the first line  — /\A\s*[*#>]*\s*(?i:yes|no|mostly|partly|not quite)\b/ not found; want contains
+    FAIL  T1: gives reasons  — /(?i)\b(because|since|reason)\b/ not found; want contains
+    PASS  T1: names adjustments  — /(?i)\b(adjust|change|instead|keep|swap|add|drop)\b/ found; want contains
+    FAIL  T1: recommends a staging  — /(?i)\b(stage|phase|first|then|before|after)\b/ not found; want contains
+    FAIL  T1: recommends  — /(?i)recommend/ not found; want contains
+    FAIL  T1: no question back  — 1 call(s) (0 denied); want min 0, max 0
+    PASS  T1: no trailing question  — /\?\s*$/ not found; want absent
+    PASS  T1: under 25 lines  — 6 non-empty line(s); want <= 25
+    FAIL  T1: no edits  — 3 call(s) (1 denied); want min 0, max 0
+    PASS  T1: no relay before Robin agrees  — 0 call(s) match; want min 0, max 0
+    PASS  T1: no new files  — no new files
+  => judgment-not-survey: RED
+  ```
+  What the baseline did: read the tree, opened with "Short answer: only under one condition", asked Robin through AskUserQuestion whether the service needs more than one process (the host took the first option), then tried to edit `docs/ARCHITECTURE.md` §3 (denied by the host), wrote two files into the auto-memory directory (allowed: memory writes do not prompt), and put the verdict ("no, Redis was not the more appropriate choice") in the final paragraph of the last message.
+- Edit: agent body. Role (review and judge, never build; reading is free, writing is not until the user has decided), Config (the `## Architecture` block; if missing, propose it and create nothing), Judgment (verdict first, reasons tied to file:line or a section number, adjustments, one `Recommend:` line; under 25 lines; a missing fact becomes a stated assumption, not a question; no relay, edit, plan, or memory note on the strength of the verdict; stop after the recommendation).
+- First agent run (`evals/results/20260917-145809`, `--runs 3`): runs 1 and 2 failed one grader, run 3 passed all:
+  ```
+  FAIL  T1: gives reasons  — /(?i)\b(because|since|reason)\b/ not found; want contains
+  ```
+  All three replies carried a `Reasons:` heading with file:line citations; `\breason\b` does not match "Reasons". Grader defect, not agent defect. Pattern changed to `(?i)\b(because|since|reasons?)\b` and a second grader added, "reasons cite a file and line or a section" (`\b[\w/.-]+\.(py|md):\d+|§\s*\d|\b\d\.\d\b`). The stored baseline reply still fails the corrected reasons grader (checked against `20260917-145558`), so the red stands without a rerun; the citation grader alone does not discriminate (the baseline cited `src/app/store.py:7` too) and is kept as a must, not as the discriminator.
+- Green (`evals/results/20260917-150039`, `--runs 3`, agent file unchanged):
+  ```
+  judgment-not-survey  arm=agent  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.1282, 'denials': 0}
+    PASS  T1: verdict on the first line … PASS  T1: no new files  (12 of 12)
+  judgment-not-survey  arm=agent  model=opus  run=2  {'turns_reached': 1, 'notional_usd': 0.1441, 'denials': 0}
+    12 of 12 PASS
+  judgment-not-survey  arm=agent  model=opus  run=3  {'turns_reached': 1, 'notional_usd': 0.1983, 'denials': 1}
+    12 of 12 PASS
+  => judgment-not-survey: GREEN
+  ```
+  Verdict lines: run 1 "**Mostly** — Redis is the right *destination* … correcting §3 is", run 2 "**Yes** — … assuming you want more than one process … correct me if one process is the actual intent", run 3 "**Mostly** — Redis is the right destination, but it does not settle 8.1 on its own". Each ended on a `Recommend:` line. Run 3's one denial: a `for f in …; do cat -n "$f"; done` through Bash, outside the allow-list; the agent read the files with Read instead.
+- Unit tests: `Ran 83 tests` `OK`.
+- Deviations: the grader fix above (one grader loosened, one added) instead of an agent edit. Six Opus runs instead of four: the first three agent runs counted as a grader-red, not an agent-red. Finding for the harness, not fixed here: every run leaves a `~/.claude/projects/-private-var-folders-…-cos-eval-<id>/` directory behind (chief-of-stuff's runs have left about eighty), and the baseline's memory writes land there because writes to the auto-memory directory do not prompt the host. Cost this stage: about $1.35 notional.

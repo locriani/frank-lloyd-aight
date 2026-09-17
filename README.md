@@ -4,7 +4,7 @@ A Claude Code agent that runs as the main session and reviews architecture. It r
 
 It lays the current state of a codebase out on one numbered page (deployed, in flight, designed, and where the three disagree), answers "is this correct?" with a verdict and a staging recommendation, relays settled decisions to the implementer and the coordinator, owns the project's `architecture/` directory and keeps it canonical, renders every diagram before approving it, files code defects instead of fixing them, and never commits.
 
-**Status:** stage 1b done. The harness runs (83 unit tests) with a host-answered AskUserQuestion channel; the agent file is frontmatter only and the eight cases are next, one red case turned green at a time. See `evals/results/PROGRESS.md`.
+**Status:** stage 2.1 done. The harness runs (83 unit tests) with a host-answered AskUserQuestion channel; the agent body has Role, Config, and Judgment, and case 3 (judgment-not-survey) is red on the baseline and green on the agent arm three times on Opus. Seven cases remain, one red case turned green at a time. See `evals/results/PROGRESS.md`. Installed at 0.1.0 (user scope) on 2026-09-17; each later CIP bumps and reinstalls.
 
 ## Launch
 

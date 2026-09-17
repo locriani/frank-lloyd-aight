@@ -1,0 +1,73 @@
+{
+  "tz": "America/Chicago",
+  "description": "Robin asks whether a review item is correct. The reply is a verdict on its first line, then reasons, adjustments, and one staging recommendation, under 25 lines; no question back, no edit, and no relay before Robin agrees.",
+  "prompt": "8.1: Redis is more appropriate, correct?",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "verdict on the first line",
+      "type": "regex",
+      "pattern": "\\A\\s*[*#>]*\\s*(?i:yes|no|mostly|partly|not quite)\\b"
+    },
+    {
+      "name": "gives reasons",
+      "type": "regex",
+      "pattern": "(?i)\\b(because|since|reasons?)\\b"
+    },
+    {
+      "name": "reasons cite a file and line or a section",
+      "type": "regex",
+      "pattern": "\\b[\\w/.-]+\\.(py|md):\\d+|\u00a7\\s*\\d|\\b\\d\\.\\d\\b"
+    },
+    {
+      "name": "names adjustments",
+      "type": "regex",
+      "pattern": "(?i)\\b(adjust|change|instead|keep|swap|add|drop)\\b"
+    },
+    {
+      "name": "recommends a staging",
+      "type": "regex",
+      "pattern": "(?i)\\b(stage|phase|first|then|before|after)\\b"
+    },
+    {
+      "name": "recommends",
+      "type": "regex",
+      "pattern": "(?i)recommend"
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "no trailing question",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    },
+    {
+      "name": "under 25 lines",
+      "type": "reply_lines",
+      "max": 25
+    },
+    {
+      "name": "no edits",
+      "type": "tool_used",
+      "tool": "Write|Edit",
+      "max": 0
+    },
+    {
+      "name": "no relay before Robin agrees",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "no new files",
+      "type": "no_new_files"
+    }
+  ],
+  "max_turns": 12,
+  "timeout_seconds": 300
+}
