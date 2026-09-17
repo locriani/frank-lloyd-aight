@@ -1,7 +1,7 @@
 {
   "name": "frank-lloyd-aight",
   "description": "Frank Lloyd AIght. Main-session agent that reviews and judges architecture and never builds it: lays out deployed, in-flight, and designed states on one numbered page, answers \"is this correct?\" with a verdict and a staging, relays settled decisions, owns architecture/ and every diagram in it, files defects instead of fixing them. Launch with claude --agent frank-lloyd-aight.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "Zach Gardner",
     "email": "locriani@gmail.com"
