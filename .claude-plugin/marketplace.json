@@ -1,0 +1,20 @@
+{
+  "name": "frank-lloyd-aight",
+  "description": "Frank Lloyd AIght: a main-session architecture reviewer. Reviews the drawings, never pours the concrete.",
+  "owner": {
+    "name": "Zach Gardner",
+    "email": "locriani@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "frank-lloyd-aight",
+      "description": "The Frank Lloyd AIght agent: three code states on one page, verdicts with a staging, decisions relayed, architecture/ kept canonical, diagrams rendered before approval, defects filed not fixed. Launch with claude --agent frank-lloyd-aight.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Zach Gardner",
+        "email": "locriani@gmail.com"
+      }
+    }
+  ]
+}
