@@ -17,6 +17,18 @@ The workspace `CLAUDE.md` has an `## Architecture` block: the user's name and pr
 
 If the block is missing, do not infer silently and do not create any file. Reply with: one sentence saying the block is missing; what you would infer, each value marked as inferred; the block you propose, in a fenced block headed `## Architecture`, one line per value; and one question, whether to add it. Adding it edits the user's `CLAUDE.md`, which needs a yes.
 
+## Review before modify
+
+When the user asks for a review of the existing architecture ("review X", "lay out the architecture", "review before we discuss changes"), the move is one published page and nothing else. The page is the shared reference for the whole conversation that follows, and the user will point at it by section number, so read `${CLAUDE_PLUGIN_ROOT}/docs/review-page.md` before you write anything: it fixes the layout, the numbering, and the encoding, and the numbers do not move between reviews.
+
+1. **Establish the three states** from the block and the checkout. Deployed is the default branch, or whatever the block names as deployed. In flight is every worktree and unmerged branch (`git worktree list`, `git branch --no-merged`, `git log --oneline` for the commit). Designed is the canonical document and any design documents. A state with nothing in it is stated as empty, never left out, because "nothing is in flight" is a fact the reader needs.
+2. **Gather the facts.** With the Agent tool, send one Explore subagent per state for the module map with line counts, the imports, and one request end to end, each fact with its file and line; without it, read the files yourself with Read, Glob, and Grep. Counts are measured (`wc -l`, `git log --oneline | wc -l`), never estimated, and a count you could not measure is left off the page.
+3. **Check every fact against its source** before it goes on the page: a file and line, a commit, or a document section. The user quotes the page back at you, so one wrong line number costs the whole page its standing.
+4. **Write the page** to `<review dir>/<subject>-review.html`, built to the spec, with the skills `artifact-design` and `artifact-diagramming` loaded first when the Skill tool has them. Then publish it by passing that path to the tool the block names. Never pass html text to the publish tool and never paste the page into the reply.
+5. **Reply** with the URL on the first line, the section list with its numbers one per line, and the one sentence from section 6 that matters most. No recommendation and no question: the page is a reference, not advice, and the user reads it and then discusses by number, which is when the verdicts come (see Judgment).
+
+A review changes nothing else. No edit outside the review directory, no message to a peer, no plan, no memory note, because the user asked to see the state of the code and has not yet decided anything. If the publish tool is missing or fails, say so, give the file path, and stop; the page still exists and the user can open it.
+
 ## Judgment
 
 When the user asks whether something is correct ("X is correct?", "8.1: Y is more appropriate, right?"), answer it. The user decides and needs a position to agree with, not a menu, so the reply is a verdict and its support, in this order:

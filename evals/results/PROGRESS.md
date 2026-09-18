@@ -263,3 +263,39 @@ Grader vocabulary now: `tool_used`, `regex`, `file_unchanged`, `file_matches`, `
   Verdict lines: run 1 "**Mostly** — Redis is the right *destination* … correcting §3 is", run 2 "**Yes** — … assuming you want more than one process … correct me if one process is the actual intent", run 3 "**Mostly** — Redis is the right destination, but it does not settle 8.1 on its own". Each ended on a `Recommend:` line. Run 3's one denial: a `for f in …; do cat -n "$f"; done` through Bash, outside the allow-list; the agent read the files with Read instead.
 - Unit tests: `Ran 83 tests` `OK`.
 - Deviations: the grader fix above (one grader loosened, one added) instead of an agent edit. Six Opus runs instead of four: the first three agent runs counted as a grader-red, not an agent-red. Finding for the harness, not fixed here: every run leaves a `~/.claude/projects/-private-var-folders-…-cos-eval-<id>/` directory behind (chief-of-stuff's runs have left about eighty), and the baseline's memory writes land there because writes to the auto-memory directory do not prompt the host. Cost this stage: about $1.35 notional.
+
+### 2.2 done — 2026-09-17 17:20 CDT — case 2 review-before-modify
+
+- Files: `docs/review-page.md` (new, 471 lines: file and publish rules, the eight-section layout with 1, 6, 7, 8 fixed, the state encoding table, the facts rules, the stylesheet lifted whole from the page the architecture session published with `main`/`branch`/`design` renamed to `deployed`/`inflight`/`designed`, and an html skeleton); `evals/cases/review-before-modify/` (fixture copied from case 3 minus `reviews/`, `sessions.json`, `case.json`); `agents/frank-lloyd-aight.md` (new section "Review before modify", between Config and Judgment). `claude plugin validate .` passes. No harness change: `Ran 83 tests` `OK`.
+- Red (baseline arm, Opus, `evals/results/20260917-170532`):
+  ```
+  review-before-modify  arm=baseline  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.2951, 'denials': 0}
+    FAIL  T1: one page published  — 0 publish(es); want min 1, max 1
+    PASS  T1: page written under the review dir only  — no new files
+    PASS  T1: no edits  — 0 call(s) (0 denied); want min 0, max 0
+    PASS  T1: no writes outside reviews  — 0 call(s) (0 denied); want min 0, max 0
+    PASS  T1: canonical document untouched  — docs/ARCHITECTURE.md unchanged
+    PASS  T1: code untouched  — src/app/store.py unchanged
+    PASS  T1: no relay  — 0 call(s) match; want min 0, max 0
+    PASS  T1: no question back  — 0 call(s) (0 denied); want min 0, max 0
+    FAIL  T1: reply carries the url  — /board-1/ not found; want contains
+    FAIL  T1: reply lists sections by number  — /(?m)^\s*[*\-]?\s*\*{0,2}\d[.)]?\s+\S/ not found; want contains
+    PASS  T1: reply ends without a question  — /\?\s*$/ not found; want absent
+  => review-before-modify: RED
+  ```
+  What the baseline did: read every file, then wrote a markdown analysis into the chat (headed "The artifacts", "The canonical doc disagrees with the code in five places") with the publish tool connected and unused. It found the same divergences the agent later put in section 6; it produced no artifact, no numbering, and nothing the user could point at by section.
+- Edit: the Review section. Read the spec from `${CLAUDE_PLUGIN_ROOT}/docs/review-page.md` first because the numbers do not move between reviews; establish the three states from the block and the checkout, an empty state stated as empty; gather facts with one Explore subagent per state or by reading, counts measured never estimated; check every fact against file:line, commit, or document section before it goes on the page; write to `<review dir>/<subject>-review.html` and publish by path, never html text; reply with the URL, the numbered section list, and the one sentence from section 6 that matters most, no recommendation and no question. A review changes nothing else.
+- Green (`evals/results/20260917-170638`, `--runs 3`):
+  ```
+  review-before-modify  arm=agent  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 1.3311, 'denials': 2}   11 of 11 PASS
+  review-before-modify  arm=agent  model=opus  run=2  {'turns_reached': 1, 'notional_usd': 1.1536, 'denials': 2}   11 of 11 PASS
+  review-before-modify  arm=agent  model=opus  run=3  {'turns_reached': 1, 'notional_usd': 1.31, 'denials': 3}     11 of 11 PASS
+    PASS  T1: one page published  — 1 publish(es), last board-1
+  => review-before-modify: GREEN
+  ```
+  Run 2's page: 646 lines, sections 1, 2, 3, 5, 6, 7, 8 (4 omitted, correctly: nothing is in flight in this fixture), 9 inline SVG figures, chips 6 deployed / 1 inflight / 4 designed / 8 hot, decisions 8.1 to 8.6, and a footer that says the commit could not be resolved because the fixture `.git` holds only a HEAD pointer — the honest form rather than an invented hash.
+- Unit tests: `Ran 83 tests` `OK`.
+- Deviations: two case defects, both found by the first agent run and both mine.
+  1. `"board": {}` is falsy, so `run_one` never started the publisher and no arm could publish. Corrected to `{"url": null}`, the chief-of-stuff convention for a first publish, and the baseline was rerun from scratch so its red is against a working publisher. The earlier unfair baseline is `20260917-165750`.
+  2. The section-list pattern demanded punctuation after the number and rejected a bare `1 Three states of the code`. Loosened to accept a bare number, a bullet, or bold.
+  The first agent run (`20260917-165930`) did the whole move correctly and failed only on the absent publisher; it is the red for defect 1, not an agent red. Cost this stage: about $5.50 notional over six Opus runs.

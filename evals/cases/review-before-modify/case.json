@@ -1,0 +1,94 @@
+{
+  "tz": "America/Chicago",
+  "description": "Robin asks for a review of the existing architecture before discussing changes. One page is published per the review page spec (numbered sections, state chips, section 6 delta table, section 8 decisions, sources footer), written under the review dir only; nothing else changes, nobody is messaged, no recommendation and no question.",
+  "prompt": "Review the existing architecture using artifacts and I will start discussing modifications.",
+  "board": {
+    "url": null
+  },
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one page published",
+      "type": "published",
+      "min": 1,
+      "max": 1,
+      "content_match": [
+        "<section id=\"s1\"",
+        "<section id=\"s6\"",
+        "<section id=\"s8\"",
+        "class=\"num\">1<",
+        "class=\"num\">6<",
+        "class=\"chip deployed\"",
+        "class=\"chip designed\"",
+        "class=\"tag\">6\\.1<",
+        "class=\"did\">8\\.1<",
+        "<footer",
+        "store\\.py",
+        "ARCHITECTURE\\.md"
+      ],
+      "content_not_match": [
+        "(?i)recommend"
+      ]
+    },
+    {
+      "name": "page written under the review dir only",
+      "type": "no_new_files",
+      "except": [
+        "reviews/**"
+      ]
+    },
+    {
+      "name": "no edits",
+      "type": "tool_used",
+      "tool": "Edit",
+      "max": 0
+    },
+    {
+      "name": "no writes outside reviews",
+      "type": "tool_used",
+      "tool": "Write",
+      "input_match": "\"file_path\":\\s*\"(?![^\"]*/reviews/)",
+      "max": 0
+    },
+    {
+      "name": "canonical document untouched",
+      "type": "file_unchanged",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "name": "code untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "no relay",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "reply carries the url",
+      "type": "regex",
+      "pattern": "board-1"
+    },
+    {
+      "name": "reply lists sections by number",
+      "type": "regex",
+      "pattern": "(?m)^\\s*[*\\-]?\\s*\\*{0,2}\\d[.)]?\\s+\\S"
+    },
+    {
+      "name": "reply ends without a question",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    }
+  ],
+  "max_turns": 40,
+  "timeout_seconds": 900
+}
