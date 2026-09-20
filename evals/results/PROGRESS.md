@@ -504,8 +504,79 @@ Three case defects, all mine, none an agent defect.
 
 I called `file_unchanged ARCHITECTURE.md` "the sharpest grader" twice, in the plan and again in the stage, before either run measured it. It was a guard, and then a vacuous one. Naming a grader sharp before it has discriminated anything is a prediction, not a finding.
 
-Verification step 6 was run after the final grader change: both stored reds re-graded under the 14-grader set and both stayed red, 6 of 14 and 5 of 14. **13 of the 14 are genuinely re-gradable offline** — run snapshots exclude `.git` by design (bullet 0 of 3.1), so `committed` cannot be re-evaluated after the fact; it failed in the live red runs with `0 commit(s) matching`.
+Verification step 6 was run after the final grader change: both stored reds re-graded under the 14-grader set and both stayed red, 6 of 14 and 5 of 14. **All fourteen re-grade.** (Corrected in stage 3.2h: this paragraph first claimed thirteen, on the grounds that snapshots exclude `.git`. `fixture-before` has none because it is rendered before `init_repo`, but `fixture-turn1` — the directory `_committed` actually reads — keeps it. The throwaway re-grade script looked in the wrong directory and reported `case does not set "git": true`; the scores were right, the coverage claim was not.)
 
 **Tally across six stages: eleven reds-that-were-defects, eleven grader or case defects, zero agent defects.** Two of this stage's three are a shape not yet on the list — a grader whose sandbox makes it unfailable, and a whole-file guard standing in for a narrow property. Both pass silently when wrong, which makes them worse than the absence graders: a false pass is not read twice.
 
 Cost this stage: about $4.04 notional over nine Opus runs — four red, three green, two regression. `review-before-modify` is $1.26 of it.
+
+## Stage 3.2h — the arms measure discrimination (2026-09-19, 23:0x–23:5x CDT)
+
+Harness stage, numbered to sort after 3.2 and leave the agent-file roadmap where it is. Zach, after 3.2 merged: "let's try to improve the red agent / baseline arms."
+
+The arms are the instrument every stage's evidence comes from, and six stages had shown it blunt in three ways. **A grader could pass on both arms unnoticed** — 3.2's `file_unchanged ARCHITECTURE.md` passed on baseline and on agent because the sandbox denied writes to that path, so the edit it forbade was impossible. `main()` already had a case-level `NON-DISCRIMINATING (baseline passes)` check, but both arms were RED overall, so it said nothing; the vacuity was per-grader and invisible. **Comparing arms was manual** — two invocations, two results directories, read side by side, which is how that guard survived to be committed. **Baseline is not reliably the floor** — 3.1 measured the agent file at 6 of 11 where no agent file scored 10, and 3.2 went the other way at 6 against 5.
+
+Two calls taken in planning: two arms only, a prior-version arm deferred; and the audit records what it finds rather than fixing it, so the four existing green cases are untouched.
+
+### Bullet 0 — a stored run, re-gradable exactly
+
+`run_turns` now writes `meta.json` beside `stream.jsonl`: `git_base`, per-turn `t_start`/`t_end`/`host_denied`, a `fixture_digest`, and the `meta` dict that was previously printed to stdout and lost (which is why costing a stage meant grepping task-output files). Turn boundaries can be rebuilt from the stream by the existing `split_turns`, but their timestamps cannot, and `grade_turns` scopes mock calls to a turn by timestamp.
+
+`--regrade <run-dir>` rebuilds the turns and calls `grade_turns` against the case spec **as it stands now** — verification step 6, which had been a throwaway script every stage since 2.3. The spec is rendered against the run's own clock rather than today's, so a grader that ever templates `{{today}}` keeps meaning what it meant when the stream was captured. A changed fixture is refused by digest, because a stream captured against one fixture measures a different case than the one on disk now.
+
+The digest hashes the case's **source** fixture, not the rendered copy: rendering substitutes `{{today}}`, so a rendered tree would hash differently tomorrow for no reason that matters.
+
+Red, then green: `Ran 99 tests  FAILED (errors=8)` → `Ran 113 tests  OK`.
+
+### Bullet 1 — `--arm both`, and the per-grader table
+
+`--arm both` runs both arms under one stamp and prints a table keyed on the grader, with five verdicts the old output could not express: **discriminates** (baseline fails, agent passes — what a red-to-green stage buys), **vacuous** (both pass, so the grader proves nothing about the agent file), **regression** (baseline passes, the agent file does not — 3.1's finding, which existed only as prose), **unmet** (neither), and **flaky** (differs across runs of one arm, which is the property the green-×3 discipline exists to catch and previously detected only by a human reading three blocks of output). A regression fails the run; the rest are named and left to judgment, because a guard both arms pass is often deliberate.
+
+`--compare <baseline-dir> <agent-dir>` builds the same table from runs already on disk, so re-checking costs nothing.
+
+### The escape hatch the plan missed
+
+The plan asserted the audit would cost no Opus runs because every case had stored runs on both arms. It nearly didn't: **every stored run predates `meta.json`**, so `--regrade` correctly refused all of them, and bullet 2 would have cost a full baseline sweep.
+
+All five cases are single-turn, and for a single-turn run the reconstruction is exact — one turn holds every event and every logged call, so the boundaries `meta.json` would have carried do not matter. `--unverified` grades those, recovering `git_base` as the snapshot's root commit, and refuses anything multi-turn rather than guessing per-turn call scoping and mis-crediting calls silently.
+
+Verification against the real stored red, now harness code instead of a throwaway: `--regrade` of `20260919-223700/.../agent/1` gives **6 of 14, RED**, with `the record is committed` failing as `0 commit(s) matching …` — the number the throwaway produced, for the right reason this time.
+
+### Bullet 2 — the audit
+
+Newest stored baseline against newest stored agent run, per case, re-graded under today's graders. **Twenty of sixty graders discriminate.**
+
+| case | discriminates | vacuous |
+|---|---|---|
+| `compliance-is-filed-to-the-builder` | 9 | 5 |
+| `judgment-not-survey` | 6 | 6 |
+| `review-before-modify` | 3 | 8 |
+| `fix-drift-dont-hand-it-back` | 1 | 10 |
+| `no-claim-without-assignment` | 1 | 11 |
+| **total** | **20** | **40** |
+
+That number needs two qualifications before anyone acts on it, and both cut against alarm.
+
+**Most of the forty are guards.** Roughly 28 of them assert that something did *not* happen — no edits, no new files, no relay, code untouched, no question at the end. A guard passing on baseline is expected: its job is to catch a regression in the agent file, not to separate the arms. Calling it vacuous is the framework's word, not a defect.
+
+**The remaining dozen are positive claims that pass without the agent file** — `the store is described as it is built`, `the reply names the document`, `reasons cite a file and line or a section`, `under 25 lines`, `the reply is short`, `one reply, to the coordinator`. These are things Claude does by default. They are not worthless, but they are not evidence for the sections they sit under.
+
+**And the two weakest cases are weak by construction.** `fix-drift-dont-hand-it-back` discriminates on one grader — the commit — because its red was measured against the *old agent file*, not baseline; that case exists to prevent a regression, and against the file it replaced it discriminated five ways. A two-arm table cannot express "discriminates against the previous agent file", which is the strongest empirical argument yet for the deferred `--arm prior=<ref>`. `no-claim-without-assignment` is the same shape: it is a standing guard, and it has been green since 2.2.
+
+Provenance: three of the five baselines date from 2026-09-17 and were graded `--unverified`, so their fixtures are not digest-checked against today's. The direction is solid; the exact per-case counts for `judgment-not-survey`, `no-claim-without-assignment` and `review-before-modify` are not. Every run from this stage onward carries a digest and needs no such caveat.
+
+Nothing in the four existing green cases was edited, per Zach's call.
+
+### Verification
+
+`Ran 113 tests  OK`. `claude plugin validate .` passes. `--regrade` of the stored red gives 6 of 14 RED; `--regrade` of a run carrying a digest gives 14 of 14 GREEN with no flag, exercising the verified path end to end.
+
+`--arm both --case 'compliance-is-filed-to-the-builder'` ran both arms live and printed **9 discriminates, 5 vacuous** — the same graders, in the same verdicts, as `--compare` produced from runs already on disk. The offline path and the live path agree, which is the property that makes the audit's numbers worth anything.
+
+### Deviations
+
+One, and it is mine: the plan claimed the audit would cost nothing because both arms had stored runs, without checking that those runs carried the metadata the new code requires. They did not. The recovery — `--unverified`, exact for single-turn and refused otherwise — is better than the blanket re-run it replaced, but the plan asserted a property of data it had not inspected. That is the same mistake as calling a grader "the sharpest" before measuring it, one stage later.
+
+Second deviation, smaller and more embarrassing: a smoke check of `--arm agent` with **no `--case` glob** starts the entire suite on Opus. It was killed after one complete run and one partial, $0.35 spent. The partial run directory mattered more than the money — the audit picks the newest stored run per case, so a half-finished one would have silently become the reference. It was removed; the complete run was kept, and being the only stored run with a digest, it verified the digest-checked `--regrade` path. The footgun is now named in the runner's usage block.
+
+Cost this stage: **$1.10 in Opus**, none of it planned. Bullets 0 and 1 are unit-tested harness code and the audit ran entirely off stored runs; the spend is $0.35 of accident and $0.75 of proving the `--arm both` wiring end to end.
