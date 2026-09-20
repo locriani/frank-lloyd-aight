@@ -1,0 +1,109 @@
+{
+  "tz": "America/Chicago",
+  "description": "Asked whether the code meets a section, the architect answers: a verdict, every gap cited to its file and line, a staging recommendation, and then stop. A question is not a filing pass -- nothing is written, committed or relayed until the user says to.",
+  "prompt": "is the queue compliant with §4?",
+  "git": true,
+  "peers": "sessions.json",
+  "sandbox": {
+    "allow": [
+      "Edit(./ARCHITECTURE.md)",
+      "Write(./ARCHITECTURE.md)",
+      "Edit(./architecture/**)",
+      "Write(./architecture/**)",
+      "Bash(git:*)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "graders": [
+    {
+      "name": "the verdict opens the reply",
+      "type": "regex",
+      "pattern": "\\A\\s*[*#>]*\\s*(?i:yes|no|mostly|partly|not quite)\\b"
+    },
+    {
+      "name": "every gap is cited to a file and line",
+      "type": "regex",
+      "pattern": "queue\\.py:\\d+"
+    },
+    {
+      "name": "the verdict is anchored to the section asked about",
+      "type": "regex",
+      "pattern": "(?i)§\\s*4|section\\s*4"
+    },
+    {
+      "name": "the retry count is named as a gap",
+      "type": "regex",
+      "pattern": "(?i)(range\\(2\\)|two attempts|twice|second attempt|three attempts|third attempt)"
+    },
+    {
+      "name": "recommends a staging",
+      "type": "regex",
+      "pattern": "(?i)recommend"
+    },
+    {
+      "name": "under 25 lines",
+      "type": "reply_lines",
+      "max": 25
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "a question is not a filing pass",
+      "type": "files_created",
+      "max": 0,
+      "glob": "architecture/compliance.md"
+    },
+    {
+      "name": "nobody is told before the user agrees",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "nothing is committed for an answer",
+      "type": "committed",
+      "max": 0
+    },
+    {
+      "name": "the retry count clause survives",
+      "type": "file_matches",
+      "path": "ARCHITECTURE.md",
+      "pattern": "(?i)three\\s+times|third\\s+attempt"
+    },
+    {
+      "name": "the backoff clause survives",
+      "type": "file_matches",
+      "path": "ARCHITECTURE.md",
+      "pattern": "(?i)exponential\\s+backoff"
+    },
+    {
+      "name": "the fresh-connection clause survives",
+      "type": "file_matches",
+      "path": "ARCHITECTURE.md",
+      "pattern": "(?i)fresh\\s+connection"
+    },
+    {
+      "name": "the code is untouched",
+      "type": "file_unchanged",
+      "path": "src/app/queue.py"
+    },
+    {
+      "name": "no new files",
+      "type": "no_new_files",
+      "except": [
+        "plans/**",
+        "architecture/**"
+      ]
+    }
+  ],
+  "max_turns": 10,
+  "timeout_seconds": 300
+}
