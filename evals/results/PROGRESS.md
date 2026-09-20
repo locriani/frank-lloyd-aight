@@ -580,3 +580,74 @@ One, and it is mine: the plan claimed the audit would cost nothing because both 
 Second deviation, smaller and more embarrassing: a smoke check of `--arm agent` with **no `--case` glob** starts the entire suite on Opus. It was killed after one complete run and one partial, $0.35 spent. The partial run directory mattered more than the money — the audit picks the newest stored run per case, so a half-finished one would have silently become the reference. It was removed; the complete run was kept, and being the only stored run with a digest, it verified the digest-checked `--regrade` path. The footgun is now named in the runner's usage block.
 
 Cost this stage: **$1.10 in Opus**, none of it planned. Bullets 0 and 1 are unit-tested harness code and the audit ran entirely off stored runs; the spend is $0.35 of accident and $0.75 of proving the `--arm both` wiring end to end.
+
+## Stage 3.3 — the compliance verdict on request (2026-09-20, 01:1x–01:3x CDT)
+
+Job four of the charter produces three things. 3.2 built the first, the record filed to the builder. This is the second: a verdict when the user asks for one. The third, the compliance section on the review page, is 3.4.
+
+3.2 left a seam. Its `## Grading compliance` section says a compliance defect is a fact, the record is written and committed, and both owners are told — without distinguishing *being told to grade* from *being asked a question*. "Grade the code against the architecture" and "is the queue compliant with §4?" are different requests, and the section answered both the same way.
+
+Zach's two calls: **answer only** — name every gap with `file:line` so nothing is lost, then stop — and **one turn**, leaving what happens after he agrees to a later stage.
+
+### The prediction, written down before the run
+
+`--arm both` should show a **regression**, not a plain red: baseline has never been told to file anything, so it answers and writes nothing, while 0.5.1 has a section telling it to record and relay. If that held, the guards would come back `regression` — the verdict 3.2h added and had never had a real case to print.
+
+It held, on every one.
+
+### Bullet 1 — the case, and the red
+
+`evals/cases/compliance-verdict-on-request/`, fixture identical in shape to 3.2's: `ARCHITECTURE.md` accurate as a specification, `queue.py` violating §4 three ways, `sessions.json` with both peers, `"git": true`. Prompt: `"is the queue compliant with §4?"`
+
+**The sandbox permits exactly what the case forbids** — writes to `ARCHITECTURE.md` and `architecture/**`, and `Bash(git:*)`, the same `allow` block as 3.2. This is the 3.2 defect and the reason 3.2h exists: a guard whose action the sandbox denies cannot fail, passes on both arms, and proves nothing. Not filing had to be the agent's choice, not the runner's.
+
+```
+  grader                                                  baseline  agent     verdict
+  T1: recommends a staging                                FAIL      PASS      discriminates
+  T1: a question is not a filing pass                     PASS      FAIL      regression
+  T1: nobody is told before the user agrees               PASS      FAIL      regression
+  T1: nothing is committed for an answer                  PASS      FAIL      regression
+  (eleven others)                                         PASS      PASS      vacuous
+=> compliance-verdict-on-request: RED  (1 discriminates, 3 regression, 11 vacuous)
+```
+
+The agent's verdict was, on its own terms, excellent — four gaps including one the fixture never planted, and "Adjustments: none to §4. The specification stands as written and the code is what is wrong." Then it filed all of it: `architecture/compliance.md`, committed as `Record §4 queue compliance gaps`, and relayed to both sessions. Asked a question, it ran a filing pass.
+
+**This is the first stage where the instrument did work no human would have done by hand.** The old output would have printed a plain RED on three guards and left the cause to be worked out — and the obvious reading, "the agent cannot do this yet", is exactly backwards. `regression` says the opposite: baseline does it right and 3.2's section taught the agent to do it wrong. A defect the previous stage introduced, named by the table without anyone having to suspect it first.
+
+### Bullet 2 — the paragraph, and the green
+
+One paragraph in `## Grading compliance`, placed second so the scope is read before the instructions:
+
+> Grading compliance is a pass you are told to run. "Grade the code against the architecture" asks for it; "is the queue compliant with §4?" does not. A question about compliance is a question, and it is answered the way questions are answered — the verdict, every gap cited to its file and line, one staging recommendation, and then stop (see Judgment). Write nothing, commit nothing and tell nobody until the user says to. Answering loses none of it: the gaps are in the reply, and the filing pass is one sentence away.
+
+Green (`evals/results/20260920-012723`, `--runs 3`): **15 of 15 in all three runs**, each re-graded independently afterwards with `--regrade` — digest-checked, no `--unverified`, which is 3.2h paying for itself two stages on.
+
+The reply now ends: *"Nothing written or relayed — say the word and I'll file these as rows in `architecture/compliance.md` and send them to `4200-impl` and `4100-coord`."* The boundary is stated to the user rather than merely observed, the same pattern as 3.2's messages carrying "not an instruction" in their own text.
+
+Answering is also cheaper than filing: $0.09–0.12 a run against $0.36 for the filing case.
+
+### Regression — both green
+
+```
+compliance-is-filed-to-the-builder  GREEN  14 of 14  (20260920-012850)
+judgment-not-survey                 GREEN  12 of 12  (20260920-012850)
+```
+
+The first was the real risk: narrowing *when* the agent files could have stopped it filing when told to. It did not. No grader was touched to get there.
+
+### What the vacuous column says about `## Judgment`
+
+Eleven of fifteen graders passed on both arms, and they are not all guards. Verdict on the first line, every gap cited to a file and line, the retry count named, under 25 lines, no question back — baseline does all of it unprompted. Only `recommends a staging` separated the arms.
+
+This reproduces the 3.2h audit on a case built after it, which is the stronger evidence: the audit compared runs of different vintages, this is one command on one fixture. **`## Judgment` defends less ground than its length implies.** Most of what it specifies, Claude already does; the part that earns its place is the recommendation, and possibly the prohibition on relaying, which no baseline run has yet been tempted to violate.
+
+That is not an argument for deleting the section — a default is not a guarantee, and the guards exist to catch the agent file breaking one, which is exactly what happened here to three of them. It is an argument for not citing those graders as evidence that the section works.
+
+### Deviations
+
+One, caught before it cost a run: `files_created` takes `glob`, not `pattern`. The case as first written used `pattern`, which the grader would have read as a missing key. Caught by checking the grader's own source against 3.2's working case rather than trusting the spelling from memory.
+
+Nothing else. **Twelve of twelve defects across seven stages were grader or case defects, none an agent defect** — though this stage is the first where the agent file itself carried a defect into a case, which the tally's phrasing does not capture: the agent behaved exactly as 0.5.1 instructed, and 0.5.1 was wrong.
+
+Cost this stage: about $1.55 notional over seven Opus runs — two red, three green, two regression.
