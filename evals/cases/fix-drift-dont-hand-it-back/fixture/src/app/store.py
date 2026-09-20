@@ -1,0 +1,16 @@
+"""Session store.
+
+Process-local by design: SESSIONS lives in this process's memory, is lost on restart, and is not
+shared between processes, so the app runs as one process only. There is no Redis client here and
+no configuration that would reach one.
+"""
+
+SESSIONS: dict[str, dict] = {}
+
+
+def get(session_id: str) -> dict | None:
+    return SESSIONS.get(session_id)
+
+
+def put(session_id: str, data: dict) -> None:
+    SESSIONS[session_id] = dict(data)
