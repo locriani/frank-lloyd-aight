@@ -438,3 +438,74 @@ After every grader change, the stored red was re-graded and stayed red — five 
 **The pattern from stage 2.3 is now much stronger than when it was written.** Across five stages, every red that turned out to be a defect was a grader or case defect and none was an agent defect — now eight to zero. Two grader shapes cause most of it: `no_new_files` and exact-string absence graders both fail on *any* difference rather than on the difference the case is about, so they punish an agent for doing something better than the case author predicted. Read the agent's actual output before editing the agent file, and prefer a grader that names the property over one that pins the bytes.
 
 Cost this stage: about $6.30 notional over twelve Opus runs — one red, one baseline, and ten across four green attempts.
+
+## Stage 3.2 — grading compliance, and `compliance-is-filed-to-the-builder` (2026-09-19, 22:3x–22:4x CDT)
+
+Job four of the charter. 3.1 gave the agent file sections for creating, maintaining and reviewing the documentation; grading compliance against it had none.
+
+Zach settled its shape before the stage: compliance grading produces defects filed to the implementer and the coordinator, a verdict on request, and a section on the review page — and is explicitly **not** a merge gate. The record is a separate `architecture/compliance.md`, so `ARCHITECTURE.md` stays a clean statement of what should be. This stage builds the first of the three; the verdict is 3.3 and the page section 3.4.
+
+The agent was already half-doing this unprompted — stage 3.1's runs twice produced a deviations record nobody asked for, once as `architecture/compliance.md` with severities and `file:line`. What it had never done is **relay**. The finding stayed in the worktree and reached nobody: hit-list item 3 in a different costume, a report written but not received.
+
+No harness work. 3.1 paid that cost — `peer_calls`, `mock_peers.py`, `"git": true`, the per-case `sandbox` and the `committed` grader all landed there and were reused unchanged. `Ran 91 tests` `OK`, unchanged across the stage.
+
+### Bullet 1 — the case, and the reds
+
+`evals/cases/compliance-is-filed-to-the-builder/`. The fixture deliberately isolates the new behaviour from 3.1's: `ARCHITECTURE.md` is **accurate as a description**, so there is no document drift to fix and 3.1's job cannot pass this case. The only finding available is code non-compliance — `src/app/queue.py` violating §4 three ways: `range(2)` against a specified three attempts, a flat `time.sleep(1)` against specified exponential backoff, and the connection opened above the retry loop so every attempt reuses one socket. Prompt: `"grade the code against the architecture."` 14 graders, `"git": true`, `sessions.json` with `4100-coord` and `4200-impl`.
+
+**Both arms were red, and baseline was the lower of the two.** The plan predicted baseline would be the red, on the reasoning that compliance filing is a *new* capability rather than one the agent file suppressed. That held, and more strongly than expected: neither arm produced the record or the relay.
+
+```
+arm=agent     (20260919-223700, re-graded under the final grader set)   6 of 14
+arm=baseline  (20260919-223705, re-graded under the final grader set)   5 of 14
+```
+
+Eight shared failures — four on the record (`architecture/compliance.md` absent, so its content graders fail with it), three on relay (neither the implementer nor the coordinator told anything), one on the commit. Baseline loses a ninth to `no new files outside the architecture directory`: it graded the code correctly and wrote the result to `reviews/2026-09-19-code-vs-architecture.md`, a file nobody asked for and nobody would look in. That is the failure the stage exists to fix, in its purest form — the work was done and it reached no one.
+
+### Bullet 2 — the section, and the green
+
+New `## Grading compliance` in `agents/frank-lloyd-aight.md`, between `## The documentation is yours to fix` and `## Report in` — the fourth job, placed with the other ownership work. Four paragraphs: what grading compliance is and that **the specification is the fixed point, never edited to match the code** ("that is laundering the defect, and it is how a project quietly stops having a source of truth"); the record's shape and that it is committed ("a row that cites no file and line is an opinion, and a row with no owner is not filed"); the relay ("a fact goes to the people who can act on it… a finding that reaches nobody is not filed, however good the file is"); and the boundary — **a decision is not a fact**, nothing relayed before the user agrees, and during a review you still message nobody.
+
+Green (`evals/results/20260919-224011`, `--runs 3`), **14 of 14 in all three runs, 42 passes and 0 failures**, with the same commit subject each time:
+
+```
+compliance-is-filed-to-the-builder  arm=agent  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.365, 'denials': 1}
+  PASS  T1: the retry count is not weakened to match the code … PASS  T1: no new files outside the architecture directory  (14 of 14)
+  PASS  T1: the record is committed  — 1 commit(s): ['Record compliance grading of code against ARCHITECTURE.md']
+  PASS  T1: the implementer is told     — 1 call(s) match
+  PASS  T1: the coordinator is told     — 1 call(s) match
+=> compliance-is-filed-to-the-builder: GREEN
+```
+
+Two things in the output are worth keeping, because neither was graded for.
+
+**The fact/decision line appears inside the messages.** To the implementer: *"Note on sequencing, not an instruction: C-1 restructures the loop that C-2 and C-3 live in, so doing it first makes the other three small. Robin has the grading and may direct otherwise."* To the coordinator: *"that is an observation for the tracker, not a scheduling decision."* The section's boundary is not merely obeyed, it is stated to the recipient.
+
+**A `## Conforming` section nobody specified.** The record lists §1, §2, §3 and §5 as checked and in agreement, "recorded so a later grading knows these were examined" — the difference between a section that passed and a section nobody looked at. Worth folding into 3.3 or 3.4 rather than leaving to chance.
+
+### Regression — required, and it held
+
+The section adds "relay compliance defects" to a file containing two green cases that forbid peer messages, and `review-before-modify`'s fixture is *full* of drift — its §6 is the delta table — so it was the plausible casualty.
+
+```
+judgment-not-survey   GREEN  12 of 12   (20260919-224237)   no relay before Robin agrees — 0 call(s)
+review-before-modify  GREEN  11 of 11   (20260919-224330)   no relay — 0 call(s)
+```
+
+Neither regressed. The scoping paragraph is doing its work, and no grader was touched to get there.
+
+### Deviations
+
+Three case defects, all mine, none an agent defect.
+
+1. **A specification clause the fixture code did not honour.** §2 asserted return semantics that the unguarded `socket.create_connection` cannot deliver. I removed the claim from §2 during authoring. The agent found the defect anyway — from §4's "reports failure", the `-> bool` signature and the caller at `api.py:16` — and filed it as **C-4** in every green run. The case plants three violations; the agent files four, consistently. Editing the fixture spec around an inconvenience is legitimate case authoring, but it is worth recording that the thing I wrote around was real and got caught from the other direction.
+2. **A guard that could not fail.** `file_unchanged ARCHITECTURE.md` was the case's sharpest-looking grader, and for the first pair of runs (`20260919-223415`, `-223420`) it passed on both arms because the sandbox denied `Edit`/`Write` on that path — the edit it forbids was impossible. A guard that cannot fail measures nothing and, worse, reads as a pass. Fixed by allowing the writes the case is about.
+3. **Then it failed for the wrong reason.** With the writes allowed, the agent failed the guard by making *correct* §1 and §5 corrections — my fixture claimed the API sat "behind an HTTP front" that the code does not show. `file_unchanged` punishes any edit, including a right one, while the property the case actually cares about is narrower: §4's clauses must survive. Replaced with three `file_matches` graders on the three clauses (`three\s+times|third\s+attempt`, `exponential\s+backoff`, `fresh\s+connection`), and the false line removed from the fixture. This is the same correction shape as 3.1's sixth deviation: change the grader's *question*, not its tolerance.
+
+I called `file_unchanged ARCHITECTURE.md` "the sharpest grader" twice, in the plan and again in the stage, before either run measured it. It was a guard, and then a vacuous one. Naming a grader sharp before it has discriminated anything is a prediction, not a finding.
+
+Verification step 6 was run after the final grader change: both stored reds re-graded under the 14-grader set and both stayed red, 6 of 14 and 5 of 14. **13 of the 14 are genuinely re-gradable offline** — run snapshots exclude `.git` by design (bullet 0 of 3.1), so `committed` cannot be re-evaluated after the fact; it failed in the live red runs with `0 commit(s) matching`.
+
+**Tally across six stages: eleven reds-that-were-defects, eleven grader or case defects, zero agent defects.** Two of this stage's three are a shape not yet on the list — a grader whose sandbox makes it unfailable, and a whole-file guard standing in for a narrow property. Both pass silently when wrong, which makes them worse than the absence graders: a false pass is not read twice.
+
+Cost this stage: about $4.04 notional over nine Opus runs — four red, three green, two regression. `review-before-modify` is $1.26 of it.
