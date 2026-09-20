@@ -651,3 +651,77 @@ One, caught before it cost a run: `files_created` takes `glob`, not `pattern`. T
 Nothing else. **Twelve of twelve defects across seven stages were grader or case defects, none an agent defect** — though this stage is the first where the agent file itself carried a defect into a case, which the tally's phrasing does not capture: the agent behaved exactly as 0.5.1 instructed, and 0.5.1 was wrong.
 
 Cost this stage: about $1.55 notional over seven Opus runs — two red, three green, two regression.
+
+## Stage 3.4 — the compliance section on the review page (2026-09-20, 03:0x–03:5x CDT)
+
+The last of the three things job four produces. 3.2 built the record filed to the builder, 3.3 the verdict on request, and this is the page: when the architect publishes a review, it says where the code departs from the specification.
+
+Section 6, "Where they disagree", was the nearest thing and it is not the same thing — its last column is *What it decides*, which frames a disagreement as something the user settles. A compliance gap is not open in that sense; the specification is the fixed point and the code is wrong. Putting gaps in section 6 renders a defect as a decision.
+
+Zach's two calls: a **new fixed section 9**, since 1, 6, 7 and 8 are fixed and appending moves none of them; and **no owner or status on the page**, because those are tracker state that goes stale the moment someone picks the work up, and a published page cannot be corrected afterwards.
+
+### The case: `review-before-modify` extended, not duplicated
+
+Its fixture already held both kinds of disagreement, which is exactly what section 9 has to separate — §4 and §5 are the code departing from the document, §3 is the document having gone stale. A second review case would have cost about $5 for a fixture that duplicates this one.
+
+Adding graders to a green case is a **tightening**, the opposite of the move 3.2h warned about. The new work went in a *separate* `published` grader rather than being appended to the existing one's `content_match`, so a failure names itself instead of hiding inside "one page published" — stage 3.1's deviation about one grader carrying two failures, applied in advance.
+
+### The red
+
+```
+review-before-modify  arm=agent  model=opus  run=1  {'notional_usd': 1.3497}
+  PASS  (all eleven existing graders)
+  FAIL  T1: the page carries the compliance section
+        /<section id="s9"/ not in page; /class="num">9</ not in page;
+        /class="tag">9\.1</ not in page; /href="#s9"/ not in page
+=> review-before-modify: RED
+```
+
+The shape a tightening should have: every existing grader still passing, the new one failing on exactly the four structural markers. `queue\.py:\d+` was not among them — the page already cited file and line, only the section was missing.
+
+**The baseline column was not measured, and that is a deviation from the approved plan.** The plan said take it from the stored run and re-run fresh if anomalous. It was anomalous: the stored baseline published nothing at all, so the new grader fails it for having no page rather than for lacking section 9. A fresh run would most likely reproduce exactly that, and the 3.2h audit had already measured baseline on this case at 3 discriminates, 8 vacuous. I chose not to spend $1.26 to re-learn it. The stage's evidence rests on the agent-arm red; the baseline column here is uninformative rather than measured.
+
+### Bullets 1 and 2 — the section, and the pass that fills it
+
+`docs/review-page.md`: section 9 in the layout, the Sections table, the fixed-numbers sentence, the nav skeleton, a section skeleton, and the reply rule. Severity reuses the existing encoding (`chip hot` for a gap that breaks what the section exists to guarantee, plain text otherwise) because the stylesheet is fixed and the spec says not to restyle. Always present: with nothing to report it reads "No gaps".
+
+The rule that matters went in Facts, beside the page's other rules: **section 9 carries code defects only.** A document that has gone stale — describing what was built once, or planned and never built — is not a compliance gap; it belongs in section 6, and in section 8 if it needs settling. Saying "the code is wrong" about a stale document launders the defect in the other direction.
+
+`agents/frank-lloyd-aight.md`, `## Review before modify`: a fourth step grading the code against the canonical document as part of the review, every gap cited to its file and line, into section 9 and nowhere else — "a review files nothing and tells nobody, because the page is the report".
+
+### What the agent produced
+
+A seven-row section 9: §4's retry count, backoff, connection lifecycle and failure reporting; §5's legacy worker; and **§2's delivery confirmation, which the fixture never planted** — `publish` returns `True` straight after `sendall`, so a successful return means only that bytes entered a socket buffer. Every row cited to `file:line`, severity assigned, specified against built.
+
+### Two case defects, one of them twice
+
+**The fixture did not settle the question the grader adjudicated.** §3 says sessions are held in Redis and calls the dict a development fallback; `store.py`'s docstring calls the dict deliberate and `architecture/flow.md` draws it as the store. From the artifacts alone you cannot tell whether Redis is *intended but unbuilt* (the code is behind) or *abandoned* (the document is stale). The plan asserted the second; the fixture never said so. Two of three runs filed §3 as a section 9 row, one did not — the signature of an undetermined question. Fixed in the fixture, not the grader: `flow.md` now records "Redis was considered for the session store and dropped on 2026-09-10: one process is enough at this size."
+
+**Then the grader fired on the agent getting it right.** With the fixture determinate, all three runs excluded §3 — and said why, inside section 9:
+
+> §3 is not in this table: `flow.md:5` records a dated decision to drop Redis and `store.py:3` calls the in-memory dict deliberate, which makes §3 a document that went stale rather than code that disobeyed it, so it sits at 6.1 and 8.
+
+`content_not_match` on `<section id="s9"[\s\S]*(?i:redis)` matched that sentence. **This is stage 3.1's sixth deviation exactly repeated** — an absence grader firing on the agent's record of the correct decision — and the fix was the same one: change the grader's question, not its tolerance. It now asks whether §3 is filed *as a row*, `class="tag">9\.\d+</span>\s*(?:§|section\s*)\s*3\b`, which is the property the rule is about.
+
+The retargeted grader was checked on both sides against stored pages: it matches the two pages that filed §3 as row 9.1, and matches none of the three that excluded it with a reason. A loosening that stopped catching the failure would have been worthless.
+
+### Green, and what the harness saved
+
+**12 of 12 in all three runs** (`evals/results/20260920-032936`), established by `--regrade` of three real Opus runs under the final grader set, at no additional cost. The 3.2h tooling paid for itself twice in one stage: the re-grade turned a $4.20 re-run into nothing, and the **fixture digest refused** the earlier runs outright when I tried to use them as a control, because the fixture had changed underneath them. That refusal was correct and I had not thought to check for it.
+
+The red was deliberately not re-measured after the fixture change: it failed because no `<section id="s9"` existed anywhere, and a design note in `flow.md` cannot change that.
+
+### Regression — both green
+
+```
+compliance-is-filed-to-the-builder  GREEN   still files when told to
+compliance-verdict-on-request       GREEN   still answers without filing
+```
+
+Three sections now reference the same grading behaviour with three different scopes — file it when told, answer it when asked, put it in section 9 during a review — and all three hold at once. The review case's own `no_new_files except reviews/**` and `peer_calls send max 0` are what keep the new grading step from turning a review into a filing run, and both passed in every green run.
+
+### Deviations
+
+Three: the unmeasured baseline column, the underdetermined fixture, and the absence grader that fired on the correct answer. **Fifteen of fifteen defects across eight stages were grader or case defects, none an agent defect.** The absence-grader family has now caused four of the fifteen, which is the strongest recurring signal in this record: a grader that asserts a string is missing will eventually fire on the agent explaining why it is missing.
+
+Cost this stage: about **$10.05** over eight Opus runs, against a $5.60 estimate. The overrun is two full green attempts at roughly $4 each, the first spent on an ambiguity the plan introduced. Reviews are the expensive case at about $1.35 a run, and a stage that needs two green attempts on one costs double what it looks like.
