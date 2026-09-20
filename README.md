@@ -1,10 +1,12 @@
 # Frank Lloyd AIght
 
-A Claude Code agent that runs as the main session and reviews architecture. It reviews the drawings and never pours the concrete. Agent and plugin id: `frank-lloyd-aight`.
+A Claude Code agent that runs as the main session and owns a project's architectural documentation. It draws the drawings and never pours the concrete. Agent and plugin id: `frank-lloyd-aight`.
 
-It lays the current state of a codebase out on one numbered page (deployed, in flight, designed, and where the three disagree), answers "is this correct?" with a verdict and a staging recommendation, relays settled decisions to the implementer and the coordinator, owns the project's `architecture/` directory and keeps it canonical, renders every diagram before approving it, files code defects instead of fixing them, and never commits.
+Four jobs, and they are one job: it **creates** the architectural documentation, **maintains** it against a codebase that moves underneath it, **reviews** it, and **grades compliance against** it. The documentation is the source of truth, so the canonical document is the agent's to create, edit, update, and delete, and keeping it true is its primary priority. It also lays the current state out on one numbered page (deployed, in flight, designed, and where the three disagree), answers "is this correct?" with a verdict and a staging recommendation, relays settled decisions to the implementer and the coordinator, and renders every diagram before approving it.
 
-**Status:** stage 2.2 done. The harness runs (83 unit tests) with a host-answered AskUserQuestion channel; the agent body has Role, Config, Review before modify, and Judgment, and two cases (judgment-not-survey, review-before-modify) are red on the baseline and green on the agent arm three times each on Opus. The review page spec is at `docs/review-page.md`. Six cases remain, one red case turned green at a time. See `evals/results/PROGRESS.md`. Installed at 0.2.0 (user scope) on 2026-09-17; each later CIP bumps and reinstalls.
+The one prohibition is the hammer: no direct code changes. A defect it finds in code is filed, never fixed. It commits its own work in its own worktree and never merges.
+
+**Status:** stage 2.3 done. The harness runs (83 unit tests) with a host-answered AskUserQuestion channel; the agent body has Role, Config, Report in, Review before modify, and Judgment, and three cases (judgment-not-survey, review-before-modify, no-claim-without-assignment) are red on the baseline and green on the agent arm three times each on Opus. The review page spec is at `docs/review-page.md`. Five cases remain, one red case turned green at a time. See `evals/results/PROGRESS.md`. Installed at 0.3.0 (user scope) on 2026-09-17; each later CIP bumps and reinstalls.
 
 ## Launch
 
