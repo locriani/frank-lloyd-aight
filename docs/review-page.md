@@ -18,13 +18,13 @@ div.shell
   main
     header.top         div.eyebrow (what is reviewed · what is out of scope), h1 (subject), p.lede (one sentence naming the three states and where each lives)
     div.legend         printed once: one row per encoding, a 74x30 svg swatch beside <b>name</b> · meaning
-    section#s1 … section#s8
+    section#s1 … section#s9
     footer.src-list    every commit, branch, worktree, and document the page was built from, and the clock time it was built
 ```
 
 ## Sections
 
-Every section is `<section id="sN">` with `<h2><span class="num">N</span>Title</h2>`. A section that shows one state carries that state's chip in its h2. The numbers 1, 6, 7, and 8 are fixed, because the user points at them across reviews; 2 to 5 are the subject's own views, in this order, as many as the subject has (a missing one is left out and the numbering of 6 to 8 does not move).
+Every section is `<section id="sN">` with `<h2><span class="num">N</span>Title</h2>`. A section that shows one state carries that state's chip in its h2. The numbers 1, 6, 7, 8, and 9 are fixed, because the user points at them across reviews; 2 to 5 are the subject's own views, in this order, as many as the subject has (a missing one is left out and the numbering of 6 to 9 does not move).
 
 | # | Title | Body |
 |---|---|---|
@@ -36,6 +36,7 @@ Every section is `<section id="sN">` with `<h2><span class="num">N</span>Title</
 | 6 | Where they disagree | `div.table-wrap > table`: columns Topic, one per state present (header text plus its chip), What it decides. Rows: `<th scope="row"><span class="tag">6.N</span>Topic</th>`, one `td` per state, last cell `td.why` with one sentence. |
 | 7 | Migration roadmap | `div.table-wrap > table.roadmap`: #, step, status (a chip: `done`, `inflight`, `designed`, or `hot` for waiting on a decision), green when. |
 | 8 | Open decisions | `ol.decisions` of `li`: `<span class="did">8.N</span>`, `<div><h4>title</h4><p>one paragraph: the choice, what each side costs</p><div class="src">where it comes from: 6.N, a file, a document section</div></div>`. Every undecided row of section 6 appears here. |
+| 9 | Where the code departs from the specification | `div.table-wrap > table`: columns #, Section, Severity, Specified, Built, Where. Rows `<th scope="row"><span class="tag">9.N</span>§M</th>`, then the severity as `<span class="chip hot">high</span>` for a gap that breaks what the section exists to guarantee and plain text otherwise, one sentence of what the document specifies, one of what the code does, and `file:line`. Always present: with nothing to report it reads "No gaps: every section of the specification is met by the code as built." |
 
 Figures: `figure > div.fig-scroll > svg` with `role="img"`, an `aria-label` that says in one sentence what the figure shows, and a `viewBox` around 960 wide. `figcaption` opens with the state chip, then `chip hot` when anything is marked, then one sentence of what is not drawn. Arrowheads come from one `<marker>` per figure; text that crosses a line gets `class="halo"`.
 
@@ -63,10 +64,11 @@ A node is a noun; a verb goes on the edge label. A figure never mixes states wit
 - Counts are measured (`wc -l`, `git log --oneline | wc -l`, the test runner's own summary), never estimated. A count that was not measured is left out.
 - Nothing on the page is a recommendation. The page is the shared reference; verdicts come when the user asks by number. The words "recommend" and "should" do not appear on it.
 - A design document that contradicts itself gets both readings in section 6 and a row in section 8.
+- Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect.
 
 ## The reply after publishing
 
-The URL on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most. No recommendation, no question. The user reads, then discusses by number.
+The URL on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). No recommendation, no question. The user reads, then discusses by number.
 
 ## Stylesheet
 
@@ -404,6 +406,7 @@ html { scroll-behavior: smooth; }
       <li><a href="#s6"><span>6</span>Where they disagree</a></li>
       <li><a href="#s7"><span>7</span>Migration roadmap</a></li>
       <li><a href="#s8"><span>8</span>Open decisions</a></li>
+      <li><a href="#s9"><span>9</span>Where the code departs from the specification</a></li>
     </ol>
   </nav>
   <main>
@@ -463,6 +466,15 @@ html { scroll-behavior: smooth; }
       <ol class="decisions">
         <li><span class="did">8.1</span><div><h4>TITLE</h4><p>THE CHOICE AND WHAT EACH SIDE COSTS</p><div class="src">6.1 · FILE:LINE · DOCUMENT §N</div></div></li>
       </ol>
+    </section>
+
+    <section id="s9">
+      <h2><span class="num">9</span>Where the code departs from the specification</h2>
+      <div class="prose"><p>ONE SENTENCE: which document was graded against, and at which commit.</p></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th scope="col">#</th><th scope="col">Section</th><th scope="col">Severity</th><th scope="col">Specified</th><th scope="col">Built</th><th scope="col">Where</th></tr></thead>
+        <tbody><tr><th scope="row"><span class="tag">9.1</span>§N</th><td>TOPIC</td><td><span class="chip hot">high</span></td><td>WHAT THE DOCUMENT SAYS</td><td>WHAT THE CODE DOES</td><td><code>FILE:LINE</code></td></tr></tbody>
+      </table></div>
     </section>
 
     <footer class="src-list">Built DATE HH:MM TZ from: COMMIT on BRANCH; WORKTREE at COMMIT; DOCUMENTS.</footer>

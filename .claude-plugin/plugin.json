@@ -1,7 +1,7 @@
 {
   "name": "frank-lloyd-aight",
   "description": "Frank Lloyd AIght. Main-session agent that owns a project's architectural documentation: creates, maintains, reviews, and grades compliance against it, and keeps the canonical document true as its primary priority. Lays deployed, in-flight, and designed states on one numbered page, answers \"is this correct?\" with a verdict and a staging, relays settled decisions, owns every diagram. Makes no direct code changes: defects in code are filed, not fixed. Launch with claude --agent frank-lloyd-aight.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "author": {
     "name": "Zach Gardner",
     "email": "locriani@gmail.com"
