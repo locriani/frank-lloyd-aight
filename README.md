@@ -31,7 +31,20 @@ claude plugin install frank-lloyd-aight@frank-lloyd-aight
 cd evals && python3 -m unittest
 python3 evals/run.py --arm baseline --model opus --case '<glob>'
 python3 evals/run.py --arm agent --model opus --case '<glob>' --runs 3
+python3 evals/run.py --arm both --model opus --case '<glob>'      # both arms, one stamp, and a per-grader table
+python3 evals/run.py --regrade <run-dir>                          # re-grade a stored run under today's graders
+python3 evals/run.py --compare <baseline-dir> <agent-dir>         # the same table from runs already on disk
 ```
+
+`--arm both` says, per grader, what it proves: **discriminates** (baseline fails, agent passes — what a
+red-to-green stage buys), **vacuous** (both pass, so the grader proves nothing about the agent file),
+**regression** (baseline passes, the agent file does not — a capability the file suppressed),
+**unmet** (neither), **flaky** (differs across runs of one arm). A regression fails the run; the rest
+are named and left to judgment.
+
+`--regrade` and `--compare` need the `meta.json` a run writes — base sha, turn boundaries, and the
+fixture digest. Runs captured before it exists need `--unverified`, which is exact for a single-turn
+run and refused for anything else.
 
 ## Layout
 

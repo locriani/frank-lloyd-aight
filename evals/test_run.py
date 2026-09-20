@@ -638,5 +638,333 @@ class GitBaseThreadingTest(unittest.TestCase):
             self.assertIn("0 commit", results[0][2])
 
 
+class TreeDigestTest(unittest.TestCase):
+    """A stored stream was produced against one fixture; re-grading it against another misleads."""
+
+    def _tree(self, d: Path, files: dict[str, str]) -> Path:
+        for rel, body in files.items():
+            f = d / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(body)
+        return d
+
+    def test_digest_is_stable_and_content_addressed(self) -> None:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            files = {"ARCHITECTURE.md": "# Doc\n", "src/app/queue.py": "x = 1\n"}
+            one = self._tree(Path(a), files)
+            two = self._tree(Path(b), files)
+            self.assertEqual(run.tree_digest(one), run.tree_digest(two))
+            (two / "ARCHITECTURE.md").write_text("# Doc changed\n")
+            self.assertNotEqual(run.tree_digest(one), run.tree_digest(two))
+
+    def test_digest_ignores_git_bookkeeping(self) -> None:
+        # The fixture source has no .git, but a caller should not be able to change the digest by committing.
+        with tempfile.TemporaryDirectory() as d:
+            root = self._tree(Path(d), {"ARCHITECTURE.md": "# Doc\n"})
+            before = run.tree_digest(root)
+            run.init_repo(root)
+            self.assertEqual(before, run.tree_digest(root))
+
+    def test_a_renamed_file_changes_the_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            one = self._tree(Path(a), {"docs/ARCHITECTURE.md": "x\n"})
+            two = self._tree(Path(b), {"ARCHITECTURE.md": "x\n"})
+            self.assertNotEqual(run.tree_digest(one), run.tree_digest(two))
+
+
+class RunMetaTest(unittest.TestCase):
+    """meta.json carries what a re-grade cannot recover from the stream: the base sha, turn
+    boundaries, host denials, and which fixture the run was measured against."""
+
+    def test_meta_round_trips_the_turn_boundaries(self) -> None:
+        turns = [run.Turn(events=[], t_start=at(9, 0), t_end=at(9, 5), host_denied={"tu_1"})]
+        meta = run.run_meta("a-case", "agent", "opus", "deadbeef", turns, {"denials": 1}, "sha256:abc")
+        back = json.loads(json.dumps(meta))
+        self.assertEqual(back["git_base"], "deadbeef")
+        self.assertEqual(back["fixture_digest"], "sha256:abc")
+        self.assertEqual(back["case"], "a-case")
+        self.assertEqual(back["arm"], "agent")
+        self.assertEqual(datetime.fromisoformat(back["turns"][0]["t_start"]), at(9, 0))
+        self.assertEqual(datetime.fromisoformat(back["turns"][0]["t_end"]), at(9, 5))
+        self.assertEqual(back["turns"][0]["host_denied"], ["tu_1"])
+        self.assertEqual(back["meta"]["denials"], 1)
+
+
+class RegradeTest(unittest.TestCase):
+    """Verification step 6 -- re-grade the stored red, confirm it is still red -- as harness code
+    rather than a throwaway script. The throwaway got `committed` wrong by reading the wrong dir."""
+
+    def _stored_run(self, d: Path, *, digest: str, with_meta: bool = True) -> Path:
+        """A minimal stored run: a committed fixture snapshot, an empty stream, one turn."""
+        out = d / "run"
+        (out / "fixture-before").mkdir(parents=True)
+        work = out / "fixture-turn1"
+        work.mkdir(parents=True)
+        (work / "ARCHITECTURE.md").write_text("# Doc\n")
+        base = run.init_repo(work)
+        (out / "stream.jsonl").write_text(json.dumps({"type": "result"}) + "\n")
+        turns = [run.Turn(events=[{"type": "result"}], t_start=at(9, 0), t_end=at(9, 5))]
+        if with_meta:
+            (out / "meta.json").write_text(json.dumps(
+                run.run_meta("regrade-fixture", "agent", "opus", base, turns, {}, digest)))
+        return out
+
+    def _case(self, d: Path, graders: list[dict]) -> Path:
+        case = d / "cases" / "regrade-fixture"
+        (case / "fixture").mkdir(parents=True)
+        (case / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+        (case / "case.json").write_text(json.dumps({"prompt": "x", "git": True, "graders": graders}))
+        return case
+
+    def test_regrade_grades_committed_from_the_stored_snapshot(self) -> None:
+        # The throwaway script looked for .git in fixture-before, which is rendered before
+        # init_repo and never has one; the directory the grader reads is fixture-turn1.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            case = self._case(root, [{"name": "committed", "type": "committed", "min": 1}])
+            out = self._stored_run(root, digest=run.tree_digest(case / "fixture"))
+            results, error = run.regrade(out, cases_root=root / "cases")
+            self.assertIsNone(error)
+            self.assertFalse(results[0][1], results[0][2])
+            self.assertIn("0 commit", results[0][2])
+            self.assertNotIn('does not set', results[0][2])
+
+    def test_regrade_refuses_when_the_fixture_has_changed(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            case = self._case(root, [{"name": "committed", "type": "committed", "min": 1}])
+            out = self._stored_run(root, digest="sha256:a-fixture-that-no-longer-exists")
+            results, error = run.regrade(out, cases_root=root / "cases")
+            self.assertIsNotNone(error)
+            self.assertIn("fixture", error)
+            self.assertEqual(results, [])
+
+    def test_regrade_reports_unknown_provenance_without_meta(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            case = self._case(root, [{"name": "committed", "type": "committed", "min": 1}])
+            out = self._stored_run(root, digest="unused", with_meta=False)
+            results, error = run.regrade(out, cases_root=root / "cases")
+            self.assertIsNotNone(error)
+            self.assertIn("provenance", error.lower())
+
+    def test_regrade_scopes_mock_calls_to_their_turn(self) -> None:
+        # A call logged outside the turn window belongs to no turn; without stored boundaries a
+        # multi-turn re-grade silently credits it to the wrong one.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            case = self._case(root, [{"name": "told", "type": "peer_calls", "tool": "send", "min": 1}])
+            out = self._stored_run(root, digest=run.tree_digest(case / "fixture"))
+            (out / "calls").mkdir()
+            (out / "calls" / "calls.jsonl").write_text(
+                json.dumps({"tool": "send", "to_ref": "c0ffee", "ok": True, "at": at(9, 2).isoformat()}) + "\n"
+                + json.dumps({"tool": "send", "to_ref": "c0ffee", "ok": True, "at": at(11, 0).isoformat()}) + "\n")
+            results, error = run.regrade(out, cases_root=root / "cases")
+            self.assertIsNone(error)
+            self.assertTrue(results[0][1], results[0][2])
+            self.assertIn("1 call", results[0][2])
+
+
+class RunWritesMetaTest(unittest.TestCase):
+    """A run that cannot be re-graded later is a measurement that expires."""
+
+    def test_run_turns_writes_meta_that_load_run_can_read(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            out, work = root / "out", root / "work"
+            out.mkdir()
+            work.mkdir()
+            (work / "ARCHITECTURE.md").write_text("# Doc\n")
+            case_root = root / "cases" / "a-case"
+            (case_root / "fixture").mkdir(parents=True)
+            (case_root / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+            spec = {"turns": [{"prompt": "x", "graders": []}]}
+            events = [{"type": "result", "subtype": "success", "total_cost_usd": 0.5}]
+            turns = [run.Turn(events=events, t_start=at(9, 0), t_end=at(9, 5), host_denied={"tu_9"})]
+            with unittest.mock.patch.object(run, "drive_turns", return_value=turns), \
+                 unittest.mock.patch.object(run, "check_arm", return_value=(True, "ok")):
+                run.run_turns(spec, "agent", "opus", out, work, {}, None, out / "calls" / "calls.jsonl",
+                              "America/Chicago", case_root=case_root, git_base="feedface")
+            meta, back, _ = run.load_run(out)
+            self.assertEqual(meta["git_base"], "feedface")
+            self.assertEqual(meta["case"], "a-case")
+            self.assertEqual(meta["arm"], "agent")
+            self.assertEqual(meta["fixture_digest"], run.tree_digest(case_root / "fixture"))
+            self.assertEqual(meta["meta"]["notional_usd"], 0.5)
+            self.assertEqual(back[0].t_start, at(9, 0))
+            self.assertEqual(back[0].host_denied, {"tu_9"})
+
+
+class ArmSummaryTest(unittest.TestCase):
+    """Three runs of an arm answer a question one run cannot: does this grader hold every time?"""
+
+    def test_a_grader_that_varies_across_runs_is_not_a_result(self) -> None:
+        runs = [
+            [("a", True, ""), ("b", True, ""), ("c", False, "")],
+            [("a", True, ""), ("b", False, ""), ("c", False, "")],
+        ]
+        self.assertEqual(run.arm_summary(runs), {"a": True, "b": None, "c": False})
+
+    def test_one_run_is_enough_to_summarise(self) -> None:
+        self.assertEqual(run.arm_summary([[("a", False, "why")]]), {"a": False})
+
+    def test_no_runs_summarise_to_nothing(self) -> None:
+        self.assertEqual(run.arm_summary([]), {})
+
+
+class DiscriminationTest(unittest.TestCase):
+    """Per grader, which arm passed -- and what that means about the grader."""
+
+    def verdicts(self, base: dict, agent: dict) -> dict[str, str]:
+        return {row.grader: row.verdict for row in run.discrimination(base, agent)}
+
+    def test_the_four_verdicts(self) -> None:
+        got = self.verdicts(
+            {"earns": False, "proves nothing": True, "suppressed": True, "not yet": False},
+            {"earns": True, "proves nothing": True, "suppressed": False, "not yet": False},
+        )
+        self.assertEqual(got["earns"], "discriminates")
+        self.assertEqual(got["proves nothing"], "vacuous")
+        self.assertEqual(got["suppressed"], "regression")
+        self.assertEqual(got["not yet"], "unmet")
+
+    def test_a_flaky_grader_on_either_arm_is_flaky(self) -> None:
+        got = self.verdicts({"a": None, "b": False}, {"a": True, "b": None})
+        self.assertEqual(got, {"a": "flaky", "b": "flaky"})
+
+    def test_a_grader_only_one_arm_has_is_named_not_dropped(self) -> None:
+        got = self.verdicts({"only baseline": False}, {"only agent": True})
+        self.assertEqual(got["only baseline"], "missing")
+        self.assertEqual(got["only agent"], "missing")
+
+    def test_rows_keep_the_case_order_of_the_graders(self) -> None:
+        base = {"one": False, "two": False, "three": False}
+        agent = {"one": True, "two": True, "three": True}
+        self.assertEqual([r.grader for r in run.discrimination(base, agent)], ["one", "two", "three"])
+
+    def test_counts_name_what_a_reader_needs_to_act_on(self) -> None:
+        rows = run.discrimination(
+            {"a": False, "b": True, "c": True}, {"a": True, "b": True, "c": False})
+        counts = run.discrimination_counts(rows)
+        self.assertEqual(counts["discriminates"], 1)
+        self.assertEqual(counts["vacuous"], 1)
+        self.assertEqual(counts["regression"], 1)
+
+
+class CompareRunsTest(unittest.TestCase):
+    """The audit path: a table from two runs already on disk, costing nothing to produce."""
+
+    def _stored(self, root: Path, name: str, arm: str, *, committed: bool) -> Path:
+        out = root / "results" / arm
+        (out / "fixture-before").mkdir(parents=True)
+        work = out / "fixture-turn1"
+        work.mkdir(parents=True)
+        (work / "ARCHITECTURE.md").write_text("# Doc\n")
+        base = run.init_repo(work)
+        if committed:
+            for cmd in (["add", "-A"], ["commit", "-q", "-m", "record the gap"]):
+                (work / "architecture").mkdir(exist_ok=True)
+                (work / "architecture" / "compliance.md").write_text("gap\n")
+                subprocess.run(["git", "-C", str(work), *cmd], check=True, capture_output=True)
+        (out / "stream.jsonl").write_text(json.dumps({"type": "result"}) + "\n")
+        turns = [run.Turn(events=[{"type": "result"}], t_start=at(9, 0), t_end=at(9, 5))]
+        (out / "meta.json").write_text(json.dumps(
+            run.run_meta(name, arm, "opus", base, turns, {}, run.tree_digest(root / "cases" / name / "fixture"))))
+        return out
+
+    def test_a_grader_only_the_agent_arm_passes_discriminates(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            case = root / "cases" / "a-case"
+            (case / "fixture").mkdir(parents=True)
+            (case / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+            (case / "case.json").write_text(json.dumps(
+                {"prompt": "x", "git": True,
+                 "graders": [{"name": "the record is committed", "type": "committed", "min": 1}]}))
+            base_dir = self._stored(root, "a-case", "baseline", committed=False)
+            agent_dir = self._stored(root, "a-case", "agent", committed=True)
+            rows, error = run.compare_runs([base_dir], [agent_dir], cases_root=root / "cases")
+            self.assertIsNone(error)
+            self.assertEqual([r.verdict for r in rows], ["discriminates"])
+            self.assertIn("the record is committed", run.render_table(rows))
+            self.assertIn("discriminates", run.render_table(rows))
+
+    def test_comparing_runs_of_different_cases_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            for name in ("a-case", "b-case"):
+                case = root / "cases" / name
+                (case / "fixture").mkdir(parents=True)
+                (case / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+                (case / "case.json").write_text(json.dumps({"prompt": "x", "git": True, "graders": []}))
+            a = self._stored(root, "a-case", "baseline", committed=False)
+            b = self._stored(root / "other", "b-case", "agent", committed=False) if False else None
+            root2 = root / "second"
+            (root2 / "cases").mkdir(parents=True)
+            shutil_copy = root / "cases" / "b-case"
+            (root2 / "cases" / "b-case").mkdir(parents=True)
+            (root2 / "cases" / "b-case" / "fixture").mkdir()
+            (root2 / "cases" / "b-case" / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+            (root2 / "cases" / "b-case" / "case.json").write_text(json.dumps({"prompt": "x", "git": True, "graders": []}))
+            b = self._stored(root2, "b-case", "agent", committed=False)
+            rows, error = run.compare_runs([a], [b], cases_root=root / "cases")
+            self.assertIsNotNone(error)
+            self.assertIn("case", error)
+
+
+class UnverifiedRegradeTest(unittest.TestCase):
+    """Runs captured before meta.json existed. For a single-turn run the reconstruction is exact --
+    one turn holds every event and every logged call -- so the audit can use them if it says so."""
+
+    def _meta_less_run(self, root: Path, turns: int) -> Path:
+        out = root / "results" / "20260919-000000" / "a-case" / "agent" / "1"
+        out.mkdir(parents=True)
+        work = out / "fixture-turn1"
+        work.mkdir(parents=True)
+        (work / "ARCHITECTURE.md").write_text("# Doc\n")
+        run.init_repo(work)
+        (out / "stream.jsonl").write_text("".join(
+            json.dumps({"type": "result"}) + "\n" for _ in range(turns)))
+        (out / "calls").mkdir()
+        (out / "calls" / "calls.jsonl").write_text(
+            json.dumps({"tool": "send", "to_ref": "c0ffee", "ok": True, "at": at(9, 2).isoformat()}) + "\n")
+        return out
+
+    def _case(self, root: Path, graders: list[dict]) -> None:
+        case = root / "cases" / "a-case"
+        (case / "fixture").mkdir(parents=True)
+        (case / "fixture" / "ARCHITECTURE.md").write_text("# Doc\n")
+        (case / "case.json").write_text(json.dumps({"prompt": "x", "git": True, "graders": graders}))
+
+    def test_a_single_turn_run_regrades_when_asked_explicitly(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._case(root, [{"name": "told", "type": "peer_calls", "tool": "send", "min": 1},
+                              {"name": "committed", "type": "committed", "min": 1}])
+            out = self._meta_less_run(root, turns=1)
+            results, error = run.regrade(out, cases_root=root / "cases", unverified=True)
+            self.assertIsNone(error)
+            self.assertTrue(results[0][1], results[0][2])          # the call is inside the turn
+            self.assertIn("0 commit", results[1][2])               # git base recovered, not "not set"
+            self.assertNotIn("does not set", results[1][2])
+
+    def test_a_multi_turn_run_is_still_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._case(root, [])
+            out = self._meta_less_run(root, turns=2)
+            results, error = run.regrade(out, cases_root=root / "cases", unverified=True)
+            self.assertIsNotNone(error)
+            self.assertIn("turn", error)
+
+    def test_without_the_flag_it_still_refuses(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._case(root, [])
+            out = self._meta_less_run(root, turns=1)
+            _, error = run.regrade(out, cases_root=root / "cases")
+            self.assertIn("provenance", error.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

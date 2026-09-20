@@ -5,6 +5,12 @@ Grader vocabulary follows `plugin eval` where it overlaps (`tool_used`, `regex`)
 be ported later.
 
     python3 evals/run.py --arm baseline --case stale-clock        # model defaults to opus
+    python3 evals/run.py --arm both --case stale-clock            # both arms, plus a per-grader table
+    python3 evals/run.py --regrade <run-dir>                      # today's graders, yesterday's run
+    python3 evals/run.py --compare <baseline-dir> <agent-dir>     # the table, from runs on disk
+
+A case with no `--case` glob runs every case, which on `--arm agent --model opus` is the whole
+suite at Opus prices. Name the case.
 """
 
 from __future__ import annotations
@@ -179,6 +185,21 @@ def init_repo(work: Path) -> str:
     git("add", "-A")
     git("commit", "-q", "-m", "fixture")
     return git("rev-parse", "HEAD").stdout.strip()
+
+
+def tree_digest(root: Path) -> str:
+    """Content hash of a fixture tree: every relative path and its bytes, `.git` excluded.
+
+    Digest the case's *source* fixture, never the rendered copy -- rendering substitutes
+    `{{today}}`, so a rendered tree hashes differently tomorrow for no reason that matters.
+    """
+    h = hashlib.sha256()
+    for f in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.relative_to(root).parts):
+        h.update(str(f.relative_to(root)).encode())
+        h.update(b"\0")
+        h.update(f.read_bytes())
+        h.update(b"\0")
+    return "sha256:" + h.hexdigest()
 
 
 def render_tree(src: Path, dst: Path, ctx: dict[str, str]) -> None:
@@ -734,6 +755,218 @@ def calls_log_path(out: Path) -> Path:
     return out / "calls" / "calls.jsonl"
 
 
+@dataclass
+class Row:
+    """One grader, as the two arms saw it."""
+    grader: str
+    baseline: bool | None
+    agent: bool | None
+    verdict: str
+
+    def cell(self, v: bool | None) -> str:
+        """`~` covers both a grader that varied across runs and one only a single arm graded;
+        the verdict column is what tells those apart."""
+        return {True: "PASS", False: "FAIL", None: "~"}[v]
+
+
+def arm_summary(runs: list[list[tuple[str, bool, str]]]) -> dict[str, bool | None]:
+    """Per grader across an arm's runs: True if it passed every time, False if it failed every
+    time, None if it varied. A grader that varies has not measured anything yet."""
+    summary: dict[str, bool | None] = {}
+    for results in runs:
+        for name, passed, _ in results:
+            if name not in summary:
+                summary[name] = passed
+            elif summary[name] is not None and summary[name] != passed:
+                summary[name] = None
+    return summary
+
+
+def discrimination(baseline: dict[str, bool | None], agent: dict[str, bool | None]) -> list[Row]:
+    """What each grader proves about the agent file.
+
+    A red-to-green stage buys `discriminates`. The other verdicts are the ones worth reading:
+    `vacuous` is a grader that passes without the agent file and so proves nothing, `regression`
+    is the agent file suppressing a capability the model has by default, `unmet` is nobody
+    doing it yet.
+    """
+    rows = []
+    for name in list(baseline) + [n for n in agent if n not in baseline]:
+        b, a = baseline.get(name, "absent"), agent.get(name, "absent")
+        if b == "absent" or a == "absent":
+            verdict = "missing"
+        elif b is None or a is None:
+            verdict = "flaky"
+        elif not b and a:
+            verdict = "discriminates"
+        elif b and a:
+            verdict = "vacuous"
+        elif b and not a:
+            verdict = "regression"
+        else:
+            verdict = "unmet"
+        rows.append(Row(name, None if b == "absent" else b, None if a == "absent" else a, verdict))
+    return rows
+
+
+def discrimination_counts(rows: list[Row]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r.verdict] = counts.get(r.verdict, 0) + 1
+    return counts
+
+
+def report_discrimination(rows: list[Row]) -> int:
+    """Name the graders a reader has to act on. A regression fails the run; a vacuous grader is a
+    warning, because a guard that both arms pass is sometimes deliberate and that call is Zach's."""
+    bad = 0
+    for r in rows:
+        if r.verdict == "regression":
+            print(f"  REGRESSION  {r.grader} — baseline passes, the agent file does not")
+            bad += 1
+        elif r.verdict == "vacuous":
+            print(f"  VACUOUS     {r.grader} — passes without the agent file, so it proves nothing")
+        elif r.verdict == "flaky":
+            print(f"  FLAKY       {r.grader} — differs across runs of one arm")
+        elif r.verdict == "missing":
+            print(f"  MISSING     {r.grader} — graded on one arm only")
+    return 1 if bad else 0
+
+
+def render_table(rows: list[Row]) -> str:
+    width = max([len(r.grader) for r in rows] + [len("grader")])
+    out = [f"  {'grader'.ljust(width)}  baseline  agent     verdict",
+           f"  {'-' * width}  --------  --------  -------"]
+    for r in rows:
+        out.append(f"  {r.grader.ljust(width)}  {r.cell(r.baseline):8}  {r.cell(r.agent):8}  {r.verdict}")
+    return "\n".join(out)
+
+
+def compare_runs(baseline_dirs: list[Path], agent_dirs: list[Path], cases_root: Path | None = None, unverified: bool = False) -> tuple[list[Row], str | None]:
+    """Build the table from runs already on disk, re-graded under today's graders."""
+    graded: dict[str, list[list[tuple[str, bool, str]]]] = {"baseline": [], "agent": []}
+    cases = set()
+    for arm, dirs in (("baseline", baseline_dirs), ("agent", agent_dirs)):
+        for d in dirs:
+            results, error = regrade(d, cases_root=cases_root, unverified=unverified)
+            if error:
+                return [], error
+            cases.add(json.loads((d / "meta.json").read_text())["case"] if (d / "meta.json").exists() else d.parent.parent.name)
+            graded[arm].append(results)
+    if len(cases) > 1:
+        return [], f"runs are of different cases: {sorted(cases)}"
+    return discrimination(arm_summary(graded["baseline"]), arm_summary(graded["agent"])), None
+
+
+def run_meta(case: str, arm: str, model: str, git_base: str | None, turns: list[Turn], meta: dict[str, Any], fixture_digest: str | None) -> dict[str, Any]:
+    """What a re-grade cannot recover from `stream.jsonl` alone.
+
+    Turn boundaries can be rebuilt from the stream (`split_turns`), but their timestamps cannot,
+    and `grade_turns` scopes mock calls to a turn by timestamp. The base sha and the fixture the
+    run was measured against are likewise nowhere in the stream.
+    """
+    return {
+        "case": case,
+        "arm": arm,
+        "model": model,
+        "git_base": git_base,
+        "fixture_digest": fixture_digest,
+        "meta": meta,
+        "turns": [
+            {"t_start": t.t_start.isoformat(), "t_end": t.t_end.isoformat(), "host_denied": sorted(t.host_denied)}
+            for t in turns
+        ],
+    }
+
+
+def load_run(run_dir: Path) -> tuple[dict[str, Any], list[Turn], list[dict[str, Any]]]:
+    """Rebuild a stored run: its meta, its turns with their real boundaries, and its mock calls."""
+    meta = json.loads((run_dir / "meta.json").read_text())
+    events = [json.loads(l) for l in (run_dir / "stream.jsonl").read_text().splitlines() if l.strip()]
+    grouped = split_turns(events)
+    stored = meta["turns"]
+    if len(grouped) != len(stored):
+        raise ValueError(f"stream holds {len(grouped)} turn(s), meta.json records {len(stored)}")
+    turns = [
+        Turn(
+            events=evs,
+            t_start=datetime.fromisoformat(rec["t_start"]),
+            t_end=datetime.fromisoformat(rec["t_end"]),
+            host_denied=set(rec.get("host_denied", [])),
+        )
+        for evs, rec in zip(grouped, stored)
+    ]
+    calls_path = run_dir / "calls" / "calls.jsonl"
+    calls = [json.loads(l) for l in calls_path.read_text().splitlines() if l.strip()] if calls_path.exists() else []
+    return meta, turns, calls
+
+
+def reconstruct_run(run_dir: Path) -> tuple[dict[str, Any], list[Turn], list[dict[str, Any]]]:
+    """A run captured before `meta.json` existed, recovered as far as it honestly can be.
+
+    Exact only for a single-turn run: one turn holds every event and every logged call, so the
+    boundaries that `meta.json` would have carried do not matter. A multi-turn run is refused --
+    its per-turn call scoping is unrecoverable, and guessing it would mis-credit calls silently.
+    """
+    events = [json.loads(l) for l in (run_dir / "stream.jsonl").read_text().splitlines() if l.strip()]
+    grouped = split_turns(events)
+    if len(grouped) != 1:
+        raise ValueError(f"{len(grouped)} turns and no meta.json: per-turn boundaries are unrecoverable")
+    calls_path = run_dir / "calls" / "calls.jsonl"
+    calls = [json.loads(l) for l in calls_path.read_text().splitlines() if l.strip()] if calls_path.exists() else []
+    span = timedelta(days=365)
+    now = datetime.now().astimezone()
+    turn = Turn(
+        events=grouped[0],
+        t_start=now - span,
+        t_end=now + span,
+        host_denied={c["tool_use_id"] for c in calls if c.get("tool") == "host_deny" and c.get("tool_use_id")},
+    )
+    # results/<stamp>/<case>/<arm>/<n>
+    case, arm = run_dir.parent.parent.name, run_dir.parent.name
+    snap = run_dir / "fixture-turn1"
+    git_base = None
+    if (snap / ".git").is_dir():
+        root = subprocess.run(["git", "-C", str(snap), "rev-list", "--max-parents=0", "HEAD"],
+                              capture_output=True, text=True)
+        git_base = root.stdout.split()[0] if root.returncode == 0 and root.stdout.split() else None
+    return {"case": case, "arm": arm, "git_base": git_base, "fixture_digest": None, "unverified": True}, [turn], calls
+
+
+def regrade(run_dir: Path, cases_root: Path | None = None, unverified: bool = False) -> tuple[list[tuple[str, bool, str]], str | None]:
+    """Grade a stored run against its case spec **as it stands now**.
+
+    This is verification step 6 -- change a grader, re-grade the stored red, confirm it is still
+    red -- which a loosening that turns the red green would otherwise pass unnoticed.
+    """
+    cases_root = cases_root or EVALS / "cases"
+    if not (run_dir / "meta.json").exists():
+        if not unverified:
+            return [], f"{run_dir}: no meta.json, so the fixture provenance is unknown; pass --unverified to grade it anyway"
+        try:
+            meta, turns, calls = reconstruct_run(run_dir)
+        except ValueError as exc:
+            return [], f"{run_dir}: {exc}"
+    else:
+        meta, turns, calls = load_run(run_dir)
+    case_dir = cases_root / meta["case"]
+    if not (case_dir / "case.json").exists():
+        return [], f"case {meta['case']!r} no longer exists under {cases_root}"
+    spec = json.loads((case_dir / "case.json").read_text())
+    if (case_dir / "fixture").is_dir() and meta.get("fixture_digest") is not None:
+        now = tree_digest(case_dir / "fixture")
+        if meta.get("fixture_digest") != now:
+            return [], (f"fixture for {meta['case']!r} has changed since this run "
+                        f"({meta.get('fixture_digest')} -> {now}); its stream measures a different case")
+    tz = spec.get("tz", "America/Chicago")
+    # Render against the run's own clock, not today's: a spec that ever templates `{{today}}`
+    # must mean what it meant when the stream was captured.
+    spec = render_value(spec, context(tz, turns[0].t_start.astimezone(ZoneInfo(tz))))
+    if "turns" not in spec:
+        spec = dict(spec, turns=[{"prompt": spec["prompt"], "graders": spec.get("graders", [])}])
+    return grade_turns(spec, turns, tz, run_dir, calls, git_base=meta.get("git_base")), None
+
+
 def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str, bool, str]], str | None, dict[str, Any]]:
     tz = case.spec.get("tz", "America/Chicago")
     ctx = context(tz, datetime.now(ZoneInfo(tz)))
@@ -795,6 +1028,10 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
         "notional_usd": round(sum((st.result or {}).get("total_cost_usd", 0) for st in streams), 4),
         "denials": sum(len(st.denied_ids | t.host_denied) for st, t in zip(streams, turns)),
     }
+    fixture_src = case_root / "fixture"
+    (out / "meta.json").write_text(json.dumps(
+        run_meta(case_root.name, arm, model, git_base, turns, meta,
+                 tree_digest(fixture_src) if fixture_src.is_dir() else None), indent=1))
     if not streams or streams[0].result is None:
         return [], "claude produced no result for turn 1", meta
     ok, detail = check_arm(streams[0].init, arm, agent_flag_used="--agent" in cmd and arm != "agent", model=model, needs_board=bool(spec.get("board")), needs_peers="peers" in spec)
@@ -806,42 +1043,83 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--arm", choices=["baseline", "agent"], required=True)
+    ap.add_argument("--arm", choices=["baseline", "agent", "both"])
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--case", action="append", default=[], help="case name glob; repeatable")
     ap.add_argument("--runs", type=int, default=1)
+    ap.add_argument("--regrade", metavar="RUN_DIR", help="re-grade a stored run under today's graders")
+    ap.add_argument("--compare", nargs=2, metavar=("BASELINE_DIR", "AGENT_DIR"), help="discrimination table from two stored runs")
+    ap.add_argument("--unverified", action="store_true", help="grade stored runs that predate meta.json; exact for single-turn runs only")
     args = ap.parse_args(argv)
 
+    if args.regrade:
+        results, error = regrade(Path(args.regrade), unverified=args.unverified)
+        if error:
+            print(f"  CANNOT REGRADE  {error}", file=sys.stderr)
+            return 2
+        for name, passed, why in results:
+            print(f"  {'PASS' if passed else 'FAIL'}  {name}  — {why}")
+        failed = sum(not p for _, p, _ in results)
+        print(f"=> {len(results) - failed} of {len(results)} passed; {'RED' if failed else 'GREEN'}")
+        return 1 if failed else 0
+
+    if args.compare:
+        rows, error = compare_runs([Path(args.compare[0])], [Path(args.compare[1])], unverified=args.unverified)
+        if error:
+            print(f"  CANNOT COMPARE  {error}", file=sys.stderr)
+            return 2
+        print(render_table(rows))
+        return report_discrimination(rows)
+
+    if not args.arm:
+        print("--arm is required unless --regrade or --compare is given", file=sys.stderr)
+        return 2
     cases = load_cases(args.case)
     if not cases:
         print("no cases matched", file=sys.stderr)
         return 2
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    harness_error = any_fail = False
+    arms = ["baseline", "agent"] if args.arm == "both" else [args.arm]
+    harness_error = any_fail = any_regression = False
     for case in cases:
-        case_pass = True
-        for n in range(1, args.runs + 1):
-            out = EVALS / "results" / stamp / case.name / args.arm / str(n)
-            results, error, meta = run_one(case, args.arm, args.model, out)
-            print(f"\n{case.name}  arm={args.arm}  model={args.model}  run={n}  {meta}")
-            if error:
-                harness_error = True
-                case_pass = False
-                print(f"  HARNESS ERROR  {error}")
-                continue
-            for name, passed, why in results:
-                print(f"  {'PASS' if passed else 'FAIL'}  {name}  — {why}")
-                case_pass &= passed
-        if args.arm == "baseline":
-            verdict = "NON-DISCRIMINATING (baseline passes)" if case_pass else "RED"
+        graded: dict[str, list[list[tuple[str, bool, str]]]] = {}
+        passed_arm: dict[str, bool] = {}
+        for arm in arms:
+            arm_pass = True
+            graded[arm] = []
+            for n in range(1, args.runs + 1):
+                out = EVALS / "results" / stamp / case.name / arm / str(n)
+                results, error, meta = run_one(case, arm, args.model, out)
+                print(f"\n{case.name}  arm={arm}  model={args.model}  run={n}  {meta}")
+                if error:
+                    harness_error = True
+                    arm_pass = False
+                    print(f"  HARNESS ERROR  {error}")
+                    continue
+                graded[arm].append(results)
+                for name, passed, why in results:
+                    print(f"  {'PASS' if passed else 'FAIL'}  {name}  — {why}")
+                    arm_pass &= passed
+            passed_arm[arm] = arm_pass
+        if args.arm == "both":
+            rows = discrimination(arm_summary(graded["baseline"]), arm_summary(graded["agent"]))
+            print(f"\n{case.name}  discrimination")
+            print(render_table(rows))
+            any_regression |= report_discrimination(rows) != 0
+            counts = discrimination_counts(rows)
+            tally = ", ".join(f"{n} {v}" for v, n in sorted(counts.items()))
+            verdict = "GREEN" if passed_arm["agent"] else "RED"
+            print(f"=> {case.name}: {verdict}  ({tally})")
+            any_fail |= not passed_arm["agent"]
+        elif args.arm == "baseline":
+            print(f"=> {case.name}: {'NON-DISCRIMINATING (baseline passes)' if passed_arm['baseline'] else 'RED'}")
         else:
-            verdict = "GREEN" if case_pass else "RED"
-            any_fail |= not case_pass
-        print(f"=> {case.name}: {verdict}")
+            print(f"=> {case.name}: {'GREEN' if passed_arm['agent'] else 'RED'}")
+            any_fail |= not passed_arm["agent"]
     print(f"\nresults: {EVALS / 'results' / stamp}")
     if harness_error:
         return 2
-    return 1 if any_fail else 0
+    return 1 if (any_fail or any_regression) else 0
 
 
 if __name__ == "__main__":
