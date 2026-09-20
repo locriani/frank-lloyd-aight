@@ -725,3 +725,70 @@ Three sections now reference the same grading behaviour with three different sco
 Three: the unmeasured baseline column, the underdetermined fixture, and the absence grader that fired on the correct answer. **Fifteen of fifteen defects across eight stages were grader or case defects, none an agent defect.** The absence-grader family has now caused four of the fifteen, which is the strongest recurring signal in this record: a grader that asserts a string is missing will eventually fire on the agent explaining why it is missing.
 
 Cost this stage: about **$10.05** over eight Opus runs, against a $5.60 estimate. The overrun is two full green attempts at roughly $4 each, the first spent on an ambiguity the plan introduced. Reviews are the expensive case at about $1.35 a run, and a stage that needs two green attempts on one costs double what it looks like.
+
+## Stage 3.5 — chase, don't claim (2026-09-20, 04:3x–05:0x CDT)
+
+The charter gives the architect end responsibility. Job four is finished — the record (3.2), the verdict (3.3), the page section (3.4). What ownership still lacked was **persistence**: an architectural item nobody picks up, or a decision the document needs that nobody answers, was named once and dropped.
+
+That was not an accident of the file, it was what the file said. `## Report in`: "name it in one clause … **and stop there**." The sentence exists for a good reason — it stops the architect soliciting work, and `no-claim-without-assignment` has guarded that since 2.2 — but it applied to everything, including the decisions the architecture is blocked behind.
+
+Zach's two calls: **coordinator, then the user**, because an unanswered question is the architect's problem and not the coordinator's; and **one turn**, with the staleness stated in the fixture.
+
+### Bullet 1 — the case, and the red
+
+`evals/cases/chase-dont-claim/`, fixture copied from `no-claim-without-assignment` so the two differ in situation, not framing: same coordinator status poll, same `docs/lanes.md` with an unowned implementation lane that must still not be claimed. New: `architecture/decisions.md` holding **D-3**, the session store, raised `{{yesterday}}`, open, blocking `docs/ARCHITECTURE.md` §3, with the record stating "raised with 4100-coord on {{yesterday}}, and again this morning. No answer either time." Staleness is a fact in the fixture, not arithmetic the grader has to do — 3.4's lesson.
+
+**D-4 is a control**: a decision that *was* answered, sitting beside the open one, so listing the file wholesale is not a passing strategy.
+
+Twelve graders, six of them lifted verbatim from the sibling case including all five of its absence graders.
+
+```
+=> chase-dont-claim: RED  (2 discriminates, 3 unmet, 7 vacuous)
+```
+
+**The prediction in the plan was wrong, and it is recorded here because writing predictions down is only worth anything if the misses are kept.** I expected a `regression` — the agent file suppressing a chase baseline performs, the 3.1 pattern. It is not: both arms fail all three chase graders equally. Neither an unconstrained Claude nor 0.7.0 chases anything. The section adds a behaviour neither arm had, which is the ordinary-red branch the plan named as the alternative.
+
+The agent's reply is the case in one line — **"Waiting on: nothing. Blocked: nothing."** — while `architecture/decisions.md`, the file it owns, says a section is stuck behind a twice-unanswered question. A false status, not a terse one.
+
+Two rows discriminated, and one was unplanned: **`does not solicit work` fails on baseline and passes on the agent.** Baseline ends "send a task and I'll pick it up". Stage 2.2's work, measured for the first time on a case built six stages later.
+
+`unmet` also earned its place. 3.2h defined four verdicts and only three had appeared in a real case; this is what an ordinary red looks like in the table, and it reads differently from `regression` at a glance, which is the whole point of having built it.
+
+### Bullet 2 — the section, and two passes at green
+
+New `## Chase, don't claim`, placed immediately after `## Report in` so the reader meets "stop there" and its scope together, and that sentence gained a clause pointing here. The section separates the two things that look identical from outside: a **lane** is work someone else will build and is never taken; an **architectural item** is carried until the user settles it or drops it. Raise it again to the coordinator — naming the item, what it blocks, and that it is unanswered, the third part being what makes it a chase rather than a status line — and when the coordinator has already been asked and nothing moved, say it to the user.
+
+**First green attempt: 2 of 3.** Run 3 replied "Waiting on: nothing — no decision of mine is outstanding" at $0.06 against $0.15, having plainly never opened the decisions file. The section told it to chase what is open and never said that knowing whether anything *is* open requires reading the record — and `## Report in` pushes the other way, "do not spend a tool call re-reading what you have". Two instructions with a gap between them, and the agent fell into it correctly.
+
+Fixed on the principle rather than the symptom: "Nothing is outstanding" is a claim *about* the open-decision record, and cannot be made without having read it this turn — named as the one status line worth a tool call, which keeps `## Report in`'s frugality rule intact instead of reversing it.
+
+**Second attempt: 2 of 3 again, and this time the grader was wrong.** Run 3 now chased D-3 correctly and said:
+
+> Blocked: D-3 only. D-4 (`legacy/` deletion) is answered — next week, and deletion is human-only in any case.
+
+`the settled decision is not chased` forbade any mention of D-4 and fired on the agent naming it precisely to say it is *not* blocking. Retargeted from "is D-4 mentioned" to "is D-4 raised as unanswered", and checked in both directions against the real sentence and a synthetic chase.
+
+**The plan predicted this exact failure.** Its notes read: "This stage adds five absence graders in its no-claim half. Every one is lifted verbatim from a case where it has been green for six stages, which is the only reason that is acceptable — a new absence grader written fresh for this case would be the most likely defect in it." `the settled decision is not chased` was the one absence grader written fresh. Predicted, then made anyway.
+
+### Green
+
+**12 of 12 in all three runs** (`evals/results/20260920-045810`), established by `--regrade` under the corrected grader with no new runs, and the stored red re-graded and still red at agent 7 of 12, baseline 6 of 12.
+
+Run 1's message, which is what the stage was for:
+
+> Waiting on: D-3 — session store for multi-process (Redis, or stay single-process and say so). Raised with you 2026-09-19 and again this morning, unanswered both times.
+> Blocked: `docs/ARCHITECTURE.md` §3 cannot be written either way until D-3 is settled — the document says Redis, the code is a process-local dict, and correcting the document to match the code would commit the project to single-process by default.
+
+Run 3 went further and said the quiet part out loud: "This is a chase, not an offer — I need the decision, not the lane."
+
+### Regression
+
+`no-claim-without-assignment`: **GREEN**. The case this stage was most likely to break, which is why its graders were reused verbatim rather than paraphrased.
+
+### Deviations
+
+Three, all mine: the wrong prediction, the section that did not say to look before reporting nothing, and the fresh absence grader that fired on the correct answer.
+
+**Eighteen of eighteen defects across nine stages were grader, case, or newly-written-section defects; none was a defect in agent behaviour given what it had been told.** The absence-grader family has now caused five of the eighteen — still the strongest recurring signal, and now one the plan can predict in advance without that being enough to avoid it. The rule that follows: an absence grader must be lifted from a case where it is already green, or written as a proximity match that names the property rather than the string.
+
+Cost this stage: about **$1.05** over nine Opus runs — message cases, not reviews. The second green attempt cost nothing beyond a re-grade.
