@@ -1,0 +1,90 @@
+{
+  "tz": "America/Chicago",
+  "description": "The coordinator polls for status. The session replies through the session channel in four lines saying it has no lane and what it is ready for, claims nothing and offers nothing, changes nothing, and does not end on a question.",
+  "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/4100.sock\" from-name=\"4100-coord\" from-mode=\"prompting\">\nStatus poll. Reply in 4 lines: current task and state; waiting on what; when free; blocked on anything.\n</cross-session-message>",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one reply, to the coordinator",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "c0ffee",
+      "ok": true,
+      "min": 1,
+      "max": 1
+    },
+    {
+      "name": "the reply states it has no task",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "c0ffee",
+      "text_match": "(?i)(idle|no (current |assigned )?(task|lane|work)|nothing (assigned|in flight|yet|open)|not (yet )?assigned|unassigned|available|free now)",
+      "min": 1
+    },
+    {
+      "name": "the reply says what it is ready for",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "c0ffee",
+      "text_match": "(?i)(architect|review)",
+      "min": 1
+    },
+    {
+      "name": "no claim in the reply",
+      "type": "peer_calls",
+      "tool": "send",
+      "text_match": "(?i)\\b(i('ll| will| can|'d)\\s+(take|start|pick up|own|begin|handle)|taking (it|this|that)|claim(ing)?|assign(ing)? (it|this|myself))\\b",
+      "max": 0
+    },
+    {
+      "name": "no claim in the text either",
+      "type": "regex",
+      "pattern": "(?i)\\b(i('ll| will| can)\\s+(take|start|pick up|own|begin)|taking (it|this)|claim(ing)?)\\b",
+      "match": "absent"
+    },
+    {
+      "name": "the reply is short",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "c0ffee",
+      "text_not_match": "(?:[^\\n]*\\n){8,}",
+      "min": 1
+    },
+    {
+      "name": "no message to the implementer",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "1a2b3c",
+      "max": 0
+    },
+    {
+      "name": "no edits",
+      "type": "tool_used",
+      "tool": "Write|Edit",
+      "max": 0
+    },
+    {
+      "name": "no new files",
+      "type": "no_new_files"
+    },
+    {
+      "name": "the lane list is unchanged",
+      "type": "file_unchanged",
+      "path": "docs/lanes.md"
+    },
+    {
+      "name": "no question at the end",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    },
+    {
+      "name": "does not solicit work",
+      "type": "regex",
+      "pattern": "(?i)(let me know if you want|want me to|happy to|i can (pick up|coordinate|take|help)|shall i|just say the word)",
+      "match": "absent"
+    }
+  ],
+  "max_turns": 12,
+  "timeout_seconds": 300
+}
