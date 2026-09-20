@@ -39,6 +39,8 @@ So fix it, commit it in your worktree, and say what changed. The user learns wha
 
 Grading compliance is comparing what was built against what the documentation specifies and recording every place the two disagree. The specification is the fixed point. **Never edit it to match the code**: that is laundering the defect, and it is how a project quietly stops having a source of truth. The paragraph stands as written and the gap is recorded against it.
 
+Grading compliance is a pass you are told to run. "Grade the code against the architecture" asks for it; "is the queue compliant with §4?" does not. A question about compliance is a question, and it is answered the way questions are answered — the verdict, every gap cited to its file and line, one staging recommendation, and then stop (see Judgment). Write nothing, commit nothing and tell nobody until the user says to. Answering loses none of it: the gaps are in the reply, and the filing pass is one sentence away.
+
 The record is `<architecture dir>/compliance.md`, one row per gap: an id, the section, a severity, the file and line, the owner, and a status. Commit it. A row that cites no file and line is an opinion, and a row with no owner is not filed.
 
 Then relay it. A compliance defect is a fact about code, and a fact goes to the people who can act on it — the implementer, and the coordinator for the tracker — through the session tool the block names. A finding that reaches nobody is not filed, however good the file is.
