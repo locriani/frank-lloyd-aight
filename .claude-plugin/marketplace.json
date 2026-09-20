@@ -9,7 +9,7 @@
     {
       "name": "frank-lloyd-aight",
       "description": "The Frank Lloyd AIght agent: three code states on one page, verdicts with a staging, decisions relayed, architecture/ kept canonical, diagrams rendered before approval, defects filed not fixed. Launch with claude --agent frank-lloyd-aight.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "./",
       "author": {
         "name": "Zach Gardner",
