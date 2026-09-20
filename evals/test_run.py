@@ -6,6 +6,7 @@ The stream fixture is a real `claude -p --output-format stream-json --verbose` c
 
 from __future__ import annotations
 
+import subprocess
 import sys
 import tempfile
 import json
@@ -523,6 +524,118 @@ class UnknownGraderTest(unittest.TestCase):
     def test_unknown_type_fails_loud(self) -> None:
         with self.assertRaises(ValueError):
             run.grade({"type": "vibes"}, record(at(16, 23), at(16, 25)))
+
+
+class PerCaseSandboxTest(unittest.TestCase):
+    """A case may open its own sandbox. The default stays exactly as it was, so the cases that are
+    already green keep the guarantees their stored reds were measured against."""
+
+    def cmd(self, spec: dict) -> list[str]:
+        return run.command(run.Case("x", Path("/x"), spec), "agent", "opus")
+
+    def flag(self, cmd: list[str], name: str) -> list[str]:
+        rest = cmd[cmd.index(name) + 1 :]
+        end = next((i for i, a in enumerate(rest) if a.startswith("--")), len(rest))
+        return rest[:end]
+
+    def test_default_sandbox_is_unchanged(self) -> None:
+        cmd = self.cmd({})
+        self.assertEqual(self.flag(cmd, "--allowedTools"), run.ALLOWED)
+        self.assertEqual(self.flag(cmd, "--disallowedTools"), run.DISALLOWED)
+
+    def test_allow_is_appended_to_the_default(self) -> None:
+        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(git:*)"]}})
+        allowed = self.flag(cmd, "--allowedTools")
+        self.assertEqual(allowed[: len(run.ALLOWED)], run.ALLOWED)
+        self.assertIn("Edit(./ARCHITECTURE.md)", allowed)
+        self.assertIn("Bash(git:*)", allowed)
+
+    def test_deny_replaces_the_default(self) -> None:
+        deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
+        self.assertEqual(deny, ["Bash(rm:*)", "Bash(git push:*)"])
+        self.assertNotIn("Bash(git commit:*)", deny)
+
+
+class GitFixtureTest(unittest.TestCase):
+    """A case that owns a document needs a real repo; a fixture cannot carry one."""
+
+    def test_init_repo_commits_the_fixture_and_returns_the_base(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            work = Path(d)
+            (work / "ARCHITECTURE.md").write_text("# Doc\n")
+            base = run.init_repo(work)
+            self.assertRegex(base, r"\A[0-9a-f]{40}\Z")
+            self.assertTrue((work / ".git").is_dir())
+            log = subprocess.run(["git", "-C", str(work), "log", "--oneline"], capture_output=True, text=True).stdout
+            self.assertEqual(len(log.strip().splitlines()), 1)
+            status = subprocess.run(["git", "-C", str(work), "status", "--porcelain"], capture_output=True, text=True).stdout
+            self.assertEqual(status.strip(), "", "fixture is committed clean")
+
+
+class GitIgnoredByFileGradersTest(unittest.TestCase):
+    """A commit writes objects under .git; none of them is a file the agent created."""
+
+    def test_git_internals_are_not_counted(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            before, after = Path(d) / "before", Path(d) / "after"
+            (before / ".git").mkdir(parents=True)
+            (after / ".git" / "objects" / "ab").mkdir(parents=True)
+            (after / ".git" / "objects" / "ab" / "cdef").write_text("x")
+            (before / "a.md").write_text("a\n")
+            (after / "a.md").write_text("a\n")
+            r = record(at(9, 0), at(9, 5))
+            r.fixture_dir, r.before_dir = after, before
+            ok, detail = run.grade({"type": "no_new_files"}, r)
+            self.assertTrue(ok, detail)
+            self.assertTrue(run.grade({"type": "files_created", "glob": "*", "max": 0}, r)[0])
+
+
+class CommittedGraderTest(unittest.TestCase):
+    """The discriminator: the other graders see a file change, not whether it was committed."""
+
+    def setUp(self) -> None:
+        self.work = Path(tempfile.mkdtemp())
+        (self.work / "ARCHITECTURE.md").write_text("# Doc\n")
+        self.base = run.init_repo(self.work)
+        self.rec = record(at(9, 0), at(9, 5))
+        self.rec.fixture_dir = self.work
+        self.rec.git_base = self.base
+
+    def commit(self, text: str, message: str) -> None:
+        (self.work / "ARCHITECTURE.md").write_text(text)
+        for args in (["add", "-A"], ["commit", "-m", message]):
+            subprocess.run(["git", "-C", str(self.work), *args], check=True, capture_output=True)
+
+    def test_no_commit_fails_min_one(self) -> None:
+        ok, detail = run.grade({"type": "committed", "min": 1}, self.rec)
+        self.assertFalse(ok)
+        self.assertIn("0 commit", detail)
+
+    def test_commit_since_base_counts_and_matches_its_message(self) -> None:
+        self.commit("# Doc\n\nthe probe no longer touches the provider\n", "docs(architecture): correct the ready probe")
+        self.assertTrue(run.grade({"type": "committed", "min": 1}, self.rec)[0])
+        self.assertTrue(run.grade({"type": "committed", "min": 1, "message_match": "(?i)architecture"}, self.rec)[0])
+        self.assertFalse(run.grade({"type": "committed", "min": 1, "message_match": "(?i)zebrafish"}, self.rec)[0])
+        self.assertFalse(run.grade({"type": "committed", "min": 2}, self.rec)[0])
+
+
+class GitBaseThreadingTest(unittest.TestCase):
+    """`"git": true` is useless unless the base sha reaches the grader that needs it."""
+
+    def test_grade_turns_passes_the_git_base_to_the_graders(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "out"
+            (out / "fixture-before").mkdir(parents=True)
+            work = out / "fixture-turn1"
+            work.mkdir(parents=True)
+            (work / "ARCHITECTURE.md").write_text("# Doc\n")
+            base = run.init_repo(work)
+            spec = {"turns": [{"prompt": "x", "graders": [{"name": "committed", "type": "committed", "min": 0}]}]}
+            turns = [run.Turn(events=[], t_start=at(9, 0), t_end=at(9, 5))]
+            results = run.grade_turns(spec, turns, "America/Chicago", out, [], git_base=base)
+            # Without the base the grader reports the case is not git-backed and fails.
+            self.assertTrue(results[0][1], results[0][2])
+            self.assertIn("0 commit", results[0][2])
 
 
 if __name__ == "__main__":

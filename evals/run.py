@@ -166,6 +166,21 @@ def render_value(value: Any, ctx: dict[str, str]) -> Any:
     return value
 
 
+def init_repo(work: Path) -> str:
+    """Commit the rendered fixture and return the base sha. A fixture cannot carry a real `.git`
+    (which is why `{{dotgit}}` exists), so a case that owns a document gets its repo here.
+    The identity is generic: fixtures carry no data from any workspace that uses this agent."""
+    def git(*args: str, **kw: Any) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, **kw)
+
+    git("init", "-q", "-b", "main")
+    git("config", "user.name", "Eval Fixture")
+    git("config", "user.email", "fixture@example.invalid")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fixture")
+    return git("rev-parse", "HEAD").stdout.strip()
+
+
 def render_tree(src: Path, dst: Path, ctx: dict[str, str]) -> None:
     for path in sorted(src.rglob("*")):
         rel = Path(render(str(path.relative_to(src)), ctx))
@@ -189,6 +204,7 @@ class RunRecord:
     fixture_dir: Path
     mock_calls: list[dict[str, Any]] = field(default_factory=list)
     before_dir: Path | None = None
+    git_base: str | None = None
 
     @property
     def publishes(self) -> list[dict[str, Any]]:
@@ -267,7 +283,11 @@ def _file_matches(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
 
 
 def _files(root: Path | None) -> set[str]:
-    return {str(f.relative_to(root)) for f in root.rglob("*") if f.is_file()} if root and root.is_dir() else set()
+    """Everything under `.git/` is git's bookkeeping, not a file the agent created."""
+    if not (root and root.is_dir()):
+        return set()
+    rels = (f.relative_to(root) for f in root.rglob("*") if f.is_file())
+    return {str(r) for r in rels if ".git" not in r.parts}
 
 
 def _files_created(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
@@ -318,7 +338,29 @@ def _lines_preserved(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
     return added >= want, f"{g['path']} {g['section']}: preserved, {added} line(s) added; want >= {want}"
 
 
+def _committed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
+    """Commits the agent added on top of the fixture's base, with an optional message match.
+    The other file graders see that a document changed; only this one sees that it was committed."""
+    if rec.git_base is None:
+        return False, "case does not set \"git\": true"
+    log = subprocess.run(
+        ["git", "-C", str(rec.fixture_dir), "log", "--format=%s", f"{rec.git_base}..HEAD"],
+        capture_output=True, text=True,
+    )
+    if log.returncode != 0:
+        return False, f"git log failed: {log.stderr.strip()}"
+    subjects = [l for l in log.stdout.splitlines() if l.strip()]
+    if "message_match" in g:
+        subjects = [s for s in subjects if re.search(g["message_match"], s)]
+    lo, hi = g.get("min", 0), g.get("max")
+    ok = len(subjects) >= lo and (hi is None or len(subjects) <= hi)
+    bound = f"min {lo}" + (f", max {hi}" if hi is not None else "")
+    match = f" matching /{g['message_match']}/" if "message_match" in g else ""
+    return ok, f"{len(subjects)} commit(s){match}: {subjects}; want {bound}"
+
+
 FILE_GRADERS = {
+    "committed": _committed,
     "file_unchanged": _file_unchanged,
     "file_matches": _file_matches,
     "no_new_files": _no_new_files,
@@ -457,7 +499,11 @@ def merge_mcp(*configs: dict[str, Any] | None) -> dict[str, Any] | None:
 def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None = None) -> list[str]:
     """User turns arrive as stream-json on stdin; permission prompts go to the harness (`stdio`), which answers or denies them."""
     mcp_config = mcp_config or {"mcpServers": {}}
-    allowed = ALLOWED + ([BOARD_TOOL] if "board" in mcp_config["mcpServers"] else []) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
+    # A case may widen its own sandbox; the default is untouched, so the cases already green keep
+    # the guarantees their stored reds were measured against.
+    sandbox = case.spec.get("sandbox") or {}
+    allowed = ALLOWED + list(sandbox.get("allow", [])) + ([BOARD_TOOL] if "board" in mcp_config["mcpServers"] else []) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
+    disallowed = list(sandbox.get("deny", DISALLOWED))
     cmd = [
         "claude", "-p",
         "--model", model,
@@ -469,7 +515,7 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
         "--max-turns", str(case.spec.get("max_turns", 10)),
         "--tools", *TOOLS,
         "--allowedTools", *allowed,
-        "--disallowedTools", *DISALLOWED,
+        "--disallowedTools", *disallowed,
         "--input-format", "stream-json",
         "--permission-prompt-tool", "stdio",
     ]
@@ -638,7 +684,7 @@ def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: 
     return denied
 
 
-def grade_turns(spec: dict[str, Any], turns: list[Turn], tz: str, out: Path, calls: list[dict[str, Any]]) -> list[tuple[str, bool, str]]:
+def grade_turns(spec: dict[str, Any], turns: list[Turn], tz: str, out: Path, calls: list[dict[str, Any]], git_base: str | None = None) -> list[tuple[str, bool, str]]:
     """Grade each turn spec against the turn it belongs to.
 
     A prompt spec takes the next turn. A wait spec (no prompt) takes the turn that carried the
@@ -674,6 +720,7 @@ def grade_turns(spec: dict[str, Any], turns: list[Turn], tz: str, out: Path, cal
             fixture_dir=out / f"fixture-turn{snap}",
             mock_calls=in_turn,
             before_dir=out / ("fixture-before" if snap == 1 else f"fixture-turn{snap - 1}"),
+            git_base=git_base,
         )
         for i, g in enumerate(turn_spec["graders"]):
             passed, why = grade(g, rec)
@@ -698,6 +745,8 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
         if (case.root / "fixture").is_dir():
             render_tree(case.root / "fixture", work, ctx)
             render_tree(case.root / "fixture", out / "fixture-before", ctx)
+        # A case that owns a document needs a repo to commit into; the fixture snapshot keeps it.
+        git_base = init_repo(work) if spec.get("git") else None
         env = dict(os.environ)
         mcp_config = None
         calls_log = calls_log_path(out)
@@ -716,12 +765,12 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
         if "turns" not in spec:
             # A single-prompt case is a one-turn case; everything runs through the stream-json driver.
             spec = dict(spec, turns=[{"prompt": spec["prompt"], "graders": spec.get("graders", [])}])
-        return run_turns(spec, arm, model, out, work, env, mcp_config, calls_log, tz, case_root=case.root, ctx=ctx)
+        return run_turns(spec, arm, model, out, work, env, mcp_config, calls_log, tz, case_root=case.root, ctx=ctx, git_base=git_base)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path, env: dict[str, str], mcp_config: dict[str, Any] | None, calls_log: Path, tz: str, case_root: Path = Path("."), ctx: dict[str, str] | None = None) -> tuple[list[tuple[str, bool, str]], str | None, dict[str, Any]]:
+def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path, env: dict[str, str], mcp_config: dict[str, Any] | None, calls_log: Path, tz: str, case_root: Path = Path("."), ctx: dict[str, str] | None = None, git_base: str | None = None) -> tuple[list[tuple[str, bool, str]], str | None, dict[str, Any]]:
     """Multi-turn case: one stream-json process, graders scoped to each turn, fixture snapshot per turn."""
     cmd = command(Case("", Path(), spec), arm, model, mcp_config=mcp_config)
     (out / "command.json").write_text(json.dumps(cmd, indent=1))
@@ -752,7 +801,7 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
     if not ok:
         return [], f"arm check: {detail}", meta
     calls = [json.loads(l) for l in calls_log.read_text().splitlines() if l.strip()] if calls_log.exists() else []
-    return grade_turns(spec, turns, tz, out, calls), None, meta
+    return grade_turns(spec, turns, tz, out, calls, git_base=git_base), None, meta
 
 
 def main(argv: list[str]) -> int:
