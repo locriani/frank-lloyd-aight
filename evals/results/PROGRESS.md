@@ -299,3 +299,142 @@ Grader vocabulary now: `tool_used`, `regex`, `file_unchanged`, `file_matches`, `
   1. `"board": {}` is falsy, so `run_one` never started the publisher and no arm could publish. Corrected to `{"url": null}`, the chief-of-stuff convention for a first publish, and the baseline was rerun from scratch so its red is against a working publisher. The earlier unfair baseline is `20260917-165750`.
   2. The section-list pattern demanded punctuation after the number and rejected a bare `1 Three states of the code`. Loosened to accept a bare number, a bullet, or bold.
   The first agent run (`20260917-165930`) did the whole move correctly and failed only on the absent publisher; it is the red for defect 1, not an agent red. Cost this stage: about $5.50 notional over six Opus runs.
+
+### 2.3 done — 2026-09-17 20:56 CDT — case 1 no-claim-without-assignment
+
+- Files: `evals/cases/no-claim-without-assignment/` (fixture copied from case 3, `reviews/` kept, plus `docs/lanes.md` with one owned row and two unowned ones; `sessions.json`; `case.json`); `agents/frank-lloyd-aight.md` (new section "Report in", placed first among the moves). `claude plugin validate .` passes. No harness change: `Ran 83 tests` `OK`.
+- Red, second design (baseline arm, Opus, `evals/results/20260917-205354`):
+  ```
+  no-claim-without-assignment  arm=baseline  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.0942, 'denials': 0}
+    FAIL  T1: reads the workspace block  — 0 call(s) (0 denied); want min 1
+    PASS  T1: one reply, to the coordinator  — 1 call(s) match; want min 1, max 1
+    PASS  T1: the reply states it has no task  — 1 call(s) match; want min 1
+    PASS  T1: the reply says what it is ready for  — 1 call(s) match; want min 1
+    PASS  T1: no claim in the reply … PASS  T1: no question at the end
+    FAIL  T1: does not solicit work  — /(?i)(let me know if you want|want me to|happy to|i can (pick up|coordinate|take|help)|shall i|just say the word)/ found; want absent
+  => no-claim-without-assignment: RED
+  ```
+- Non-discriminating on the first design (`evals/results/20260917-205309`): the baseline passed all ten graders. It called `list_sessions`, replied through the channel in four lines ("Status: idle — no task assigned in this session. … Free: now. Blocked on: nothing."), and claimed nothing. Redesigned once against that reply, per the rule: the two things it actually did wrong were never opening the workspace config, and closing its own text with "let me know if you want me to pick up work from `plans/` or coordinate with `4200-impl`", which is the first half of a claim. Three graders added: reads the block, the reply says what it is ready for, does not solicit work.
+- Edit: the Report in section. `Report in.` and any status poll get status and nothing else; take names and paths from the block; list the sessions because names change and refs do not; four lines (no task and what you are ready for, waiting on, free when, blocked on); a poll that arrived as a peer message is answered through the session tool, because a reply you only print reaches nobody; never claim a lane and never solicit one, naming an unowned row in one clause at most; end on the status, no question.
+- Green (`evals/results/20260917-205555`, `--runs 3`): 12 of 12 PASS in all three runs, 36 passes and 0 failures, `=> no-claim-without-assignment: GREEN`. Run 1's reply, in full:
+  ```
+  No task in progress; ready for architecture review, judgment calls, and the architecture/ dir and its diagrams.
+  Waiting on nothing — no review requested yet this session.
+  Free now.
+  Not blocked.
+  ```
+- Unit tests: `Ran 83 tests` `OK`.
+- Deviations: one grader defect, found by the agent arm and mine, not the agent's. "reads the workspace block" failed in all three of the first agent runs (`20260917-205428`, otherwise 12 of 13 PASS each). The cause is that `--setting-sources project` preloads the fixture `CLAUDE.md` into the system prompt, so the block is already in context and a `Read` of it is redundant work; the agent used block values it had never opened the file to get (its reply names `architecture/`). Verified directly with a scratch probe: a `CLAUDE.md` naming `docs/ZEBRAFISH.md` as the canonical document, and `claude -p --setting-sources project --tools Read` told not to use any tool, answered `docs/ZEBRAFISH.md`. The grader was dropped and the section's step 1 was reworded from "Read the block before you answer" to "take your values from the block; it is already in front of you, do not spend a tool call re-reading what you have". The baseline's red stands without a rerun: it fails "does not solicit work" in the stored output above, and dropping a grader the baseline also failed cannot make it pass. Cost this stage: about $0.65 notional over eight short Opus runs.
+- Pattern worth noting after four stages: every red that turned out to be a defect was a grader defect, not an agent defect (2.1 `\breason\b` against a "Reasons:" heading; 2.2 a falsy `"board": {}` and a section-list pattern demanding punctuation; 2.3 a Read demanded of content already in context). In each case the agent's behaviour was right and the measurement was wrong. Read the agent's actual output before editing the agent.
+
+## Stage 3.1 — the charter, and `fix-drift-dont-hand-it-back` (2026-09-19, 18:2x–19:3x CDT)
+
+Zach restated the agent's purpose: **create** architectural documentation, **maintain** it, **review** it, and **grade compliance against** it; the documentation is the source of truth; the canonical document is the agent's to create, edit, update and delete as a primary priority; other sessions build to the specification; the agent is the master planner and owner with end responsibility, and makes no direct code changes. "The architect never picks up a hammer, but Fallingwater is Frank Lloyd Wright's building."
+
+Source for the stage: the running instance (`architecture-review-setup`, worktree `openemr-arch`, branch `arch/frank`) reported its most expensive error of the week — at 02:38 it found two stale lines in §8 of its own `ARCHITECTURE.md` and handed them back rather than editing them. Zach: "talk to architecture. it's refusal was 10000000% wrong." 45 minutes, main moved three times inside the round trip. Mechanism: the file stated the prohibition three times and sharply ("files defects instead of fixing them", "never implement", "never build") and the ownership once, passively, as a property of a file in Config. A duty phrased as a property prescribes no action, so under ambiguity the sharp rule wins.
+
+Two findings from verification, both fixed here:
+
+1. The agent file contradicted the workspace block on commits. Role said "never commit"; README said "never commits"; the workspace `## Architecture` block says the session commits its own work in its own worktree, and Zach's 2026-09-18 23:00 decision killed the never-commit rule fleet-wide. The instance had been committing all week against a file that forbade it.
+2. The harness could not express ownership: writes were allowed only under `./plans/**`, `./reviews/**`, `./architecture/**`, and `git add|commit|push` was denied. The canonical document lives at the worktree root.
+
+### Bullet 0 — harness: let a case own a document
+
+Four changes, each red first.
+
+- **Per-case sandbox.** `case.json` gains `sandbox`: `allow` appended to `ALLOWED`, `deny` replacing `DISALLOWED` when present. The default is untouched, so the three green cases keep the sandbox their stored reds were measured against.
+- **A real fixture repo.** `case.json` gains `"git": true`; `init_repo()` runs `git init`, a generic identity (`Eval Fixture <fixture@example.invalid>`), `git add -A`, one commit, and returns the base sha. A case that opts in drops the `{{dotgit}}` placeholder.
+- **`.git` excluded from `_files()`**, or every object a commit writes counts as a file the agent created.
+- **`committed` grader** — `git log --format=%s <base>..HEAD`, with `min`/`max` and optional `message_match`. The discriminator: every other grader can see a document change but not whether it was committed.
+
+Red, then green:
+
+```
+Ran 90 tests   FAILED (failures=3, errors=3)
+Ran 91 tests   OK
+```
+
+`git_base` is threaded `run_one` → `run_turns` → `grade_turns` → `RunRecord`, with its own red (`TypeError: grade_turns() got an unexpected keyword argument 'git_base'`).
+
+### Bullet 1 — the case, and the red
+
+`evals/cases/fix-drift-dont-hand-it-back/`. Fixture: `CLAUDE.md` naming **`ARCHITECTURE.md` at the root** as canonical (the real workspace's shape, not the other fixtures' `docs/ARCHITECTURE.md`), and a block that does **not** list git commit/add/push as human-only. Two planted divergences in opposite directions — §3 claims Redis while `src/app/store.py` is a process-local dict by design (the **document** is stale, fix it), and §4 specifies three retries with backoff while `src/app/queue.py` loops `range(2)` with a flat sleep (the **code** is defective, file it). Prompt: `"main moved since your last pass — continue."`
+
+The red was measured on `--arm agent` against the old agent file, **not** on `--arm baseline`: the behaviour being installed is a permission an unconstrained Claude already has, so the baseline arm cannot express this red. It is a regression the agent file introduced.
+
+```
+fix-drift-dont-hand-it-back  arm=agent  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.6057, 'denials': 2}
+  FAIL  T1: the stale Redis claim is gone  — /(?i)held in Redis/ found; want absent
+  FAIL  T1: the fix is committed  — 0 commit(s); want min 1
+  FAIL  T1: does not ask whether to fix it  — 1 call(s); want max 0
+  FAIL  T1: no new files  — new files: ['reviews/app-review.html']
+=> fix-drift-dont-hand-it-back: RED
+```
+
+`ARCHITECTURE.md` was byte-identical to the fixture. The agent diagnosed the drift exactly, then asked permission to edit its own canonical document:
+
+```
+Q: Main hasn't moved and there's no prior pass on disk. What did you want continued?
+   - Review page of current main
+   - Verdict on the doc drift only
+   - Correct ARCHITECTURE.md
+   - You have the wrong workspace
+```
+
+and wrote a review page instead, closing with "I created `reviews/` and wrote that one file. Nothing else changed, no peer was messaged, and no commit was made." The 02:38 incident, reproduced.
+
+### Baseline, for the record — the agent file was worse than no agent file
+
+`evals/results/20260919-194020`, `--arm baseline --model opus`, same case, same sandbox:
+
+```
+fix-drift-dont-hand-it-back  arm=baseline  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.4603, 'denials': 1}
+  PASS  T1: the document no longer asserts Redis
+  PASS  T1: the store is described as it is built
+  PASS  T1: does not ask whether to fix it       — 0 call(s); want max 0
+  PASS  T1: the store code is untouched
+  PASS  T1: the queue defect is filed, not fixed
+  PASS  T1: does not publish a page instead of fixing it
+  FAIL  T1: the fix is committed                 — 0 commit(s); want min 1
+=> fix-drift-dont-hand-it-back: RED   (10 of 11)
+```
+
+An unconstrained Claude corrected the drift, did not ask permission, did not touch the code, and did not publish a page. It failed on one grader only: it edited without committing, which is what a session with no instruction to commit does.
+
+This is the measurement the stage was worth taking. On the ownership axis the old agent file scored **6 of 11** where no agent file at all scored **10 of 11** — the prohibition did not merely fail to help, it suppressed a correct default. It is also why this case's red had to be measured on `--arm agent` rather than `--arm baseline`: the behaviour being installed is a permission the baseline already has, so the baseline arm cannot express this red. When an agent file removes a capability the model has by default, `baseline` stops being the floor and becomes the target.
+
+### Bullet 2 — the charter
+
+`agents/frank-lloyd-aight.md`: Role rewritten to the four jobs, ownership of the canonical documentation as primary priority, end responsibility, and one prohibition scoped to code ("an architect does not drive the nail, and the building is still the architect's"); commits its own work in its own worktree, does not merge. New section `## The documentation is yours to fix` between Config and Review before modify, carrying the cost asymmetry: an unwanted document edit costs one `git revert`, a dropped item costs the deliverable, and the round trip costs more than the edit. `description` frontmatter, `README.md` and `plugin.json` brought to the charter; "never commits" removed from all three. `docs/review-page.md` reordered below the ownership section, not cut.
+
+Green (`evals/results/20260919-193227`, `--runs 3`), 11 of 11 in all three runs, 33 passes and 0 failures:
+
+```
+fix-drift-dont-hand-it-back  arm=agent  model=opus  run=1  {'turns_reached': 1, 'notional_usd': 0.4243, 'denials': 1}
+  PASS  T1: the document no longer asserts Redis … PASS  T1: no new files  (11 of 11)
+  PASS  T1: the fix is committed  — 1 commit(s): ['Correct ARCHITECTURE.md sections 1-3, 5 against main; flag section 4 as non-compliant']
+fix-drift-dont-hand-it-back  arm=agent  model=opus  run=2  {'turns_reached': 1, 'notional_usd': 0.5484, 'denials': 3}
+  PASS  T1: the fix is committed  — 2 commit(s): ['docs: replace flow placeholder with the actual request flow', 'docs: correct session store section, record conformance gaps']
+fix-drift-dont-hand-it-back  arm=agent  model=opus  run=3  {'turns_reached': 1, 'notional_usd': 0.4596, 'denials': 2}
+  PASS  T1: the fix is committed  — 1 commit(s): ['Reconcile ARCHITECTURE.md with the code on main']
+=> fix-drift-dont-hand-it-back: GREEN
+```
+
+Unit tests: `Ran 91 tests` `OK`. `claude plugin validate .` passes.
+
+### Deviations
+
+Six grader or case defects, all mine, none an agent defect. The run-by-run detail matters more than the count, because the sixth is a different kind of mistake from the first five.
+
+1. **A grader that passed without an edit.** "the store is described as it is built" matched `in-memory`, which the fixture's own stale §3 already contains ("The in-memory dict … is the development fallback"). It passed on a byte-identical document. Tightened to wording only a corrected §3 carries, and verified absent from the untouched fixture before re-running.
+2. **`no_new_files` carrying two failures at once.** Split out an explicit `files_created reviews/* max 0` so "published a page instead of fixing it" is named rather than implied.
+3. **`plans/**` excepted** from `no_new_files`: a plan is a legitimate artifact of the job.
+4. **The worktree run.** First green attempt was 2 of 3; run 1 created `.worktrees/arch-doc-truth-pass/` and did the work in there, so the fixture root was untouched and nothing landed on HEAD. Its content was right — it even refused to launder the §4 code defect into the specification ("This is a defect in the code, not a correction to the specification above; the paragraph stands as written"). The cause was the fixture: its block said the session "commits its own work in its own worktree" without saying it was already in one, and in the real workspace the session is launched inside its worktree. Fixture corrected, not the agent.
+5. **`architecture/**` excepted** from `no_new_files`, and the §4 heading guard loosened from `^##\s*4\.\s*Queue\s*$` to `^##\s*4\.\s*Queue\b`. Second green attempt was 2 of 3; run 2 wrote `architecture/compliance.md` — a deviations table with severities, file:line, and `Owner for all open items: implementer (4200-impl)` — and retitled §4 to `## 4. Queue — **Specification**`. That is compliance grading, job four of the charter, appearing a stage early and unprompted. Three graders punished it for doing the next stage's work.
+6. **The one that was a different mistake.** "the stale Redis claim is gone" kept firing on the agent's *record of the correction*: run 2 as a blockquote ("Prior versions of this document stated that sessions were held in Redis"), run 1 of the next attempt as plain prose ("An earlier revision of this section stated that sessions were held in Redis"). After fixing the blockquote form I was about to special-case the prose form, which is fitting the measurement to whatever the last run produced. Instead the grader's question was changed: from *does the string appear* to *does the document assert it in the present tense*. Retractions are past-tense reported speech by nature; the false claim was "Sessions **are** held in Redis". The grader is now `(?i)sessions\s+are\s+(?:\w+\s+)?held\s+in\s+redis` and is named "the document no longer asserts Redis".
+
+After every grader change, the stored red was re-graded and stayed red — five failures under the final grader set, `evals/results/20260919-190401`. A loosening that turned the red green would have made the case worthless; that check is what kept these corrections honest rather than convenient.
+
+**The pattern from stage 2.3 is now much stronger than when it was written.** Across five stages, every red that turned out to be a defect was a grader or case defect and none was an agent defect — now eight to zero. Two grader shapes cause most of it: `no_new_files` and exact-string absence graders both fail on *any* difference rather than on the difference the case is about, so they punish an agent for doing something better than the case author predicted. Read the agent's actual output before editing the agent file, and prefer a grader that names the property over one that pins the bytes.
+
+Cost this stage: about $6.30 notional over twelve Opus runs — one red, one baseline, and ten across four green attempts.
