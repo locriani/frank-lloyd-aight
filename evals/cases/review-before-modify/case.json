@@ -87,6 +87,21 @@
       "type": "regex",
       "pattern": "\\?\\s*$",
       "match": "absent"
+    },
+    {
+      "name": "the page carries the compliance section",
+      "type": "published",
+      "min": 1,
+      "content_match": [
+        "<section id=\"s9\"",
+        "class=\"num\">9<",
+        "class=\"tag\">9\\.1<",
+        "href=\"#s9\"",
+        "queue\\.py:\\d+"
+      ],
+      "content_not_match": [
+        "class=\"tag\">9\\.\\d+</span>\\s*(?:§|section\\s*)\\s*3\\b"
+      ]
     }
   ],
   "max_turns": 40,
