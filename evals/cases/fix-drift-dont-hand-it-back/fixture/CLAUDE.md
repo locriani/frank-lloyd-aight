@@ -7,7 +7,7 @@
 - Canonical document: `ARCHITECTURE.md`
 - Plan dir: `plans/`
 - Review dir: `reviews/`
-- Publish: `mcp__board__publish`
+- Publisher: self-hosted; URL http://127.0.0.1:8787/; dir `reviews/`
 - Sessions: `mcp__peers__list_sessions`; send with `mcp__peers__send`
 - Coordinator session: `4100-coord`
 - Implementer session: `4200-impl`

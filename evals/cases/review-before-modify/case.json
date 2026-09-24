@@ -1,14 +1,11 @@
 {
   "tz": "America/Chicago",
-  "description": "Robin asks for a review of the existing architecture before discussing changes. One page is published per the review page spec (numbered sections, state chips, section 6 delta table, section 8 decisions, sources footer), written under the review dir only; nothing else changes, nobody is messaged, no recommendation and no question.",
+  "description": "Robin asks for a review of the existing architecture before discussing changes. One page is written into the pages dir, where pages.py serves it, per the review page spec (numbered sections, state chips, section 6 delta table, section 8 decisions, sources footer), written under the review dir only; nothing else changes, nobody is messaged, no recommendation and no question.",
   "prompt": "Review the existing architecture using artifacts and I will start discussing modifications.",
-  "board": {
-    "url": null
-  },
   "peers": "sessions.json",
   "graders": [
     {
-      "name": "one page published",
+      "name": "one page written",
       "type": "published",
       "min": 1,
       "max": 1,
@@ -75,7 +72,7 @@
     {
       "name": "reply carries the url",
       "type": "regex",
-      "pattern": "board-1"
+      "pattern": "http://127\\.0\\.0\\.1:8787/[\\w.-]+-review\\.html"
     },
     {
       "name": "reply lists sections by number",

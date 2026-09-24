@@ -1,11 +1,11 @@
 # The review page
 
-The page Frank Lloyd AIght publishes when the user asks for a review of the existing architecture. One html file, one publish, and then the user discusses it by section number. This document fixes the layout, the numbering, and the encoding so that every review looks the same and section 6 means the same thing next week.
+The page Frank Lloyd AIght writes when the user asks for a review of the existing architecture. One html file, served from this Mac, and then the user discusses it by section number. This document fixes the layout, the numbering, and the encoding so that every review looks the same and section 6 means the same thing next week.
 
-## File and publish
+## File and address
 
-- Path: `<review dir>/<subject>-review.html`, where the review dir comes from the `## Architecture` block and the subject is the directory or service reviewed (`agent-review.html`, `api-review.html`).
-- Publish by passing that path to the tool the block names. Never pass html text to the tool, never paste the html into the reply.
+- Path: `<pages dir>/<subject>-review.html`, where the pages dir is the `dir` on the `## Architecture` block's publisher line and the subject is the directory or service reviewed (`agent-review.html`, `api-review.html`).
+- Writing the file publishes it: chief-of-stuff's `pages.py` serves the pages dir at the publisher line's URL, so the page is at `<url>/<subject>-review.html`. Never paste the html into the reply.
 - `<title>` is the subject. No external script. Fonts: the stylesheet below names Google fonts with a system fallback stack; the page renders without them.
 - Light and dark: the tokens below define the light palette on `:root`, redefine it under `prefers-color-scheme: dark` guarded as `:root:not([data-theme="light"])`, and again under `:root[data-theme="dark"]`. Keep all three blocks.
 - Phone width: one column under 900px, 16px side gutter under 480px. Figures and tables scroll sideways inside their own wrapper; the body never does.
@@ -66,9 +66,9 @@ A node is a noun; a verb goes on the edge label. A figure never mixes states wit
 - A design document that contradicts itself gets both readings in section 6 and a row in section 8.
 - Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect.
 
-## The reply after publishing
+## The reply after writing
 
-The URL on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). No recommendation, no question. The user reads, then discusses by number.
+The page's URL on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). No recommendation, no question. The user reads, then discusses by number.
 
 ## Stylesheet
 
