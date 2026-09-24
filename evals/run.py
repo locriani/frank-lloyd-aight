@@ -58,8 +58,6 @@ ALLOWED = [
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
 # These reach real Claude sessions on this machine. No eval run may expose them.
 PEER_TOOLS = ("ListAgents", "SendMessage")
-MOCK_BOARD = EVALS / "mock_board.py"
-BOARD_TOOL = "mcp__board__publish"
 # The peers mock stands in for ListAgents/SendMessage, which stay out of every run (PEER_TOOLS guard).
 MOCK_PEERS = EVALS / "mock_peers.py"
 PEER_MOCK_TOOLS = ["mcp__peers__list_sessions", "mcp__peers__send"]
@@ -103,17 +101,13 @@ def parse_stream(events: list[dict[str, Any]]) -> Stream:
     return s
 
 
-def check_arm(init: dict[str, Any], arm: str, agent_flag_used: bool = False, model: str | None = None, needs_board: bool = False, needs_peers: bool = False) -> tuple[bool, str]:
+def check_arm(init: dict[str, Any], arm: str, agent_flag_used: bool = False, model: str | None = None, needs_peers: bool = False) -> tuple[bool, str]:
     """Confirm the session loaded what the arm claims, so a silent fallback cannot pass."""
     exposed = [t for t in PEER_TOOLS if t in init.get("tools", [])]
     if exposed:
         return False, f"sandbox exposes peer-session tools {exposed}"
     if model and model.lower() not in str(init.get("model", "")).lower():
         return False, f"init model {init.get('model')!r} is not {model!r}"
-    if needs_board:
-        servers = {m.get("name"): m.get("status") for m in init.get("mcp_servers", [])}
-        if servers.get("board") != "connected":
-            return False, f"mock board not connected: {servers}"
     if needs_peers:
         servers = {m.get("name"): m.get("status") for m in init.get("mcp_servers", [])}
         if servers.get("peers") != "connected":
@@ -226,10 +220,6 @@ class RunRecord:
     mock_calls: list[dict[str, Any]] = field(default_factory=list)
     before_dir: Path | None = None
     git_base: str | None = None
-
-    @property
-    def publishes(self) -> list[dict[str, Any]]:
-        return [c for c in self.mock_calls if c.get("tool") == "publish"]
 
     @property
     def peer_calls(self) -> list[dict[str, Any]]:
@@ -410,29 +400,27 @@ def load_cases(patterns: list[str]) -> list[Case]:
     return cases
 
 
-def _last_published_html(rec: RunRecord) -> tuple[str | None, str]:
-    pubs = rec.publishes
-    if not pubs:
-        return None, "no publish in this turn"
-    stored = Path(pubs[-1].get("stored", ""))
-    if not stored.is_file():
-        return None, f"stored copy missing: {stored}"
-    return stored.read_text(), f"{len(pubs)} publish(es), last {pubs[-1].get('url')}"
+def _pages_written(rec: RunRecord) -> list[Path]:
+    """The html pages this turn wrote or changed, oldest first. pages.py serves them; nothing is published."""
+    def changed(p: Path) -> bool:
+        old = rec.before_dir / p.relative_to(rec.fixture_dir) if rec.before_dir else None
+        return not (old and old.is_file() and old.read_bytes() == p.read_bytes())
+    pages = [p for p in rec.fixture_dir.rglob("*.html") if changed(p)] if rec.fixture_dir.is_dir() else []
+    return sorted(pages, key=lambda p: p.stat().st_mtime)
 
 
 def _published(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
-    """Between `min` and `max` publishes this turn; the last published page contains every
-    `content_match` regex and none of `content_not_match`."""
+    """Between `min` and `max` pages written this turn; the newest contains every `content_match`
+    regex and none of `content_not_match`."""
     lo, hi = g.get("min", 1), g.get("max")
-    count = len(rec.publishes)
-    if count < lo or (hi is not None and count > hi):
+    pages = _pages_written(rec)
+    if len(pages) < lo or (hi is not None and len(pages) > hi):
         bound = f"min {lo}" + (f", max {hi}" if hi is not None else "")
-        return False, f"{count} publish(es); want {bound}"
-    if count == 0:
-        return True, "no publish, none required"
-    page, note = _last_published_html(rec)
-    if page is None:
-        return False, note
+        return False, f"{len(pages)} page(s) written; want {bound}"
+    if not pages:
+        return True, "no page written, none required"
+    page = pages[-1].read_text()
+    note = f"{len(pages)} page(s), newest {pages[-1].relative_to(rec.fixture_dir)}"
     problems = [f"/{pat}/ not in page" for pat in g.get("content_match", []) if not re.search(pat, page, re.MULTILINE)]
     problems += [f"/{pat}/ found in page" for pat in g.get("content_not_match", []) if re.search(pat, page, re.MULTILINE)]
     return (not problems), ("; ".join(problems) if problems else note)
@@ -502,13 +490,6 @@ def peers_mcp_config(sessions: Path, log: Path, tz: str) -> dict[str, Any]:
     return {"mcpServers": {"peers": {"type": "stdio", "command": sys.executable, "args": args}}}
 
 
-def board_mcp_config(log: Path, store: Path, root: Path, tz: str, known_url: str | None) -> dict[str, Any]:
-    args = [str(MOCK_BOARD.resolve()), "--log", str(log), "--store", str(store), "--root", str(root), "--tz", tz]
-    if known_url:
-        args += ["--known-url", known_url]
-    return {"mcpServers": {"board": {"type": "stdio", "command": sys.executable, "args": args}}}
-
-
 def merge_mcp(*configs: dict[str, Any] | None) -> dict[str, Any] | None:
     servers: dict[str, Any] = {}
     for c in configs:
@@ -523,7 +504,7 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     # A case may widen its own sandbox; the default is untouched, so the cases already green keep
     # the guarantees their stored reds were measured against.
     sandbox = case.spec.get("sandbox") or {}
-    allowed = ALLOWED + list(sandbox.get("allow", [])) + ([BOARD_TOOL] if "board" in mcp_config["mcpServers"] else []) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
+    allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
     disallowed = list(sandbox.get("deny", DISALLOWED))
     cmd = [
         "claude", "-p",
@@ -983,11 +964,6 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
         env = dict(os.environ)
         mcp_config = None
         calls_log = calls_log_path(out)
-        if spec.get("board"):
-            # Every mock logs into one calls file; the publisher's rows are tagged `"tool": "publish"`.
-            calls_log.parent.mkdir(parents=True, exist_ok=True)
-            calls_log.touch()
-            mcp_config = merge_mcp(mcp_config, board_mcp_config(calls_log, out / "board", work, tz, spec["board"].get("url")))
         if "peers" in spec:
             # Sessions file lives in the results dir; per-turn `peers` keys rewrite it before that turn.
             calls_log.parent.mkdir(parents=True, exist_ok=True)
@@ -1034,7 +1010,7 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
                  tree_digest(fixture_src) if fixture_src.is_dir() else None), indent=1))
     if not streams or streams[0].result is None:
         return [], "claude produced no result for turn 1", meta
-    ok, detail = check_arm(streams[0].init, arm, agent_flag_used="--agent" in cmd and arm != "agent", model=model, needs_board=bool(spec.get("board")), needs_peers="peers" in spec)
+    ok, detail = check_arm(streams[0].init, arm, agent_flag_used="--agent" in cmd and arm != "agent", model=model, needs_peers="peers" in spec)
     if not ok:
         return [], f"arm check: {detail}", meta
     calls = [json.loads(l) for l in calls_log.read_text().splitlines() if l.strip()] if calls_log.exists() else []

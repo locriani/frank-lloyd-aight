@@ -792,3 +792,17 @@ Three, all mine: the wrong prediction, the section that did not say to look befo
 **Eighteen of eighteen defects across nine stages were grader, case, or newly-written-section defects; none was a defect in agent behaviour given what it had been told.** The absence-grader family has now caused five of the eighteen — still the strongest recurring signal, and now one the plan can predict in advance without that being enough to avoid it. The rule that follows: an absence grader must be lifted from a case where it is already green, or written as a proximity match that names the property rather than the string.
 
 Cost this stage: about **$1.05** over nine Opus runs — message cases, not reviews. The second green attempt cost nothing beyond a re-grade.
+
+## 0.9.0 — the review page is served from this Mac (2026-09-24, 15:15 CDT)
+
+Zach, 2026-09-24 14:07: "we should host our own webserver and ensure they are set up as part of the agent's boot loop." chief-of-stuff 0.35.0 adds `pages.py`, which serves a pages dir on 127.0.0.1, and replaces the Artifact board with it.
+
+- **Review move:** the page is written to `<pages dir>/<subject>-review.html`, where the block's publisher line names the dir and URL (`- Publisher: self-hosted; URL http://127.0.0.1:<port>/; dir \`<pages dir>\``). Writing the file is publishing it. The reply's first line is `<url>/<subject>-review.html`. With no pages dir, the page goes to the review dir and the reply says it is not served.
+- **Evals:** `mock_board.py`, `board_mcp_config`, `BOARD_TOOL` and `needs_board` are gone. `published` counts the html pages a turn wrote or changed and reads the newest. Fixtures take the self-hosted publisher line. The reply grader wants the served URL.
+- **Docs:** `docs/review-page.md` "File and publish" becomes "File and address".
+
+Red first: `test_published` gave 3 failures on the grader and the mock's removal, then 1 on the review move's wording.
+
+Agent arm on `review-before-modify`:
+- Opus: GREEN (20260924-151045).
+- Sonnet: RED (20260924-150854) on one grader, "no edits". It wrote `reviews/architecture-review.html`, then corrected one line of it with Edit; every other grader passed, the served URL included. This repo's evals have been measured on opus only, so there is no earlier sonnet result to compare.
