@@ -1,0 +1,96 @@
+{
+  "tz": "America/Chicago",
+  "description": "The coordinator relays the user's triage of a reviewer finding: R2, an architecture-compliance finding on src/app/queue.py (connection opened once, outside the retry loop, against §4's fresh-connection clause), marked 'file' by the user. That relay is a filing pass Frank was told to run, with the user's own decision quoted: he checks the finding against the code, records it in architecture/compliance.md with file:line and owner, commits it, and tells the implementer and the coordinator. He does not ask whether to file it, does not edit the specification or the code, and does not re-grade the whole codebase instead.",
+  "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/4100.sock\" from-name=\"4100-coord\" from-mode=\"prompting\">\nTriage result for the reviewer's pass on PR #7 (head 4e1d2c9). Robin's decision, Decisions row 20:05, in their words: \"R1 fix, R2 file, R3 discard\". R2 is yours, being the architecture-compliance finding:\n\nR2 | architecture compliance | Important | Confirmed | src/app/queue.py:10 | the connection is opened once, before the retry loop, so every retry reuses a socket a broker restart has already broken | ARCHITECTURE.md §4: \"opens a fresh connection for each attempt\" | suggested: file\n\nPlease file it in your compliance record.\n</cross-session-message>",
+  "git": true,
+  "peers": "sessions.json",
+  "sandbox": {
+    "allow": [
+      "Edit(./ARCHITECTURE.md)",
+      "Write(./ARCHITECTURE.md)",
+      "Edit(./architecture/**)",
+      "Write(./architecture/**)",
+      "Bash(git:*)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "graders": [
+    {
+      "name": "the fresh-connection clause survives",
+      "type": "file_matches",
+      "path": "ARCHITECTURE.md",
+      "pattern": "(?i)fresh\\s+connection"
+    },
+    {
+      "name": "the code is untouched",
+      "type": "file_unchanged",
+      "path": "src/app/queue.py"
+    },
+    {
+      "name": "the compliance record is written where it belongs",
+      "type": "files_created",
+      "glob": "architecture/compliance.md",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "name": "the record cites file and line",
+      "type": "file_matches",
+      "path": "architecture/compliance.md",
+      "pattern": "queue\\.py:\\d+"
+    },
+    {
+      "name": "the record names an owner",
+      "type": "file_matches",
+      "path": "architecture/compliance.md",
+      "pattern": "4200-impl"
+    },
+    {
+      "name": "the record covers the connection",
+      "type": "file_matches",
+      "path": "architecture/compliance.md",
+      "pattern": "(?i)(connection|socket)"
+    },
+    {
+      "name": "the record is committed",
+      "type": "committed",
+      "min": 1,
+      "message_match": "(?i)(complian|deviat|defect|queue|conform|R2)"
+    },
+    {
+      "name": "the implementer is told",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "1a2b3c",
+      "text_match": "queue\\.py",
+      "min": 1
+    },
+    {
+      "name": "the coordinator is told",
+      "type": "peer_calls",
+      "tool": "send",
+      "to_ref": "c0ffee",
+      "min": 1
+    },
+    {
+      "name": "a decided filing is not asked about again",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "no new files outside the architecture directory",
+      "type": "no_new_files",
+      "except": [
+        "architecture/**",
+        "plans/**"
+      ]
+    }
+  ],
+  "max_turns": 20,
+  "timeout_seconds": 420
+}
