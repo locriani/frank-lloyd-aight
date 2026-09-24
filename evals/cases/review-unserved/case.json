@@ -1,6 +1,6 @@
 {
   "tz": "America/Chicago",
-  "description": "Robin asks for a review of the existing architecture before discussing changes. One page is written into the pages dir, where pages.py serves it, per the review page spec (numbered sections, state chips, section 6 delta table, section 8 decisions, sources footer), written under the pages dir only; nothing else changes, nobody is messaged, no recommendation and no question.",
+  "description": "Robin asks for a review of the existing architecture before discussing changes. The block names no pages dir, so the page is written into the review dir and not served; the reply gives the file path, says it is not served, lists the sections by number, and nothing else changes.",
   "prompt": "Review the existing architecture using artifacts and I will start discussing modifications.",
   "peers": "sessions.json",
   "graders": [
@@ -28,24 +28,24 @@
       ]
     },
     {
-      "name": "page written under the pages dir only",
+      "name": "page written under the review dir only",
       "type": "no_new_files",
       "except": [
-        "pages/**"
+        "reviews/**"
       ]
     },
     {
-      "name": "no edits outside pages",
+      "name": "no edits outside reviews",
       "type": "tool_used",
       "tool": "Edit",
-      "input_match": "\"file_path\":\\s*\"(?![^\"]*/pages/)",
+      "input_match": "\"file_path\":\\s*\"(?![^\"]*/reviews/)",
       "max": 0
     },
     {
-      "name": "no writes outside pages",
+      "name": "no writes outside reviews",
       "type": "tool_used",
       "tool": "Write",
-      "input_match": "\"file_path\":\\s*\"(?![^\"]*/pages/)",
+      "input_match": "\"file_path\":\\s*\"(?![^\"]*/reviews/)",
       "max": 0
     },
     {
@@ -71,9 +71,20 @@
       "max": 0
     },
     {
-      "name": "reply carries the url",
+      "name": "reply says not served",
       "type": "regex",
-      "pattern": "http://127\\.0\\.0\\.1:8787/[\\w.-]+-review\\.html"
+      "pattern": "(?i)not served"
+    },
+    {
+      "name": "reply gives the file path",
+      "type": "regex",
+      "pattern": "reviews/[\\w.-]+-review\\.html"
+    },
+    {
+      "name": "reply does not give url",
+      "type": "regex",
+      "pattern": "http://127\\.0\\.0\\.1:8787/",
+      "match": "absent"
     },
     {
       "name": "reply lists sections by number",

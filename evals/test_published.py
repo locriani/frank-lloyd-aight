@@ -37,6 +37,8 @@ class ReviewMoveTest(unittest.TestCase):
         agent = (EVALS.parent / "agents" / "frank-lloyd-aight.md").read_text()
         move = agent.split("## Review before modify", 1)[1].split("\n## ", 1)[0]
         self.assertIn("<url>/<subject>-review.html", move)
+        self.assertIn("outside the review and pages directories", move)
+        self.assertNotIn("outside the review directory,", move)
         for gone in ("publish tool", "the tool the block names"):
             self.assertNotIn(gone, move)
 
@@ -79,6 +81,14 @@ class PublishedGraderTest(unittest.TestCase):
         for name in ("draft-review.html", "arch-review.html"):
             (self.after / "reviews" / name).unlink()
         self.assertFalse(self.grade({"type": "published", "min": 1})[0])
+
+    def test_counts_pages_written_in_custom_pages_dir_and_reads_the_newest(self) -> None:
+        (self.after / "pages").mkdir()
+        (self.after / "pages" / "custom-review.html").write_text("<p>Custom Page</p>")
+        os.utime(self.after / "pages" / "custom-review.html", (2000000000, 2000000000))
+        ok, detail = self.grade({"type": "published", "content_match": ["Custom Page"]})
+        self.assertTrue(ok, detail)
+        self.assertIn("custom-review.html", detail)
 
 
 if __name__ == "__main__":

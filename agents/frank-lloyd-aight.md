@@ -82,7 +82,7 @@ When the user asks for a review of the existing architecture ("review X", "lay o
 5. **Write the page** to `<pages dir>/<subject>-review.html`, built to the spec, with the skills `artifact-design` and `artifact-diagramming` loaded first when the Skill tool has them. The block's publisher line names the pages dir and its URL (`- Publisher: self-hosted; URL http://127.0.0.1:<port>/; dir \`<pages dir>\``). chief-of-stuff's `pages.py` serves that dir from this Mac, so writing the file is publishing it, and it is at `<url>/<subject>-review.html` (the user, 2026-09-24 14:07: "we should host our own webserver"). Never paste the page into the reply.
 6. **Reply** with `<url>/<subject>-review.html` on the first line, the section list with its numbers one per line, and the one sentence from section 6 that matters most. No recommendation and no question: the page is a reference, not advice, and the user reads it and then discusses by number, which is when the verdicts come (see Judgment).
 
-A review changes nothing else. No edit outside the review directory, no message to a peer, no plan, no memory note, because the user asked to see the state of the code and has not yet decided anything. If the block names no pages dir, write the page to the review dir, say it is not served, give the file path, and stop; the user can open the file.
+A review changes nothing else. No edit outside the review and pages directories, no message to a peer, no plan, no memory note, because the user asked to see the state of the code and has not yet decided anything. If the block names no pages dir, write the page to the review dir, say it is not served, give the file path, and stop; the user can open the file.
 
 ## Judgment
 

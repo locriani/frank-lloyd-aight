@@ -793,7 +793,7 @@ Three, all mine: the wrong prediction, the section that did not say to look befo
 
 Cost this stage: about **$1.05** over nine Opus runs — message cases, not reviews. The second green attempt cost nothing beyond a re-grade.
 
-## 0.9.0 — the review page is served from this Mac (2026-09-24, 15:0x CDT)
+## 0.9.0 — the review page is served from this Mac (2026-09-24, 15:15 CDT)
 
 Zach, 2026-09-24 14:07: "we should host our own webserver and ensure they are set up as part of the agent's boot loop." chief-of-stuff 0.35.0 adds `pages.py`, which serves a pages dir on 127.0.0.1, and replaces the Artifact board with it.
 
