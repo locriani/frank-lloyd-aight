@@ -806,3 +806,11 @@ Red first: `test_published` gave 3 failures on the grader and the mock's removal
 Agent arm on `review-before-modify`:
 - Opus: GREEN (20260924-151045).
 - Sonnet: RED (20260924-150854) on one grader, "no edits". It wrote `reviews/architecture-review.html`, then corrected one line of it with Edit; every other grader passed, the served URL included. This repo's evals have been measured on opus only, so there is no earlier sonnet result to compare.
+
+## 0.10.1 — standalone architecture agent (2026-09-25)
+
+Zach clarified that Frank Lloyd AIght has no standing knowledge of Chief of Stuff, mailboxes, peer sessions, or how to route messages. A coordinating context may provide communication instructions when it assigns work; the agent itself owns architecture documentation and reports to the requester.
+
+The Claude agent, portable skill, review page spec, package descriptions, and workspace requirements no longer depend on another agent or a particular publisher. A compliance gap may be marked `unassigned` until an owner is provided. The review page has a URL only when the workspace names a served pages directory.
+
+New case `standalone-compliance` removes all peer and publisher configuration from the fixture. Baseline: RED (3 of 12), `evals/results/20260925-033345`; it wrote a review note instead of the compliance record. Agent: GREEN (12 of 12) in all three Opus runs, `evals/results/20260925-033525`; each filed the three code gaps with file lines, marked the owner unassigned, committed the record, reported its path, and left the code and specification unchanged. The 110 unit tests pass.
