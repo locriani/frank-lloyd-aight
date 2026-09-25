@@ -1,11 +1,11 @@
 # The review page
 
-The page Frank Lloyd AIght writes when the user asks for a review of the existing architecture. One html file, served from this Mac, and then the user discusses it by section number. This document fixes the layout, the numbering, and the encoding so that every review looks the same and section 6 means the same thing next week.
+The page Frank Lloyd AIght writes when the user asks for a review of the existing architecture. One HTML file, served when the workspace has a publisher, and then the user discusses it by section number. This document fixes the layout, the numbering, and the encoding so that every review looks the same and section 6 means the same thing next week.
 
 ## File and address
 
-- Path: `<pages dir>/<subject>-review.html`, where the pages dir is the `dir` on the `## Architecture` block's publisher line and the subject is the directory or service reviewed (`agent-review.html`, `api-review.html`).
-- Writing the file publishes it: chief-of-stuff's `pages.py` serves the pages dir at the publisher line's URL, so the page is at `<url>/<subject>-review.html`. Never paste the html into the reply.
+- Path: `<pages dir>/<subject>-review.html` when the `## Architecture` block names a pages dir; otherwise `<review dir>/<subject>-review.html`. The subject is the directory or service reviewed (`agent-review.html`, `api-review.html`).
+- If the block names a URL where the pages dir is served, the page address is `<url>/<subject>-review.html`. Writing the file alone does not establish that a server is running. Without a served URL, give the file path and say the page is not served. Never paste the HTML into the reply.
 - `<title>` is the subject. No external script. Fonts: the stylesheet below names Google fonts with a system fallback stack; the page renders without them.
 - Light and dark: the tokens below define the light palette on `:root`, redefine it under `prefers-color-scheme: dark` guarded as `:root:not([data-theme="light"])`, and again under `:root[data-theme="dark"]`. Keep all three blocks.
 - Phone width: one column under 900px, 16px side gutter under 480px. Figures and tables scroll sideways inside their own wrapper; the body never does.
@@ -68,7 +68,7 @@ A node is a noun; a verb goes on the edge label. A figure never mixes states wit
 
 ## The reply after writing
 
-The page's URL on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). No recommendation, no question. The user reads, then discusses by number.
+The page's URL or file path on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). State when the file is not served. No recommendation, no question. The user reads, then discusses by number.
 
 ## Stylesheet
 

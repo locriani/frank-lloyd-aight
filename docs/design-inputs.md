@@ -1,6 +1,6 @@
 # Design inputs
 
-What was observed before any eval case was written. Each entry records who said what, when, and what the agent has to do about it. Zach is he/him.
+Historical observations from a coordinated project, recorded before any eval case was written. They explain where the design came from; the standalone agent does not load these observations as instructions. Zach is he/him.
 
 ## 2026-09-17 — one architecture session on a refactor lane (10:38–12:00 CT)
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "frank-lloyd-aight",
-  "version": "0.10.0",
-  "description": "Architecture agent that owns canonical documentation, reviews deployed, in-flight, and designed states, gives verdicts, and files code defects without changing code.",
+  "version": "0.10.1",
+  "description": "Standalone architecture agent that owns canonical documentation, reviews deployed, in-flight, and designed states, gives verdicts, and records code defects without changing code.",
   "author": {
     "name": "Zach Gardner",
     "email": "locriani@gmail.com"

@@ -2,11 +2,11 @@
 
 An architecture agent for Claude Code, Codex, Agy (Antigravity CLI), and Cursor. It runs as the main session and owns a project's architectural documentation. It draws the drawings and never pours the concrete. Agent and plugin id: `frank-lloyd-aight`.
 
-Four jobs, and they are one job: it **creates** the architectural documentation, **maintains** it against a codebase that moves underneath it, **reviews** it, and **grades compliance against** it. The documentation is the source of truth, so the canonical document is the agent's to create, edit, update, and delete, and keeping it true is its primary priority. It also lays the current state out on one numbered page (deployed, in flight, designed, and where the three disagree), answers "is this correct?" with a verdict and a staging recommendation, relays settled decisions to the implementer and the coordinator, and renders every diagram before approving it.
+Four jobs, and they are one job: it **creates** the architectural documentation, **maintains** it against a codebase that moves underneath it, **reviews** it, and **grades compliance against** it. The documentation is the source of truth, so the canonical document is the agent's to create, edit, update, and delete, and keeping it true is its primary priority. It also lays the current state out on one numbered page (deployed, in flight, designed, and where the three disagree), answers "is this correct?" with a verdict and a staging recommendation, records decisions and code gaps locally, and renders every diagram before approving it. It requires no other agent or messaging system.
 
 The one prohibition is the hammer: no direct code changes. A defect it finds in code is filed, never fixed. It commits its own work in its own worktree and never merges.
 
-**Status:** The Claude Code harness runs (110 unit tests) with a host-answered AskUserQuestion channel; three cases (judgment-not-survey, review-before-modify, no-claim-without-assignment) are red on the baseline and green on the agent arm three times each on Opus. The review page spec is at `docs/review-page.md`. Five cases remain. See `evals/results/PROGRESS.md`. The portable skill is packaged and validated; its behavior has not yet been evaluated on the other hosts.
+**Status:** The Claude Code harness runs 110 unit tests. The standalone-compliance case is red on the baseline and green on the agent arm three times on Opus; see `evals/results/PROGRESS.md` for the earlier stages. The review page spec is at `docs/review-page.md`. The portable skill is packaged and validated; its behavior has not yet been evaluated on the other hosts.
 
 ## Launch
 
@@ -32,7 +32,7 @@ Cursor: install the Agent Plugin locally or from a marketplace, then ask Agent: 
 
 ## What it needs from a workspace
 
-An `## Architecture` block in the workspace `CLAUDE.md` for Claude Code, or `AGENTS.md` for Codex, Agy, and Cursor: user and pronouns, architecture directory, canonical document, plan and review directories, publisher, coordinator and implementer session name patterns, diagram renderer path, human-only actions. The portable skill also accepts `CLAUDE.md` as a fallback. The agent carries no workspace values; if the block is missing it proposes one and creates nothing. Peer relays and a served review page require the session tools and publisher named in that block to be available in the host.
+An `## Architecture` block in the workspace `CLAUDE.md` for Claude Code, or `AGENTS.md` for Codex, Agy, and Cursor: user and pronouns, architecture directory, canonical document, plan and review directories, optional publisher, diagram renderer path, and human-only actions. The portable skill also accepts `CLAUDE.md` as a fallback. The agent carries no workspace values; if the block is missing it proposes one and creates nothing. A served review page requires a publisher configured by the workspace. Any communication workflow outside Frank's own report comes from the runtime context that assigns the work.
 
 ## Install
 

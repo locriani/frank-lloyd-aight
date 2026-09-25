@@ -1,4 +1,4 @@
-"""Eval runner for the frank-lloyd-aight agent (Frank Lloyd AIght). Copied from chief-of-stuff and stripped.
+"""Eval runner for the frank-lloyd-aight agent (Frank Lloyd AIght).
 
 `claude plugin eval` cannot run a case under `--agent`, so this drives `claude -p` directly.
 Grader vocabulary follows `plugin eval` where it overlaps (`tool_used`, `regex`) so cases can
@@ -45,7 +45,7 @@ DEFAULT_MODEL = "opus"
 # Isolation: `--setting-sources project` drops user settings (and with them user plugins and
 # permission rules) but still loads the fixture CLAUDE.md. `--restricted` was probed and skips
 # project CLAUDE.md, which is the config channel under test, so it is not used.
-# AskUserQuestion is host-answered under --permission-prompt-tool stdio (see drive_turns); no Agent, the reviewer dispatches through peers.
+# AskUserQuestion is host-answered under --permission-prompt-tool stdio (see drive_turns); no Agent tool is exposed.
 TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
 # Writes only where a review lives: plans, review pages, and the architecture directory. Anything else prompts the host, which denies and records it.
 # The renderer is the one script it may run; the path is whatever the fixture CLAUDE.md names, so only the basename is pinned.
