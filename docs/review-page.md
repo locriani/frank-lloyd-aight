@@ -9,6 +9,7 @@ The page Frank Lloyd AIght writes when the user asks for a review of the existin
 - `<title>` is the subject. No external script. Fonts: the stylesheet below names Google fonts with a system fallback stack; the page renders without them.
 - Light and dark: the tokens below define the light palette on `:root`, redefine it under `prefers-color-scheme: dark` guarded as `:root:not([data-theme="light"])`, and again under `:root[data-theme="dark"]`. Keep all three blocks.
 - Phone width: one column under 900px, 16px side gutter under 480px. Figures and tables scroll sideways inside their own wrapper; the body never does.
+- Width: nothing caps it. No `max-width` on the shell, the prose, or any other block, in pixels, characters or ems, so text runs the width of the window. In the page source a paragraph is one line: never break a line inside a sentence, because the browser lays the text out.
 
 ## Layout
 
@@ -140,7 +141,6 @@ body {
   padding-block: 0 64px;
 }
 .shell {
-  max-width: 1180px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
@@ -177,7 +177,7 @@ nav.index a:hover { background: var(--ground-2); color: var(--ink); }
 nav.index a:focus-visible, a:focus-visible { outline: 2px solid var(--designed); outline-offset: 2px; }
 
 main { min-width: 0; padding-block: 40px 0; }
-header.top { max-width: 72ch; margin-bottom: 36px; }
+header.top { margin-bottom: 36px; }
 .eyebrow {
   font-family: var(--f-mono);
   font-size: 12px;
@@ -222,7 +222,6 @@ h3 {
   font-size: 18px;
   margin: 28px 0 8px;
 }
-.prose { max-width: 72ch; }
 .prose p { margin: 0 0 12px; }
 .prose ul { margin: 0 0 12px; padding-left: 20px; }
 .prose li { margin-bottom: 4px; }
@@ -254,7 +253,7 @@ td code, .chip code { background: transparent; padding: 0; }
 .chip.hot { border: 1.5px solid var(--warn); color: var(--warn); background: var(--warn-soft); }
 .chip.done { border: 1.5px solid var(--deployed); color: var(--paper); background: var(--deployed); }
 
-.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 20px; margin-top: 22px; padding: 14px 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; max-width: 900px; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 20px; margin-top: 22px; padding: 14px 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; }
 .legend div { display: grid; grid-template-columns: 74px 1fr; gap: 10px; align-items: center; font-size: 14px; color: var(--ink-2); }
 .legend svg { width: 74px; height: 30px; display: block; color: var(--muted); }
 .legend b { font-family: var(--f-head); font-weight: 600; color: var(--ink); }
@@ -289,7 +288,6 @@ figcaption {
   margin-top: 10px;
   font-size: 14.5px;
   color: var(--ink-2);
-  max-width: 90ch;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -353,7 +351,7 @@ td .tag {
 .obs b { font-family: var(--f-head); font-weight: 600; display: block; font-size: 15px; margin-bottom: 2px; }
 .obs .loc { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); display: block; margin-top: 6px; }
 
-.decisions { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; max-width: 90ch; }
+.decisions { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
 .decisions li {
   display: grid;
   grid-template-columns: 52px 1fr;
@@ -368,7 +366,7 @@ td .tag {
 .decisions p { margin: 0; font-size: 15px; color: var(--ink-2); }
 .decisions .src { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin-top: 6px; }
 
-footer.src-list { margin-top: 56px; font-size: 13.5px; color: var(--muted); max-width: 90ch; border-top: 1px solid var(--rule); padding-top: 16px; }
+footer.src-list { margin-top: 56px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; }
 footer.src-list code { font-size: 12px; }
 
 @media (max-width: 900px) {

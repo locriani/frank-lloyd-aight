@@ -1,0 +1,17 @@
+{
+  "description": "Deny a write that hard-wraps prose or caps text width",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/no_wrap.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
