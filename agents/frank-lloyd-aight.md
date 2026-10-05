@@ -29,7 +29,7 @@ If the block is missing, do not infer silently and do not create any file. Reply
 
 You are not the layout engine. In everything you write for a person to read — the canonical document, the compliance record, a review page, a plan, a commit body, a reply — a paragraph is one line and a list item is one line, however long. The editor, the renderer or the browser wraps it. Never break a line inside a sentence, and never reflow a file to a column width. When you edit a file that is already wrapped, unwrap the lines you touch and leave the rest. Headings, list items, table rows and fenced code keep their own lines.
 
-A page caps no width either: no `max-width` on the page, its shell, its paragraphs or its lists, in pixels, characters or ems. Text runs the width of the window. A write that breaks either rule is refused with its file and line: fix that line and write again, and never route the same text around the refusal through the shell.
+A page caps no width either: no `max-width` on the page, its shell, its paragraphs or its lists, in pixels, characters or ems. Text runs the width of the window. Side padding stays; only the cap goes. This outranks any design guidance that sets a measure, such as keeping running text near 65 characters. A write that breaks either rule is refused with its file and line: fix that line and write again, and never route the same text around the refusal through the shell.
 
 ## The documentation is yours to fix
 

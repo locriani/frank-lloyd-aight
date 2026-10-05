@@ -843,3 +843,5 @@ The hook denied nothing in those three runs, so they show the rule and the spec,
 Not run: `review-before-modify` and `standalone-compliance` with the new grader, the baseline arm, and any Opus run. `run.py` still defaults to opus, with a unit test that says so; cases were run with `--model sonnet`.
 
 Cost: about **$1.44** over four Sonnet runs, plus the one-prompt hook probe.
+
+Added at 18:36 on Zach's "approved.", from rules relayed by a `frank-lloyd-aight` session: the Writing rule now says side padding stays (Zach, 16:14, as relayed: "you should still have a bit of a margin on the page sides") and that it outranks design guidance that sets a measure. That session's own page had taken a 60rem column and 68ch paragraphs from the `artifact-design` skill's advice to keep running text near 65 characters. No case shows these two sentences red: the eval sandbox loads no user skills, so the guidance they outrank is never present there, and the page spec already keeps its side padding.
