@@ -50,14 +50,15 @@ DEFAULT_MODEL = "opus"
 # AskUserQuestion is host-answered under --permission-prompt-tool stdio (see drive_turns); no Agent tool is exposed.
 TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
 # Writes only where a review lives: plans, review pages, and the architecture directory. Anything else prompts the host, which denies and records it.
-# The renderer is the one script it may run, at the one path every fixture names. The path is pinned whole: a wildcard before the
-# script name would also match `python3 -c <anything> mermaid-check.py`. The agent cannot write under tools/, so the script stays the fixture's.
+# The renderer is the one script it may run, and no permission rule can say so safely, so the host answers for it (see RENDER).
 ALLOWED = [
-    "Bash(date:*)", "Bash(TZ=*)", "Bash(python3 tools/mermaid-check.py *)",
+    "Bash(date:*)", "Bash(TZ=*)",
     "Read", "Glob", "Grep",
     "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
     "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)",
 ]
+# The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
+RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
 # These reach real Claude sessions on this machine. No eval run may expose them.
 PEER_TOOLS = ("ListAgents", "SendMessage")
@@ -689,11 +690,13 @@ def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: 
             updated = answer_question(req.get("input", {}), answer)
             data: dict[str, Any] = {"behavior": "allow", "updatedInput": updated}
             row = {"tool": "AskUserQuestion", "questions": req.get("input", {}).get("questions", []), "answers": updated.get("answers", {}), "tool_use_id": req.get("tool_use_id"), "at": at}
+        elif req.get("tool_name") == "Bash" and RENDER.fullmatch(req.get("input", {}).get("command", "")):
+            data, row = {"behavior": "allow", "updatedInput": req["input"]}, None
         else:
             data = {"behavior": "deny", "message": "blocked by eval harness"}
             denied = req.get("tool_use_id")
             row = {"tool": "host_deny", "tool_name": req.get("tool_name"), "input": req.get("input"), "tool_use_id": denied, "at": at}
-        if host_log is not None:
+        if host_log is not None and row:
             host_log.parent.mkdir(parents=True, exist_ok=True)
             with host_log.open("a") as f:
                 f.write(json.dumps(row) + "\n")
