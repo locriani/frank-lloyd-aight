@@ -820,3 +820,26 @@ New case `standalone-compliance` removes all peer and publisher configuration fr
 `CLAUDE.md` said "Nothing is committed by a session; Zach says when", while `agents/frank-lloyd-aight.md` and the portable skill both say the agent commits its own work in its own worktree. The repo rule was the stale one: Zach, 2026-09-18 23:00, "EVERY session makes meaningful small commits but we USE WORKTREES", and 2026-09-23 15:31, "all code changes should require a PR". The rule now says a session commits in small commits in its own worktree and branch, and reaches main only through a pull request.
 
 No agent, skill, grader or case changed, so there is no red case for this stage and no eval was run.
+
+## 0.11.0 — Frank does not lay text out (2026-10-05)
+
+Zach, 2026-10-05: "make a fix that enforces my word wrapping rule for md output / html output / etc (e.g. DON'T. you are not a word wrapping engine, it turns out that the zillions of lines of code spent on FONT LAYOUT are better than your awful random line breaks)", and, of a page capped at 860 pixels and 65 characters, "also page width caps. Yeah no". On how to test it: "set up CI, use sonnet for tests".
+
+- **Checker:** `hooks/no_wrap.py` names each line break inside markdown prose (a paragraph, a list item, a blockquote), each text node in HTML that carries a break between words, and each absolute `max-width`, `max-inline-size` or `ch` width in a page's CSS. Fenced and indented code, frontmatter, tables, `pre`, `script` and `style` keep their lines, and a media query is not a cap.
+- **Hook:** `hooks/hooks.json` runs it as a `PreToolUse` hook on Write and Edit. A `.md`, `.html` or `.css` write that breaks either rule is denied with its file and line. An Edit answers only for the lines it writes, so an already-wrapped file can still be edited. The hook is the plugin's, so it applies in every session where the plugin is enabled.
+- **Rule:** a `## Writing` section in the agent file and the portable skill. The other hosts get the rule as text only.
+- **Spec:** `docs/review-page.md` had seven `max-width` caps (the shell at 1180px, the header and prose at 72ch, the legend at 900px, and three blocks at 90ch). They are gone, and the spec now says nothing caps the width.
+- **Grader:** `flowing_text` runs the same checker over what a turn wrote, skipping lines the fixture already held. It is added to `review-unserved`, `review-before-modify` and `standalone-compliance`.
+- **CI:** `.github/workflows/tests.yml` runs the unit suite on every push, on a GitHub-hosted runner in the `python:3.14` image. The repo had none.
+
+Unit suite, in CI: green at 110 tests before the change (`98cced0`); red on the tests alone (`9ddcd49`); red on two tests with the checker in and the hook and spec not yet (`c669ff3`: the hook is not registered, the spec caps width); green at 134 tests on `dd262c0`.
+
+Agent arm on `review-unserved`, Sonnet:
+- Before the rule, the hook and the spec change: RED (`20261005-164628`), 14 of 15. The one failure was the new grader, on the page's width caps, which the page had copied from the spec.
+- After: GREEN in all three runs (`20261005-164931`), 15 of 15 each.
+
+The hook denied nothing in those three runs, so they show the rule and the spec, not the hook. The hook was shown separately: a Sonnet session with the plugin loaded, asked to write a two-line paragraph to `note.md`, had the Write denied with `note.md:2 line break inside prose` and no file was created.
+
+Not run: `review-before-modify` and `standalone-compliance` with the new grader, the baseline arm, and any Opus run. `run.py` still defaults to opus, with a unit test that says so; cases were run with `--model sonnet`.
+
+Cost: about **$1.44** over four Sonnet runs, plus the one-prompt hook probe.
