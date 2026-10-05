@@ -52,7 +52,7 @@ TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
 # Writes only where a review lives: plans, review pages, and the architecture directory. Anything else prompts the host, which denies and records it.
 # The renderer is the one script it may run; the path is whatever the fixture CLAUDE.md names, so only the basename is pinned.
 ALLOWED = [
-    "Bash(date:*)", "Bash(TZ=*)", "Bash(python3 *mermaid-check.py:*)",
+    "Bash(date:*)", "Bash(TZ=*)", "Bash(python3 *mermaid-check.py *)",
     "Read", "Glob", "Grep",
     "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
     "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)",
