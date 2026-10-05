@@ -77,6 +77,14 @@ class WidthCapTest(unittest.TestCase):
         )
         self.assertEqual(lines("p.html", css), [])
 
+    def test_an_inline_diagram_keeps_its_own_size_and_lines(self) -> None:
+        # A rendered Mermaid diagram states its drawn size and its label widths in its own styles. That is the drawing, not the page's text.
+        page = (
+            '<div class="diagram"><svg style="max-width: 1738.77px">\n<foreignObject><div style="max-width: 200px">a label\nbroken</div></foreignObject>\n'
+            '</svg></div>\n<p style="max-width: 60rem">text</p>\n'
+        )
+        self.assertEqual(lines("p.html", page), [4])
+
     def test_the_review_page_spec_caps_nothing(self) -> None:
         spec = (run.PLUGIN_ROOT / "docs" / "review-page.md").read_text()
         self.assertEqual(no_wrap.caps(spec), [])
