@@ -83,7 +83,7 @@ class WidthCapTest(unittest.TestCase):
             '<div class="diagram"><svg style="max-width: 1738.77px">\n<foreignObject><div style="max-width: 200px">a label\nbroken</div></foreignObject>\n'
             '</svg></div>\n<p style="max-width: 60rem">text</p>\n'
         )
-        self.assertEqual(lines("p.html", page), [4])
+        self.assertEqual(lines("p.html", page), [5])
 
     def test_the_review_page_spec_caps_nothing(self) -> None:
         spec = (run.PLUGIN_ROOT / "docs" / "review-page.md").read_text()
