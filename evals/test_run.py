@@ -91,6 +91,8 @@ class SandboxGuardTest(unittest.TestCase):
                      "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)"):
             self.assertIn(rule, run.ALLOWED, rule)
         self.assertTrue(any(a.startswith("Bash(python3 ") and "mermaid-check.py" in a for a in run.ALLOWED))
+        # Nothing may stand between `python3` and the script: a wildcard there lets any python run under the renderer's name.
+        self.assertEqual([a for a in run.ALLOWED if a.startswith("Bash(python3")], ["Bash(python3 tools/mermaid-check.py *)"])
         for rule in ("Bash(rm:*)", "Bash(rmdir:*)", "Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)"):
             self.assertIn(rule, run.DISALLOWED, rule)
         self.assertNotIn("Bash(railway:*)", run.DISALLOWED)
