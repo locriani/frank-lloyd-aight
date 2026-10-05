@@ -54,9 +54,9 @@ def markdown(text: str) -> list[tuple[int, str]]:
 
 
 class _Text(HTMLParser):
-    """Text nodes that carry a line break between words. Code, scripts and styles keep their own lines."""
+    """Text nodes that carry a line break between words. Code, scripts, styles and drawings keep their own lines."""
 
-    KEEP = {"pre", "script", "style", "textarea"}
+    KEEP = {"pre", "script", "style", "textarea", "svg"}
 
     def __init__(self) -> None:
         super().__init__()
@@ -83,7 +83,12 @@ def html(text: str) -> list[tuple[int, str]]:
     return parser.out
 
 
+# A drawing states its own size and label widths; blanked, line for line, before caps are looked for.
+SVG = re.compile(r"<svg\b.*?</svg>", re.I | re.S)
+
+
 def caps(text: str) -> list[tuple[int, str]]:
+    text = SVG.sub(lambda m: "\n" * m[0].count("\n"), text)
     return [(text.count("\n", 0, m.start()) + 1, CAP) for m in CAPPED.finditer(text)]
 
 
