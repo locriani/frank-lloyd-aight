@@ -96,7 +96,7 @@ class SandboxGuardTest(unittest.TestCase):
 
     def test_host_lets_the_renderer_run_on_files_and_nothing_else(self) -> None:
         def denied(command: str) -> bool:
-            proc = mock.Mock(stdin=io.StringIO())
+            proc = unittest.mock.Mock(stdin=io.StringIO())
             ev = {"request_id": "r", "request": {"subtype": "can_use_tool", "tool_name": "Bash", "tool_use_id": "t", "input": {"command": command}}}
             return run._answer_control_request(proc, ev, None, None) == "t"
 
