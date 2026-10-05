@@ -1,0 +1,74 @@
+{
+  "tz": "America/Chicago",
+  "description": "Robin asks for a module diagram of the app package. Frank writes one that shows the real structure, each module with its functions and their signatures as read from the code, renders it with the renderer the block names, and changes no code.",
+  "prompt": "Draw the module diagram for src/app and put it in architecture/modules.md.",
+  "graders": [
+    {
+      "name": "the diagram file is created",
+      "type": "files_created",
+      "glob": "architecture/modules.md",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "name": "it is a mermaid diagram",
+      "type": "file_matches",
+      "path": "architecture/modules.md",
+      "pattern": "^```mermaid"
+    },
+    {
+      "name": "the renderer is run on it",
+      "type": "tool_used",
+      "tool": "Bash",
+      "input_match": "mermaid-check\\.py[^\"]*modules\\.md",
+      "min": 1
+    },
+    {
+      "name": "it names every function in the package",
+      "type": "file_matches",
+      "path": "architecture/modules.md",
+      "pattern": "(?s)(?=.*get_session)(?=.*put_session)(?=.*enqueue)(?=.*publish)(?=.*\\bget\\b)(?=.*\\bput\\b)"
+    },
+    {
+      "name": "it carries signatures, not bare names",
+      "type": "file_matches",
+      "path": "architecture/modules.md",
+      "pattern": "(session_id|msg|data|event)\\s*:\\s*(str|dict)"
+    },
+    {
+      "name": "it shows the store's state",
+      "type": "file_matches",
+      "path": "architecture/modules.md",
+      "pattern": "SESSIONS"
+    },
+    {
+      "name": "api.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/api.py"
+    },
+    {
+      "name": "queue.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/queue.py"
+    },
+    {
+      "name": "store.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "nothing is written outside the architecture directory",
+      "type": "no_new_files",
+      "except": [
+        "architecture/**",
+        "plans/**"
+      ]
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    }
+  ],
+  "max_turns": 20,
+  "timeout_seconds": 420
+}
