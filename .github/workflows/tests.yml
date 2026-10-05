@@ -1,0 +1,14 @@
+name: tests
+
+# Push only. A fork cannot push a branch here, so this workflow never runs a fork's code.
+on:
+  push:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    # The full image, not slim: the suite needs git.
+    container: python:3.14
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd evals && python3 -m unittest
