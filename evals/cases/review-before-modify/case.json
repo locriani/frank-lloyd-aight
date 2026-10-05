@@ -100,6 +100,10 @@
       "content_not_match": [
         "class=\"tag\">9\\.\\d+</span>\\s*(?:§|section\\s*)\\s*3\\b"
       ]
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
     }
   ],
   "max_turns": 40,

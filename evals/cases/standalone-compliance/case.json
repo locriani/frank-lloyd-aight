@@ -86,6 +86,10 @@
       "name": "no files outside architecture are created",
       "type": "no_new_files",
       "except": ["architecture/**", "plans/**"]
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
     }
   ],
   "max_turns": 20,

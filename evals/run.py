@@ -39,6 +39,8 @@ from zoneinfo import ZoneInfo
 EVALS = Path(__file__).resolve().parent
 PLUGIN_ROOT = EVALS.parent
 AGENT = "frank-lloyd-aight"
+sys.path.insert(0, str(PLUGIN_ROOT / "hooks"))
+import no_wrap  # noqa: E402  the hook's own checker, so the grader and the hook cannot disagree
 # Opus only (Zach, 2026-09-16). A run whose init reports another model family fails the arm check.
 DEFAULT_MODEL = "opus"
 
@@ -370,7 +372,22 @@ def _committed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
     return ok, f"{len(subjects)} commit(s){match}: {subjects}; want {bound}"
 
 
+def _flowing_text(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
+    """Nothing the turn wrote breaks a line inside prose or caps text width. A line the fixture already held is not the agent's."""
+    found = []
+    for rel in sorted(_files(rec.fixture_dir)):
+        if Path(rel).suffix.lower() not in no_wrap.CHECKS:
+            continue
+        before, after = _read(rec.before_dir, rel), _read(rec.fixture_dir, rel)
+        if after == before:
+            continue
+        held, rows = set((before or "").split("\n")), after.split("\n")
+        found += [f"{rel}:{n} {why}" for n, why in no_wrap.problems(rel, after) if rows[n - 1] not in held]
+    return not found, "; ".join(found[:5]) or "no hard wrap or width cap in what the turn wrote"
+
+
 FILE_GRADERS = {
+    "flowing_text": _flowing_text,
     "committed": _committed,
     "file_unchanged": _file_unchanged,
     "file_matches": _file_matches,
