@@ -1114,3 +1114,28 @@ Evidence, Sonnet: 5 of 5 (20261006-132939). No live run of this case has been re
 **Review round.** Approved with two findings fixed here: a yes or no on the package row passed, and nothing graded the proposal or the recommendation in the reply. Three reply graders added: a decision whose line names a package, library or tool is not asked as `Do you approve`; a which-row reply says no package is proposed and recommends no row; an approval reply recommends settling the row first. They read the reply only, so a package row whose question avoids those three words would get past the first. The stored runs regrade 5 of 5 under them.
 
 Left, from the reviews of #21 and not in its entry: one reply listed the waiting rows between the table and the `Recommend:` line, which step 4 forbids and nothing grades; whether a by-hand row, which needs no reading, can be recommended when no candidate was read is not said; an empty fact cell passes its grader when the next cell says `not read`; the open-row grader takes the word `open` anywhere in the row; step 2 still says every choice is "a row marked proposed" before step 3 gives the `open` exception.
+
+## 0.15.6 — a review page is the project's own (2026-10-06)
+
+Reported by a peer architecture session working on Equinox, 17:53: asked for a diagram on "the architecture review doc", it wrote into `architecture-review.html` in the shared pages dir, which was the OpenEMR Chart Agent's page, and reverted it. It relays Zach as saying the page for that work must be `equinox-review.html`, so that it does not collide with his other workstreams. Those words reached this session through the peer, not from Zach.
+
+- **The cause.** The review page spec named the page for "the directory or service reviewed" and gave `agent-review.html` and `api-review.html` as examples. Every project writes to one pages dir, and nothing told the agent to look at a page before writing into it.
+- **The rule,** in the agent, the skill and both page specs: the subject is the project's name, the block's `Project:` line when it has one and otherwise the repository's name, with the part reviewed after it when only a part is. Never a generic noun on its own. A page that exists is read before it is written into; if its name or its content is another project's, it is left alone whatever the user called the page, the agent writes its own, and says so in one line.
+- **Case** `review-page-is-this-projects-own`: the pages dir already holds another project's `architecture-review.html`, the block has no project line, and Robin asks for the review "on the architecture review page".
+- **The harness blocked every write to a pages dir.** `ALLOWED` had `plans`, `reviews` and `architecture` and not `pages`, so `review-before-modify`, whose block names a pages dir, could not write its page. New unit test `test_a_served_pages_dir_is_writable`, red in CI on 3 commits back (run 37544062568), then the two rules.
+
+Evidence, Sonnet. On the old rule with the harness fixed: 0 of 3, and two of the three overwrote the other project's page (20261006-181102). With the rule: every run wrote its own page, left the other untouched and said so, 5 of 5 (20261006-181701).
+
+**A grader of mine changed after those five runs.** As first written, "one page written" failed any page containing the words `Chart Agent`, and all five failed it, each only because the page notes that the other project's page was left alone. It now fails a page that holds the other page's heading or its file path. Under the changed grader the old-rule runs are still 0 of 3 and the new ones 5 of 5, by regrade.
+
+An earlier form of the case had a `Project: ledger` line in the block. With that line the old rule already named the page `ledger-review.html` in 3 of 3 (20261006-180134), so the line was taken out to match the incident, where the block had none.
+
+Mine, not Zach's: the block line's name, `Project:`; the fallback to the repository's name; that a part follows the project in the name.
+
+Left:
+
+- **Two existing cases are red and not because of this change.** `review-unserved` 0 of 3 and `review-before-modify` 2 of 3 (20261006-182848), nearly all on one grader, "the page carries the compliance section", whose `content_not_match` finds a section 9 entry tagged against section 3. The same grader failed on the old rule in 20261006-180134. Not looked into.
+- **The fallback name** in the eval is the temporary directory's name (`cos-eval-…-review.html`). In a workspace it is the worktree directory's name, which may not be the name the user wants; only a `Project:` line makes it exact, and the workspace `CLAUDE.md` is the user's to change.
+- **No case** covers a plan page, a page whose name is this project's and whose content is not, or a block that has the `Project:` line.
+- **The comment** in `test_allowlist_is_review_only` still lists three writable places; the test was not touched.
+

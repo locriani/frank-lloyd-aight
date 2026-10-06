@@ -6,7 +6,7 @@ The page Frank Lloyd AIght writes in a planning session, and rewrites in place e
 
 ## File and address
 
-- Path: `<pages dir>/<subject>-plan.html` when the `## Architecture` block names a pages dir; otherwise `<plan dir>/<subject>-plan.html`. One file per plan, rewritten at the same path every turn. Never a second page for the same plan.
+- Path: `<pages dir>/<subject>-plan.html` when the `## Architecture` block names a pages dir; otherwise `<plan dir>/<subject>-plan.html`. One file per plan, rewritten at the same path every turn. Never a second page for the same plan. The subject starts with the project's name, the block's `Project:` line or else the repository's name, and a page in the pages dir that is not this project's own is never written into or over (see the review page spec).
 - If the block names a URL where the pages dir is served, the address is `<url>/<subject>-plan.html`. Without one, give the file path and say the page is not served. Never paste the HTML into the reply, and never open a browser at it: the user decides when to look.
 - This file is the page of record. A copy published anywhere else is made only when the user asks for one, and from this file.
 - The file is a whole document, because nothing adds a skeleton when it is served. Its first lines are exactly the five under Head.

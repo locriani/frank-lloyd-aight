@@ -53,7 +53,8 @@
         "store\\.py"
       ],
       "content_not_match": [
-        "Chart Agent"
+        "<h1>\\s*Chart Agent",
+        "agent/tools/fhir\\.py"
       ]
     },
     {
