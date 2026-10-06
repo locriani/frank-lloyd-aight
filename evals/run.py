@@ -202,7 +202,7 @@ def _refused(token: str) -> bool:
     return name.startswith("--") and len(name) > 2 and any(opt.startswith(name) or name.startswith(opt) for opt in GIT_REFUSED)
 
 
-def git_ok(command: str, subs: tuple[str, ...]) -> bool:
+def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool:
     """Whether the host lets a whole Bash command through for a git case. Every part of it must be one the host can vouch for:
     an allowed git subcommand with no refused option, or a command that only reads. Anything it cannot read is refused."""
     lex = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()\n")
@@ -224,9 +224,15 @@ def git_ok(command: str, subs: tuple[str, ...]) -> bool:
         else:
             parts[-1].append(token)
     parts = [p for p in parts if p]
+    here = lambda path: cwd is not None and Path(path).resolve() == cwd.resolve()
     def part_ok(p: list[str]) -> bool:
         if p[0] in READS:
             return True
+        # Naming the run's own directory, which it is already in, changes nothing.
+        if p[0] == "cd":
+            return len(p) == 2 and here(p[1])
+        if p[1:2] == ["-C"] and len(p) > 3 and here(p[2]):
+            p = ["git"] + p[3:]
         sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
         # Listing worktrees and remotes only reads; every other form of either changes something.
         named = sub in subs or (bool(subs) and (sub == "worktree list" or (sub == "remote" and set(p[2:]) <= {"-v", "--verbose"})))
@@ -762,7 +768,7 @@ def drive_turns(
                 if line.strip():
                     events.append(json.loads(line))
                     if events[-1].get("type") == "control_request":
-                        denied = _answer_control_request(proc, events[-1], (answers or [None] * n)[n - 1] if answers and n - 1 < len(answers) else None, host_log, git)
+                        denied = _answer_control_request(proc, events[-1], (answers or [None] * n)[n - 1] if answers and n - 1 < len(answers) else None, host_log, git, cwd)
                         if denied:
                             host_denied.add(denied)
                     if events[-1].get("type") == "result":
@@ -783,7 +789,7 @@ def drive_turns(
     return turns
 
 
-def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: dict[str, Any] | None, host_log: Path | None, git: tuple[str, ...] = ()) -> str | None:
+def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: dict[str, Any] | None, host_log: Path | None, git: tuple[str, ...] = (), cwd: Path | None = None) -> str | None:
     """Reply to one control_request on stdin. Returns the tool_use_id when the host denied it."""
     req = ev.get("request", {})
     denied = None
@@ -793,7 +799,7 @@ def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: 
             updated = answer_question(req.get("input", {}), answer)
             data: dict[str, Any] = {"behavior": "allow", "updatedInput": updated}
             row = {"tool": "AskUserQuestion", "questions": req.get("input", {}).get("questions", []), "answers": updated.get("answers", {}), "tool_use_id": req.get("tool_use_id"), "at": at}
-        elif req.get("tool_name") == "Bash" and (RENDER.fullmatch(command := req.get("input", {}).get("command", "")) or git_ok(command, git)):
+        elif req.get("tool_name") == "Bash" and (RENDER.fullmatch(command := req.get("input", {}).get("command", "")) or git_ok(command, git, cwd)):
             data, row = {"behavior": "allow", "updatedInput": req["input"]}, None
         else:
             data = {"behavior": "deny", "message": "blocked by eval harness"}
