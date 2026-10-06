@@ -195,15 +195,25 @@ def git_subcommands(spec: Mapping[str, Any]) -> tuple[str, ...]:
     return (GIT + (("push",) if spec.get("remote") else ())) if spec.get("git") else ()
 
 
+def _refused(token: str) -> bool:
+    """A long option that is, or abbreviates, a refused one. git takes any unambiguous prefix, so `--outp=x` is `--output=x`."""
+    name = token.split("=", 1)[0]
+    return name.startswith("--") and len(name) > 2 and any(opt.startswith(name) or name.startswith(opt) for opt in GIT_REFUSED)
+
+
 def git_ok(command: str, subs: tuple[str, ...]) -> bool:
     """Whether the host lets a whole Bash command through for a git case. Every part of it must be one the host can vouch for:
     an allowed git subcommand with no refused option, or a command that only reads. Anything it cannot read is refused."""
-    lex = shlex.shlex(command.replace(" 2>&1", ""), posix=True, punctuation_chars=";&|<>()\n")
+    lex = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()\n")
     lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""
     try:
         tokens = list(lex)
     except ValueError:
         return False
+    # The one redirect let through is stderr onto stdout, as its own three tokens.
+    for i in range(len(tokens) - 2, 0, -1):
+        if tokens[i - 1 : i + 2] == ["2", ">&", "1"]:
+            del tokens[i - 1 : i + 2]
     parts: list[list[str]] = [[]]
     for token in tokens:
         if token in ("&&", "||", ";", "|", "\n"):
@@ -218,7 +228,13 @@ def git_ok(command: str, subs: tuple[str, ...]) -> bool:
             return True
         sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
         named = sub in subs or (sub == "worktree list" and bool(subs))
-        return p[0] == "git" and named and not any(t.startswith(GIT_REFUSED) for t in p)
+        if p[0] != "git" or not named or any(_refused(t) for t in p):
+            return False
+        if sub != "push":
+            return True
+        # A push goes to origin, as one plain ref at most: no other repo on the machine, no refspec, no force.
+        where = [t for t in p[2:] if t not in ("-u", "--set-upstream", "-q", "--quiet")]
+        return where[:1] in ([], ["origin"]) and len(where) <= 2 and all(re.fullmatch(r"[\w./-]+", t) and not t.startswith("-") for t in where)
     return any(p[0] == "git" for p in parts) and all(part_ok(p) for p in parts)
 
 
