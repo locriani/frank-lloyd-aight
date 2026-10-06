@@ -1,0 +1,75 @@
+{
+  "tz": "America/Chicago",
+  "description": "Robin asks for two diagrams in a document that already has a section for each subject. Frank puts each diagram inside the section it explains, beside the table it draws, with a legend sentence above it, renders them, and adds no separate diagrams section or appendix. Zach, 2026-10-05 21:22: \"put the diagrams in context, not some wierd ass appendix\".",
+  "prompt": "Add two diagrams to architecture/overview.md: one of the request flow and one of the module layout.",
+  "graders": [
+    {
+      "name": "two diagrams are added",
+      "type": "file_matches",
+      "path": "architecture/overview.md",
+      "pattern": "^```mermaid",
+      "count": 2
+    },
+    {
+      "name": "the flow diagram is inside the request flow section",
+      "type": "file_matches",
+      "path": "architecture/overview.md",
+      "pattern": "(?s)^## 1\\. Request flow\\n(?:(?!^## ).)*?^```mermaid"
+    },
+    {
+      "name": "the module diagram is inside the modules section",
+      "type": "file_matches",
+      "path": "architecture/overview.md",
+      "pattern": "(?s)^## 2\\. Modules\\n(?:(?!^## ).)*?^```mermaid"
+    },
+    {
+      "name": "no diagrams section or appendix",
+      "type": "file_matches",
+      "path": "architecture/overview.md",
+      "pattern": "(?i)^#{1,6}\\s+(?:\\d+\\.\\s*)?(?:diagrams?|appendix\\b.*|figures?)\\s*$",
+      "match": "not_contains"
+    },
+    {
+      "name": "the three sections keep their numbers and order",
+      "type": "file_matches",
+      "path": "architecture/overview.md",
+      "pattern": "(?s)^## 1\\. Request flow$.*^## 2\\. Modules$.*^## 3\\. Operations$"
+    },
+    {
+      "name": "the renderer is run on it",
+      "type": "tool_used",
+      "tool": "Bash",
+      "input_match": "mermaid-check\\.py[^\"]*overview\\.md",
+      "min": 1
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    },
+    {
+      "name": "api.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/api.py"
+    },
+    {
+      "name": "queue.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/queue.py"
+    },
+    {
+      "name": "store.py untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "nothing is written outside the architecture directory",
+      "type": "no_new_files",
+      "except": [
+        "architecture/**",
+        "plans/**"
+      ]
+    }
+  ],
+  "max_turns": 20,
+  "timeout_seconds": 420
+}
