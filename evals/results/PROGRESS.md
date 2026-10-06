@@ -979,6 +979,6 @@ Left: a push that creates `main` on an empty remote passes the case, and the rul
 **Found and not fixed here.** Two compliance cases are red on Sonnet with the rule (20261006-000736) and without it (20261006-001220, on the 0.15.0 branch), so the rule did not break them and their green was Opus's:
 
 - `compliance-is-filed-to-the-builder`: 0 of 3 both times, the same five graders each run: no owner in the record, no message to the implementer or the coordinator, no commit.
-- `standalone-compliance`: red both times. With the rule, two runs miss the retry-count wording in the record and nothing else. Without it, one run's result has `ARCHITECTURE.md` deleted.
+- `standalone-compliance`: red both times. With the rule, two runs miss the retry-count wording in the record and nothing else. Without it, run 1 moved `ARCHITECTURE.md`, unedited, into `architecture/` and missed the retry-count wording, and run 2 did not commit the record.
 
 No unit test changed. Opus was not run.
