@@ -34,7 +34,7 @@ Cursor: install the Agent Plugin locally or from a marketplace, then ask Agent: 
 
 ## What it needs from a workspace
 
-An `## Architecture` block in the workspace `CLAUDE.md` for Claude Code, or `AGENTS.md` for Codex, Agy, and Cursor: user and pronouns, architecture directory, canonical document, plan and review directories, optional publisher, diagram renderer path, and human-only actions. The portable skill also accepts `CLAUDE.md` as a fallback. The agent carries no workspace values; if the block is missing it proposes one and creates nothing. A served review page requires a publisher configured by the workspace. Any communication workflow outside Frank's own report comes from the runtime context that assigns the work.
+An `## Architecture` block in the workspace `CLAUDE.md` for Claude Code, or `AGENTS.md` for Codex, Agy, and Cursor: user and pronouns, architecture directory, canonical document, plan and review directories, optional publisher, optional `Project:` name for its pages, diagram renderer path, and human-only actions. The portable skill also accepts `CLAUDE.md` as a fallback. The agent carries no workspace values; if the block is missing it proposes one and creates nothing. A served review page requires a publisher configured by the workspace. Any communication workflow outside Frank's own report comes from the runtime context that assigns the work.
 
 ## Install
 

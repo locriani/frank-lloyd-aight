@@ -53,24 +53,40 @@
         "store\\.py"
       ],
       "content_not_match": [
+        "<title>\\s*Chart Agent",
         "<h1>\\s*Chart Agent",
-        "agent/tools/fhir\\.py"
+        "billing is out of scope",
+        "answers from the patient chart"
       ]
     },
     {
-      "name": "reply carries the url of a page",
-      "type": "regex",
-      "pattern": "http://127\\.0\\.0\\.1:8787/[\\w.-]+-review\\.html"
+      "name": "the page is named for the working directory",
+      "type": "files_created",
+      "glob": "pages/cos-eval-*-review.html",
+      "min": 1,
+      "max": 1
     },
     {
-      "name": "the page is not named for a generic noun",
+      "name": "no other new file",
+      "type": "no_new_files",
+      "except": [
+        "pages/cos-eval-*-review.html"
+      ]
+    },
+    {
+      "name": "the reply gives the url of that page",
       "type": "regex",
-      "pattern": "(?s)\\A(?!.*8787/(?:architecture|agent|api|app|service|system|code|review)-review\\.html)"
+      "pattern": "http://127\\.0\\.0\\.1:8787/cos-eval-[\\w-]+-review\\.html"
+    },
+    {
+      "name": "the reply says where the name came from",
+      "type": "regex",
+      "pattern": "(?is)(named|name).{0,160}(directory|folder|`?Project:?`?)"
     },
     {
       "name": "the reply says the other project's page was left alone",
       "type": "regex",
-      "pattern": "(?is)architecture-review\\.html.{0,300}(left|not touched|untouched|did not (write|edit|change|touch)|another project|different project|not this project)|(left|not touched|untouched|another project|different project).{0,300}architecture-review\\.html"
+      "pattern": "(?is)architecture-review\\.html.{0,200}(?:left\\b[^.\\n]{0,80}\\balone|\\bnot (?:touched|modified|changed|edited|written|overwritten)|untouched|unchanged|did not (?:write|edit|change|touch|modify|overwrite))|(?:left\\b[^.\\n]{0,80}\\balone|\\bnot (?:touched|modified|changed|edited|written|overwritten)|untouched|unchanged|did not (?:write|edit|change|touch|modify|overwrite)).{0,200}architecture-review\\.html|left\\b[^\\n]{0,30}architecture-review\\.html[^\\n]{0,10}\\balone"
     }
   ],
   "max_turns": 40,

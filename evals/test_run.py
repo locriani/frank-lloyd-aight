@@ -86,7 +86,7 @@ class SandboxGuardTest(unittest.TestCase):
     PEER_TOOLS = ("ListAgents", "SendMessage")
 
     def test_allowlist_is_review_only(self) -> None:
-        # The reviewer may write only plans, reviews, and the architecture directory; never move, make, or delete.
+        # The reviewer may write only plans, reviews, a pages dir, and the architecture directory; never move, make, or delete.
         for rule in ("Bash(mv:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(cp:*)", "Edit(./**)", "Write(./**)"):
             self.assertNotIn(rule, run.ALLOWED, rule)
         # A rule that starts at `TZ=` is answered by prefix, so it allows whatever command follows the assignment. The host answers for the clock instead.
