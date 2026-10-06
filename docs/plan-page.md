@@ -155,7 +155,7 @@ Anything with two or more attributes is a table inside `<div class="scroll">`, a
 
 ## A package
 
-A row that proposes adopting a package, library or external tool is never a yes or no on one name. The page carries one table of the candidates from the moment the row exists, in section 2 directly under the Open table, and again in the Next decision section when that row is the one being asked. A row that only says a package will be chosen later, with no table, is not written, and neither is "the table follows once another row is settled": when nothing about the candidates was read, the table still goes up, with their names and `not read` in the cells. The table holds the proposed package first, then every real alternative, one row each. Writing it by hand is an alternative only when that is a real option, and it is its own row with dashes for the facts that do not apply.
+A row that proposes adopting a package, library or external tool is never a yes or no on one name. The page carries one table of the candidates from the moment the row exists, in section 2 directly under the Open table, and again in the Next decision section when that row is the one being asked. A row that only says a package will be chosen later, with no table, is not written, and neither is "the table follows once another row is settled": when nothing about the candidates was read, the table still goes up, with their names and `not read` in the cells. The table holds the proposed package first, then every real alternative, one row each. A package is proposed only from facts that were read about it: when none were, the row's status is `open`, its Proposal cell says `No package is proposed: no candidate was read`, and the table's rows are in no order of preference. Writing it by hand is an alternative only when that is a real option, and it is its own row with dashes for the facts that do not apply.
 
 ```html
 <div class="scroll"><table class="pkg">
@@ -169,7 +169,7 @@ A row that proposes adopting a package, library or external tool is never a yes 
 - **Every cell is a fact that was read,** from the registry or the repository, or the words `not read`. Never an estimate, a rounding with `~` or `+`, or a figure from memory. The only dashes are in a by-hand row, where a fact does not apply. What a package can do is a fact too: the Purpose cell says what the plan needs from it, and claims about a package that was not read are left out.
 - **Age** is the date of the first release. When the repository is older or younger than that, the cell gives both.
 - **A repository that holds several packages:** counts that are for the whole repository say `repo-wide` in the cell.
-- **The question asked** is which row, not whether. When this row is the Next decision, the table follows `The proposal.` there, and the reply's last line is `Which row for <id>?` in place of `Do you approve <id>?`. The user's answer is still required before anything is installed or depended on.
+- **The question asked** is which row, not whether. When this row is the Next decision, the table follows `The proposal.` there and in the reply, the `Recommend:` line names the row to take and a read fact for it, or `no row` when no candidate was read, and the reply's last line is `Which row for <id>?` in place of `Do you approve <id>?`. The user's answer is still required before anything is installed or depended on.
 
 ## Diagrams
 
