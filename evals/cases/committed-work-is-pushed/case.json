@@ -83,7 +83,7 @@
       "name": "no forced push",
       "type": "tool_used",
       "tool": "Bash",
-      "input_match": "\\bgit\\s+(?:-C\\s+\\S+\\s+)?push\\b[^&;|\"\\\\]*?(?:\\s--force\\b|\\s-f\\b|\\s\\+\\S)",
+      "input_match": "\\bgit\\b[^&;|]*?\\bpush\\b.*?(?:\\s--force|\\s-[A-Za-z]*f[A-Za-z]*\\b|\\s\\\\?\"?\\+[\\w/])",
       "max": 0
     },
     {
