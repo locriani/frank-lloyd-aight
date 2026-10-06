@@ -99,7 +99,7 @@
     {
       "name": "reply restates the one pending decision in full and ends on the ask",
       "type": "regex",
-      "pattern": "(?s)\\A(?!.*Do you approve.*Do you approve).*Next decision:?\\**\\s*`?(?P<id>[A-Z]+\\d+)`?\\**,? .*The problem.*The proposal.*Do you approve \\W*(?P=id)\\W*\\?\\W*\\Z"
+      "pattern": "(?s)\\A(?!.*Do you approve.*Do you approve).*Next decision:?\\**\\s*\\**`?(?P<id>[A-Z]+\\d+)`?\\**,? .*The problem.*The proposal.*Do you approve \\W*(?P=id)\\W*\\?\\W*\\Z"
     },
     {
       "name": "canonical document untouched",
