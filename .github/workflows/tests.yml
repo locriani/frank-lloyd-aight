@@ -14,6 +14,9 @@ jobs:
     # The full image, not slim: the suite needs git.
     container: python:3.14
     steps:
-      # v4, pinned to its commit: a tag can be moved.
+      # v4.4.0, pinned to its commit: a tag can be moved.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # Nothing after the checkout uses the token, so it is not left in .git/config for the suite to read.
+          persist-credentials: false
       - run: cd evals && python3 -m unittest
