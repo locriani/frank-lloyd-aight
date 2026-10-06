@@ -26,7 +26,7 @@ CLOSED = re.compile(rf"\s*(?:{_CLOSED})")
 STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s)")
 # ponytail: every absolute max-width is a cap, an image's or a tooltip's included; scope it by selector if one of those is ever wanted.
 CAPPED = re.compile(
-    r"(?<![-\w(])(?:max-(?:width|inline-size)\s*:[^;}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:[^;}\n\"']*?\dch\b)",
+    r"(?<![-\w])(?:max-(?:width|inline-size)\s*:\s*[^;}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:\s*[^;}\n\"']*?\dch\b)",
     re.I,
 )
 
@@ -83,16 +83,37 @@ def html(text: str) -> list[tuple[int, str]]:
     return parser.out
 
 
-# A drawing states its own size and label widths; blanked, line for line, before caps are looked for.
+# Not declarations: a drawing's own size and label widths, a comment, and the condition of an at-rule such as a breakpoint.
 SVG = re.compile(r"<svg\b.*?</svg>", re.I | re.S)
+SKIPPED = (SVG, re.compile(r"/\*.*?\*/", re.S), re.compile(r"@(?:media|container|supports)\b[^{;]*", re.I))
+# Where a page holds CSS: a style element's body, or a style attribute's value.
+STYLED = re.compile(r"<style\b[^>]*>(.*?)</style>|\bstyle\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.S)
+
+
+def _blank(m: re.Match) -> str:
+    """The match as spaces, its line breaks kept, so every line number after it stays right."""
+    return re.sub(r"[^\n]", " ", m[0])
 
 
 def caps(text: str) -> list[tuple[int, str]]:
-    text = SVG.sub(lambda m: "\n" * m[0].count("\n"), text)
+    """Width caps in CSS text."""
+    for skip in SKIPPED:
+        text = skip.sub(_blank, text)
     return [(text.count("\n", 0, m.start()) + 1, CAP) for m in CAPPED.finditer(text)]
 
 
-CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html, caps), ".htm": (html, caps), ".css": (caps,)}
+def html_caps(text: str) -> list[tuple[int, str]]:
+    """Width caps in a page's CSS only; a cap named in its prose is not one."""
+    text = SVG.sub(_blank, text)
+    kept = list(re.sub(r"[^\n]", " ", text))
+    for m in STYLED.finditer(text):
+        a, b = m.span(m.lastindex)
+        kept[a:b] = text[a:b]
+        kept[b] = ";"  # one declaration never runs on into the next style
+    return caps("".join(kept))
+
+
+CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html, html_caps), ".htm": (html, html_caps), ".css": (caps,)}
 
 
 def problems(name: str, text: str) -> list[tuple[int, str]]:
