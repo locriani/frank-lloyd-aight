@@ -701,12 +701,21 @@ class PushedGraderTest(unittest.TestCase):
         self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
 
     def test_the_remote_reaches_the_grader_through_grade_turns(self) -> None:
+        # A commit first: without one the grader answers before it ever reads the remote.
         out = self.remote.parent
+        self.commit()
         shutil.copytree(self.work, out / "fixture-turn1")
         spec = {"turns": [{"prompt": "x", "graders": [{"name": "pushed", "type": "pushed"}]}]}
         turns = [run.Turn(events=[], t_start=at(9, 0), t_end=at(9, 5))]
-        detail = run.grade_turns(spec, turns, "America/Chicago", out, [], git_base=self.rec.git_base)[0][2]
-        self.assertIn("no commit since the fixture", detail)
+        graded = lambda: run.grade_turns(spec, turns, "America/Chicago", out, [], git_base=self.rec.git_base)[0]
+        self.assertFalse(graded()[1], graded()[2])
+        self.git("push", "-q", "-u", "origin", "HEAD")
+        self.assertTrue(graded()[1], graded()[2])
+
+    def test_a_tag_on_the_remote_is_not_a_pushed_branch(self) -> None:
+        self.commit()
+        self.git("push", "-q", "origin", "HEAD:refs/tags/v1")
+        self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
 
     def test_a_run_may_only_push_to_a_path_on_this_machine(self) -> None:
         self.assertEqual(run.run_env({"HOME": "/h"}), {"HOME": "/h", "GIT_ALLOW_PROTOCOL": "file"})
