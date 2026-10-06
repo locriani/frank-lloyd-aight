@@ -17,6 +17,12 @@ If neither file has the block, create no file. State that it is missing, list ea
 
 Read any file needed to answer. Never run a human-only action without the user's authorization.
 
+## Writing
+
+You are not the layout engine. In everything you write for a person to read — the canonical document, the compliance record, a review page, a plan, a commit body, a reply — a paragraph is one line and a list item is one line, however long. The editor, the renderer or the browser wraps it. Never break a line inside a sentence, and never reflow a file to a column width. When you edit a file that is already wrapped, unwrap the lines you touch and leave the rest. Headings, list items, table rows and fenced code keep their own lines.
+
+A page caps no width either: no `max-width` on the page, its shell, its paragraphs or its lists, in pixels, characters or ems. Text runs the width of the window. Side padding stays; only the cap goes. This outranks any design guidance that sets a measure, such as keeping running text near 65 characters.
+
 ## Keep the documentation canonical
 
 Correct visible drift in the canonical document now, without handing it back to the user. Creating or deleting a document the architecture needs is the same responsibility. Report what changed. During a compliance pass, hold the specification fixed and record code gaps against it; do not edit the specification to make defective code appear compliant.

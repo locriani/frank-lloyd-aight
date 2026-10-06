@@ -6,7 +6,9 @@ Four jobs, and they are one job: it **creates** the architectural documentation,
 
 The one prohibition is the hammer: no direct code changes. A defect it finds in code is filed, never fixed. It commits its own work in its own worktree and never merges.
 
-**Status:** The Claude Code harness runs 110 unit tests. The standalone-compliance case is red on the baseline and green on the agent arm three times on Opus; see `evals/results/PROGRESS.md` for the earlier stages. The review page spec is at `docs/review-page.md`. The portable skill is packaged and validated; its behavior has not yet been evaluated on the other hosts.
+It does not lay text out. A paragraph is one line in everything it writes, and its pages cap no width. On Claude Code the plugin's `PreToolUse` hook refuses a Write or Edit of a `.md`, `.html` or `.css` file that breaks a line inside prose or sets an absolute `max-width`, naming the file and line. The hook is the plugin's, so it applies in every session where the plugin is enabled, not only in the agent's own. The other hosts get the rule as text only.
+
+**Status:** CI runs the unit suite on every push. The standalone-compliance case is red on the baseline and green on the agent arm three times on Opus; see `evals/results/PROGRESS.md` for the earlier stages. The review page spec is at `docs/review-page.md`. The portable skill is packaged and validated; its behavior has not yet been evaluated on the other hosts.
 
 ## Launch
 
@@ -62,22 +64,16 @@ In Cursor, copy the repo to `~/.cursor/plugins/local/frank-lloyd-aight`, then re
 
 ```sh
 cd evals && python3 -m unittest
-python3 evals/run.py --arm baseline --model opus --case '<glob>'
-python3 evals/run.py --arm agent --model opus --case '<glob>' --runs 3
-python3 evals/run.py --arm both --model opus --case '<glob>'      # both arms, one stamp, and a per-grader table
+python3 evals/run.py --arm baseline --model sonnet --case '<glob>'
+python3 evals/run.py --arm agent --model sonnet --case '<glob>' --runs 3
+python3 evals/run.py --arm both --model sonnet --case '<glob>'      # both arms, one stamp, and a per-grader table
 python3 evals/run.py --regrade <run-dir>                          # re-grade a stored run under today's graders
 python3 evals/run.py --compare <baseline-dir> <agent-dir>         # the same table from runs already on disk
 ```
 
-`--arm both` says, per grader, what it proves: **discriminates** (baseline fails, agent passes — what a
-red-to-green stage buys), **vacuous** (both pass, so the grader proves nothing about the agent file),
-**regression** (baseline passes, the agent file does not — a capability the file suppressed),
-**unmet** (neither), **flaky** (differs across runs of one arm). A regression fails the run; the rest
-are named and left to judgment.
+`--arm both` says, per grader, what it proves: **discriminates** (baseline fails, agent passes — what a red-to-green stage buys), **vacuous** (both pass, so the grader proves nothing about the agent file), **regression** (baseline passes, the agent file does not — a capability the file suppressed), **unmet** (neither), **flaky** (differs across runs of one arm). A regression fails the run; the rest are named and left to judgment.
 
-`--regrade` and `--compare` need the `meta.json` a run writes — base sha, turn boundaries, and the
-fixture digest. Runs captured before it exists need `--unverified`, which is exact for a single-turn
-run and refused for anything else.
+`--regrade` and `--compare` need the `meta.json` a run writes — base sha, turn boundaries, and the fixture digest. Runs captured before it exists need `--unverified`, which is exact for a single-turn run and refused for anything else.
 
 ## Layout
 
@@ -86,6 +82,7 @@ plugin.json         portable Agent Plugin manifest (Codex, Agy, Cursor)
 skills/             provider-neutral frank-lloyd-aight skill
 .claude-plugin/     Claude Code plugin.json, marketplace.json (source "./")
 agents/             Claude Code frank-lloyd-aight.md
+hooks/              no_wrap.py: the hard-wrap and width-cap checker, and the Claude Code hook that runs it
 docs/               design-inputs.md (what was observed), review-page.md (the page spec)
 evals/              run.py, mocks, tests, cases/<case>/, results/PROGRESS.md
 ```
