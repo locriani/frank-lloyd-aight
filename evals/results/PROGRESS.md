@@ -866,3 +866,20 @@ What these runs do not show: in four of the six green runs the renderer call was
 Not run: the baseline arm, any Opus run, and the other cases against the new section.
 
 Cost: about **$1.00** over twenty Sonnet runs.
+
+## 0.13.0 — a planning session puts the plan page up (2026-10-05)
+
+Three architecture sessions planned with Zach today and each had to be corrected into the same page. He approved a plan page spec at 18:36, chose its conventions at 18:46, and at 18:50 added: "when I plan with architecture sessions, I am planning the ARCHITECTURE."
+
+- **`docs/plan-page.md`:** the address (`<pages dir>/<subject>-plan.html`, else the plan dir; Zach picked the pages dir), the head a served file needs, the stylesheet, five fixed sections, the row format, the status pills, and what is never on the page.
+- **Theme:** Zach, "the theme is the EXACT SAME THEME as the other achitecture agent settled artifacts". The stylesheet is copied whole from the settled plan page of another session, less one comment. Statuses use its two existing pill classes, so no rule was added to it.
+- **Agent and skill:** a `## Planning session` move. Read the brief first; the page goes up in the first reply with every choice a row marked proposed; proposing is not deciding; nothing is asked before the page exists; the plan is the architecture and not a task list.
+- **Case:** `plan-page-first-reply`, a brief and "This is a planning session."
+
+What is Zach's and what is mine. His: one page rewritten in place, stable row ids, fixed section numbers with new subjects appended, the lead paragraph, status pills and an open count, one proposal per row, the basis cell, tables over prose, the never-on-page list, the theme, the pages dir. Mine, and open to his correction: which five sections are fixed and their titles (Decided, Open, Structure, What the brief asks for, Files), the fall-back to the plan dir when no pages dir is named, and that the served file is the page of record.
+
+Agent arm, Sonnet. Before (`20261005-190241`): RED, 6 of 12. No page was written; the reply was a verdict-style answer and an entry in the open-decision record. After (`20261005-190353`): GREEN in all three runs, 12 of 12.
+
+What the case does not show: a second turn (a row answered, the page rewritten at the same path with the turn number raised, the user's words kept off it), a workspace with a pages dir, and a diagram on the page. Not run: the baseline arm, any Opus run, and the other cases against the new section.
+
+Cost: about **$0.65** over four Sonnet runs.
