@@ -211,6 +211,10 @@ def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool
         tokens = list(lex)
     except ValueError:
         return False
+    # Where the shell would read it differently from these tokens: a continued line, a comment, a brace expansion. And a
+    # quoted separator separates nothing in the shell, so a refused option is refused in every part, not only git's.
+    if "\\\n" in command or any(t.startswith("#") or "{" in t or _refused(t) for t in tokens):
+        return False
     # The redirects let through send stderr onto stdout or to the null device, each as its own three tokens.
     for i in range(len(tokens) - 2, 0, -1):
         if tokens[i - 1 : i + 2] in (["2", ">&", "1"], ["2", ">", os.devnull]):
@@ -236,7 +240,7 @@ def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool
         sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
         # Listing worktrees and remotes only reads; every other form of either changes something.
         named = sub in subs or (bool(subs) and (sub == "worktree list" or (sub == "remote" and set(p[2:]) <= {"-v", "--verbose"})))
-        if p[0] != "git" or not named or any(_refused(t) for t in p):
+        if p[0] != "git" or not named:
             return False
         # The short forms that wait on a person or take a template: -p, -i, -t.
         if sub in ("add", "commit", "checkout") and any(re.fullmatch(r"-[A-Za-z]*[pit][A-Za-z]*", t) for t in p[2:]):
