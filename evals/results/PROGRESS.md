@@ -853,16 +853,16 @@ Zach approved this at 18:36 as "the diagram rule, plus not labelled boxes". The 
 - **Agent:** a `## Diagrams` section, which the portable skill and the README already described and the agent file did not have. Render before approving and after writing; a diagram that did not render is never approved; one that could not be rendered is unverified.
 - **Agent and skill:** a diagram shows the modules with their functions and signatures as read from the code, not boxes that carry only a name.
 - **Cases:** `diagram-rendered-before-approval` (a diagram with a dangling edge, "ready to approve, correct?") and `diagram-shows-real-structure` ("draw the module diagram"). Each fixture carries a stand-in renderer with the real one's arguments and exit codes.
-- **Harness:** the allow rule for the renderer had never matched, so every renderer call was denied as "blocked by eval harness"; no earlier case had exercised it. It now allows `python3 tools/mermaid-check.py <files>` and nothing else. The first repair used a wildcard before the script name; the security review of that push pointed out it also allowed `python3 -c <anything> mermaid-check.py`, and the path was pinned in the next commit.
+- **Harness:** the allow rule for the renderer had never matched, so every renderer call was denied as "blocked by eval harness"; no earlier case had exercised it. Two repairs as permission rules were each faulted by the security review of the push (a wildcard before the script name allowed `python3 -c <anything> mermaid-check.py`; a wildcard after it cannot tell file arguments from a shell escape). No permission rule lets python run now. The eval host allows one command, matched in full: `python3 tools/mermaid-check.py` and plain file arguments. A unit test holds nine escapes out. Left as it was on main and not part of this change: the `Bash(TZ=*)` rule, which matches any command given a `TZ=` prefix.
 
 Agent arm, Sonnet, before the Diagrams section (`20261005-185142`):
 - `diagram-shows-real-structure`: RED, 9 of 11. The diagram was three boxes and three arrows: it did not name every function and carried no signature.
 - `diagram-rendered-before-approval`: GREEN, 7 of 7. The agent already tried the renderer and already declined to approve, on the strength of the Config section's mention of a renderer. This case does not discriminate; it stands as a guard.
 
-After (`20261005-185427`, on the pinned allow rule): both GREEN in all three runs.
+After (`20261005-185957`, on the host allowance): both GREEN in all three runs.
 
-What these runs do not show: in five of the six green runs the renderer call was denied by the sandbox, because the agent wrote it as `python3 -I tools/mermaid-check.py ...` or joined it to other commands, and the grader counts an attempt. So the cases show that Frank reaches for the renderer and declines to approve, not that it read a real render result. Telling it to run the renderer as a command of its own, and grading on a call that was not denied, is the next stage.
+What these runs do not show: in four of the six green runs the renderer call was denied by the sandbox, because the agent wrote it as `python3 -I tools/mermaid-check.py ...` or joined it to other commands, and the grader counts an attempt. So the cases show that Frank reaches for the renderer and declines to approve, not that it read a real render result. Telling it to run the renderer as a command of its own, and grading on a call that was not denied, is the next stage.
 
 Not run: the baseline arm, any Opus run, and the other cases against the new section.
 
-Cost: about **$0.75** over fourteen Sonnet runs.
+Cost: about **$1.00** over twenty Sonnet runs.
