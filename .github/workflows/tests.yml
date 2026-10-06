@@ -4,11 +4,16 @@ name: tests
 on:
   push:
 
+# The suite only reads the repository.
+permissions:
+  contents: read
+
 jobs:
   unittest:
     runs-on: ubuntu-latest
     # The full image, not slim: the suite needs git.
     container: python:3.14
     steps:
-      - uses: actions/checkout@v4
+      # v4, pinned to its commit: a tag can be moved.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - run: cd evals && python3 -m unittest
