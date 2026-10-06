@@ -261,7 +261,7 @@ def _tool_used(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
     # An attempt counts against a max. With "ran", only a call that was let through counts toward a min.
     n = len(hits) - denied if g.get("ran") else len(hits)
     lo, hi = g.get("min", 0), g.get("max")
-    ok = n >= lo and (hi is None or n <= hi)
+    ok = n >= lo and (hi is None or len(hits) <= hi)
     bound = f"min {lo}" + (f", max {hi}" if hi is not None else "")
     return ok, f"{len(hits)} call(s) ({denied} denied{f', {n} ran' if g.get('ran') else ''}); want {bound}"
 
