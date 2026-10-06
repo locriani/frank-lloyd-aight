@@ -6,6 +6,7 @@ The stream fixture is a real `claude -p --output-format stream-json --verbose` c
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -672,7 +673,7 @@ class PushedGraderTest(unittest.TestCase):
 
     def test_the_remote_starts_empty_and_work_is_on_a_branch(self) -> None:
         self.assertEqual(self.git("ls-remote", "origin"), "")
-        self.assertNotEqual(self.git("branch", "--show-current"), "main")
+        self.assertEqual(self.git("branch", "--show-current"), "architecture")
 
     def test_nothing_new_is_not_pushed(self) -> None:
         self.git("push", "-q", "-u", "origin", "HEAD")
@@ -698,6 +699,17 @@ class PushedGraderTest(unittest.TestCase):
         self.git("remote", "set-url", "origin", str(other))
         self.git("push", "-q", "-u", "origin", "HEAD")
         self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
+
+    def test_the_remote_reaches_the_grader_through_grade_turns(self) -> None:
+        out = self.remote.parent
+        shutil.copytree(self.work, out / "fixture-turn1")
+        spec = {"turns": [{"prompt": "x", "graders": [{"name": "pushed", "type": "pushed"}]}]}
+        turns = [run.Turn(events=[], t_start=at(9, 0), t_end=at(9, 5))]
+        detail = run.grade_turns(spec, turns, "America/Chicago", out, [], git_base=self.rec.git_base)[0][2]
+        self.assertIn("no commit since the fixture", detail)
+
+    def test_a_run_may_only_push_to_a_path_on_this_machine(self) -> None:
+        self.assertEqual(run.run_env({"HOME": "/h"}), {"HOME": "/h", "GIT_ALLOW_PROTOCOL": "file"})
 
     def test_a_commit_after_the_push_fails(self) -> None:
         self.commit()
