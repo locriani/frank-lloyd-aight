@@ -108,6 +108,12 @@ class WidthCapTest(unittest.TestCase):
         self.assertEqual(no_wrap.caps(spec), [])
 
 
+    def test_the_plan_page_spec_caps_nothing(self) -> None:
+        spec = (run.PLUGIN_ROOT / "docs" / "plan-page.md").read_text()
+        self.assertEqual(no_wrap.caps(spec), [])
+        self.assertEqual(no_wrap.markdown(spec), [])
+
+
 class OtherFilesTest(unittest.TestCase):
     def test_code_and_data_are_not_prose(self) -> None:
         self.assertEqual(lines("a.py", "x = 1\ny = 2\n"), [])

@@ -1,0 +1,104 @@
+{
+  "tz": "America/Chicago",
+  "description": "Robin opens a planning session with a brief. The first reply puts the plan page up: an HTML file in the plan dir (the block names no pages dir), in the fixed theme and section numbers, the architecture as real structure, every choice a row marked proposed with its basis, nothing shown as decided, and no question asked before the page exists.",
+  "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session.",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one plan page written",
+      "type": "published",
+      "min": 1,
+      "max": 1,
+      "content_match": [
+        "(?i)\\A<!doctype html>\\s*<meta charset=\"utf-8\">",
+        "--accent:\\s*#1c6a49",
+        "padding-inline:\\s*clamp\\(16px,\\s*5vw,\\s*72px\\)",
+        "<section id=\"s1\">\\s*<h2>1\\. Decided</h2>",
+        "<section id=\"s2\">\\s*<h2>2\\. Open</h2>",
+        "<section id=\"s3\">\\s*<h2>3\\. Structure</h2>",
+        "<section id=\"s4\">\\s*<h2>4\\. What the brief asks for</h2>",
+        "<section id=\"s5\">\\s*<h2>5\\. Files</h2>",
+        "class=\"eyebrow\">Plan · turn 1\\b",
+        "<b>Open</b> \\d+"
+      ]
+    },
+    {
+      "name": "every choice is a row marked proposed, with its basis",
+      "type": "published",
+      "content_match": [
+        "<td class=\"id\">[A-Z]+\\d+</td>",
+        "class=\"pill open\">proposed<",
+        "<th>Basis</th>",
+        "Read in ",
+        "Not read"
+      ],
+      "content_not_match": [
+        "class=\"pill done\">decided<"
+      ]
+    },
+    {
+      "name": "the plan is the architecture, as real structure",
+      "type": "published",
+      "content_match": [
+        "(session_id|data|event)\\s*:\\s*(str|dict)",
+        "store\\.py",
+        "queue\\.py",
+        "R1",
+        "R2",
+        "R3",
+        "export-brief\\.md"
+      ]
+    },
+    {
+      "name": "nothing new outside the plan dir and the architecture dir",
+      "type": "no_new_files",
+      "except": [
+        "plans/**",
+        "architecture/**"
+      ]
+    },
+    {
+      "name": "no question before the page",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "reply gives the file path",
+      "type": "regex",
+      "pattern": "plans/[\\w.-]+-plan\\.html"
+    },
+    {
+      "name": "reply points at rows by id",
+      "type": "regex",
+      "pattern": "\\b[A-Z]+\\d+\\b"
+    },
+    {
+      "name": "reply carries one recommendation line",
+      "type": "regex",
+      "pattern": "(?m)^\\**Recommend:\\**\\s+\\S"
+    },
+    {
+      "name": "canonical document untouched",
+      "type": "file_unchanged",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "name": "code untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "no relay",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    }
+  ],
+  "max_turns": 40,
+  "timeout_seconds": 900
+}
