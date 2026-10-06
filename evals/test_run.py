@@ -593,15 +593,67 @@ class PerCaseSandboxTest(unittest.TestCase):
         for path in sorted((run.EVALS / "cases").glob("*/case.json")):
             self.assertNotIn('"Bash(git:*)"', path.read_text(), path.parent.name)
 
-    def test_a_git_case_gets_named_subcommands_and_no_push(self) -> None:
-        allowed = self.flag(self.cmd({"git": True}), "--allowedTools")
-        self.assertIn("Bash(git commit:*)", allowed)
-        self.assertIn("Bash(git status:*)", allowed)
-        self.assertFalse([a for a in allowed if "push" in a or a.startswith("Bash(git -") or a == "Bash(git config:*)"])
+    def test_no_permission_rule_allows_git(self) -> None:
+        # A prefix rule cannot see `--output=` or `--receive-pack=`, so git is the host's to answer, command by command.
+        for spec in ({"git": True}, {"git": True, "remote": True}):
+            self.assertFalse([a for a in self.flag(self.cmd(spec), "--allowedTools") if "git" in a])
 
-    def test_only_a_case_with_a_remote_may_push(self) -> None:
-        self.assertIn("Bash(git push:*)", self.flag(self.cmd({"git": True, "remote": True}), "--allowedTools"))
-        self.assertNotIn("Bash(git push:*)", self.flag(self.cmd({"remote": True}), "--allowedTools"))
+    def test_only_a_git_case_with_a_remote_may_push(self) -> None:
+        self.assertEqual(run.git_subcommands({}), ())
+        self.assertNotIn("push", run.git_subcommands({"git": True}))
+        self.assertIn("push", run.git_subcommands({"git": True, "remote": True}))
+        self.assertEqual(run.git_subcommands({"remote": True}), ())
+
+
+class GitCommandTest(unittest.TestCase):
+    """The host reads the whole command. One part it cannot vouch for refuses all of it."""
+
+    SUBS = run.git_subcommands({"git": True, "remote": True})
+
+    def ok(self, command: str, subs: tuple[str, ...] | None = None) -> bool:
+        return run.git_ok(command, self.SUBS if subs is None else subs)
+
+    def test_what_a_run_does_is_let_through(self) -> None:
+        for command in (
+            "git status -sb",
+            'git add -A && git commit -q -m "docs(architecture): section 3\n\nTwo lines; one body."',
+            "git push -u origin HEAD 2>&1 | tail -5",
+            "git log --oneline -5; git branch -a\ngit worktree list",
+            "git diff --stat | head -20",
+            "git switch -c docs/section-3",
+            "git status; ls architecture; cat ARCHITECTURE.md | wc -l",
+        ):
+            self.assertTrue(self.ok(command), command)
+
+    def test_a_route_to_another_command_or_another_file_is_refused(self) -> None:
+        for command in (
+            "git -c alias.x='!sh -c id' x",
+            "git -C /somewhere/else status",
+            "git config --global user.name x",
+            "git log --output=/tmp/x",
+            "git diff --output /tmp/x",
+            "git push --receive-pack='sh -c id' origin HEAD",
+            "git push --exec=id origin HEAD",
+            "git status && rm -rf x",
+            "git status\nrm x",
+            "git status & id",
+            "git status > /tmp/x",
+            'git commit -m "x $(id)"',
+            "git commit -m `id`",
+            "GIT_ALLOW_PROTOCOL=https git push origin HEAD",
+            "cd /somewhere/else && git status",
+            "git status; find . -exec id ;",
+            "git worktree add ../x",
+            "git commit -m 'unbalanced",
+            "ls",
+        ):
+            self.assertFalse(self.ok(command), command)
+
+    def test_push_needs_the_case_to_have_a_remote(self) -> None:
+        self.assertFalse(self.ok("git push -u origin HEAD", run.git_subcommands({"git": True})))
+
+    def test_a_case_without_git_gets_none(self) -> None:
+        self.assertFalse(self.ok("git status", ()))
 
     def test_deny_replaces_the_default(self) -> None:
         deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
@@ -734,6 +786,11 @@ class PushedGraderTest(unittest.TestCase):
     def test_a_run_reads_and_writes_no_git_config_of_the_users(self) -> None:
         env = run.run_env({"HOME": "/h"})
         self.assertEqual((env["GIT_CONFIG_GLOBAL"], env["GIT_CONFIG_NOSYSTEM"]), (os.devnull, "1"))
+
+    def test_a_run_s_git_runs_no_hook_and_opens_no_editor(self) -> None:
+        env = run.run_env({"HOME": "/h"})
+        self.assertEqual((env["GIT_CONFIG_COUNT"], env["GIT_CONFIG_KEY_0"], env["GIT_CONFIG_VALUE_0"]), ("1", "core.hooksPath", os.devnull))
+        self.assertEqual((env["GIT_EDITOR"], env["GIT_TERMINAL_PROMPT"]), ("true", "0"))
 
     def test_a_commit_after_the_push_fails(self) -> None:
         self.commit()
