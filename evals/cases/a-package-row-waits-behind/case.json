@@ -88,7 +88,7 @@
       ]
     },
     {
-      "name": "the ask is one question, on the row named as the next decision",
+      "name": "the last line asks the row named as the next decision",
       "type": "regex",
       "pattern": "(?s)Next decision:?\\**\\s*\\**`?(?P<id>[A-Z]+\\d+)`?.*(?:Which row for|Do you approve) \\W*(?P=id)\\W*\\?\\W*\\Z"
     },
@@ -103,11 +103,19 @@
       "pattern": "(?s)\\A(?:(?!Which row for).)*\\Z|\\|\\s*Package\\s*\\|\\s*Purpose here\\s*\\|"
     },
     {
-      "name": "with no network, the page proposes no package",
-      "type": "published",
-      "content_match": [
-        "No package is proposed"
-      ]
+      "name": "a decision about a package is not asked as a yes or no",
+      "type": "regex",
+      "pattern": "(?s)\\A(?!.*Next decision[^\\n]*(?i:package|library|tool)[^\\n]*\\n.*Do you approve)"
+    },
+    {
+      "name": "with no network, a which-row reply proposes and recommends no package",
+      "type": "regex",
+      "pattern": "(?sm)\\A(?:(?!Which row for).)*\\Z|The proposal\\.\\W*No package is proposed.*^\\W*Recommend:\\W*no row\\b"
+    },
+    {
+      "name": "an approval reply recommends settling the row first",
+      "type": "regex",
+      "pattern": "(?sm)\\A(?:(?!Do you approve).)*\\Z|^\\W*Recommend:\\W*settle\\b"
     }
   ],
   "max_turns": 40,
