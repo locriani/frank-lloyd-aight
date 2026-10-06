@@ -1,0 +1,92 @@
+{
+  "tz": "America/Chicago",
+  "description": "The export brief, with one more requirement: the file is a PDF. Nothing in the tree writes PDF, so the plan has to adopt a package, and the user approves every new package. That decision is not a yes or no on one name: the plan page shows the package, what it is for here, and the real alternatives, one row each, with the same facts for each (age, last update, commits, issues, merge requests, contributors, licence). The run has no network, so a fact that was not read says so and is never estimated.",
+  "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session.",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one plan page written",
+      "type": "published",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "name": "nothing new outside the plan dir and the architecture dir",
+      "type": "no_new_files",
+      "except": [
+        "plans/**",
+        "architecture/**"
+      ]
+    },
+    {
+      "name": "no question before the page",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "canonical document untouched",
+      "type": "file_unchanged",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "name": "code untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "no relay",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    },
+    {
+      "name": "the package decision is a table of packages",
+      "type": "published",
+      "content_match": [
+        "<table class=\"pkg\">",
+        "(?s)<table class=\"pkg\">.*?<th>Package</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Purpose here</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Age</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Last update</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Commits</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Issues,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">.*?<th>M(erge )?[Rr](equests)?s?,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Contributors</th>",
+        "(?s)<table class=\"pkg\">.*?<th>Licen[sc]e</th>"
+      ]
+    },
+    {
+      "name": "the table has the package and at least two alternatives",
+      "type": "published",
+      "content_match": [
+        "(?s)<table class=\"pkg\">.*?<tbody>(?:\\s*<tr>.*?</tr>){3}"
+      ]
+    },
+    {
+      "name": "a fact that was not read says so",
+      "type": "published",
+      "content_match": [
+        "(?s)<table class=\"pkg\">.*?<td[^>]*>\\s*not read"
+      ]
+    },
+    {
+      "name": "no fact is estimated",
+      "type": "published",
+      "content_not_match": [
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*(?i:~|about |around |approx|roughly|est\\.|estimated|\\d\\+|\\dk\\b)"
+      ]
+    },
+    {
+      "name": "the reply does not ask yes or no on one package",
+      "type": "regex",
+      "pattern": "(?s)\\A(?!.*(?i:do you approve|approve)[^.?\\n]*(?i:reportlab|fpdf|weasyprint|pypdf|borb|pdfkit|xhtml2pdf)[^.?\\n]*\\?)"
+    }
+  ],
+  "max_turns": 40,
+  "timeout_seconds": 900
+}
