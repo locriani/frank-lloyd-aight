@@ -6,6 +6,7 @@ The stream fixture is a real `claude -p --output-format stream-json --verbose` c
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -88,12 +89,36 @@ class SandboxGuardTest(unittest.TestCase):
         # The reviewer may write only plans, reviews, and the architecture directory; never move, make, or delete.
         for rule in ("Bash(mv:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(cp:*)", "Edit(./**)", "Write(./**)"):
             self.assertNotIn(rule, run.ALLOWED, rule)
-        for rule in ("Bash(date:*)", "Bash(TZ=*)", "Read", "Glob", "Grep",
+        # A rule that starts at `TZ=` is answered by prefix, so it allows whatever command follows the assignment. The host answers for the clock instead.
+        self.assertEqual([a for a in run.ALLOWED if "TZ=" in a], [])
+        for rule in ("Bash(date:*)", "Read", "Glob", "Grep",
                      "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
                      "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)"):
             self.assertIn(rule, run.ALLOWED, rule)
         # No permission rule lets python run: a rule's wildcard cannot tell the renderer's file arguments from a shell escape. The host answers for the renderer.
         self.assertEqual([a for a in run.ALLOWED if "python" in a], [])
+
+    def test_host_lets_the_clock_be_read_in_a_zone_and_nothing_else(self) -> None:
+        def denied(command: str) -> bool:
+            proc = unittest.mock.Mock(stdin=io.StringIO())
+            ev = {"request_id": "r", "request": {"subtype": "can_use_tool", "tool_name": "Bash", "tool_use_id": "t", "input": {"command": command}}}
+            return run._answer_control_request(proc, ev, None, None) == "t"
+
+        for command in ("TZ=America/Chicago date", "TZ=UTC date +%H:%M", "TZ=America/Chicago date '+%Y-%m-%d %H:%M %Z'", 'TZ=Etc/GMT+5 date "+%A %d %B" -u'):
+            self.assertFalse(denied(command), command)
+        for escape in (
+            "TZ=UTC git -c alias.x='!sh -c id' x",
+            "TZ=UTC curl https://example.com",
+            "TZ=UTC date; rm -r src",
+            "TZ=UTC date && cat secret",
+            "TZ=UTC date $(cat secret)",
+            "TZ=UTC date '+%H' > src/app/api.py",
+            "TZ=UTC date -f secret",
+            "TZ=$(cat secret) date",
+            "TZ=UTC sh -c date",
+            "TZ=UTC date\nrm -r src",
+        ):
+            self.assertTrue(denied(escape), escape)
 
     def test_host_lets_the_renderer_run_on_files_and_nothing_else(self) -> None:
         def denied(command: str) -> bool:
@@ -467,6 +492,12 @@ class MultiTurnTest(unittest.TestCase):
             turns = run.drive_turns(self.FAKE, ["QUESTION pick"], Path(cwd), None, 20, lambda n: None, answers=[None], host_log=log)
             self.assertEqual(run.parse_stream(turns[0].events).last_text, "answered: Keep (Recommended)")
 
+    def test_the_host_is_handed_the_case_s_git_and_the_run_s_directory(self) -> None:
+        for git, want in ((("status",), "let through"), ((), "denied by host")):
+            with tempfile.TemporaryDirectory() as cwd:
+                turns = run.drive_turns(self.FAKE, ["GITHERE"], Path(cwd), None, 20, lambda n: None, answers=[None], git=git)
+                self.assertEqual(run.parse_stream(turns[0].events).last_text, want)
+
     def test_other_prompt_is_denied_and_recorded(self) -> None:
         # A prompted tool that is not the question tool is denied by the host and counted as a denied attempt even when the result's permission_denials is empty.
         spec = {"turns": [{"prompt": "DENYME", "graders": [{"name": "no rm", "type": "tool_used", "tool": "Bash", "max": 0}]}]}
@@ -577,16 +608,192 @@ class PerCaseSandboxTest(unittest.TestCase):
         self.assertEqual(self.flag(cmd, "--disallowedTools"), run.DISALLOWED)
 
     def test_allow_is_appended_to_the_default(self) -> None:
-        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(git:*)"]}})
+        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(wc:*)"]}})
         allowed = self.flag(cmd, "--allowedTools")
         self.assertEqual(allowed[: len(run.ALLOWED)], run.ALLOWED)
         self.assertIn("Edit(./ARCHITECTURE.md)", allowed)
-        self.assertIn("Bash(git:*)", allowed)
+        self.assertIn("Bash(wc:*)", allowed)
+
+    def test_a_git_rule_in_a_case_s_own_allow_is_refused(self) -> None:
+        # `git -c alias.x='!sh …' x` runs a shell, and any rule for git is answered by prefix, past the host.
+        for rule in ("Bash(git:*)", "Bash(git *)", "Bash(git log:*)", "Bash( git:*)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
+
+    def test_a_rule_for_git_by_its_path_is_refused(self) -> None:
+        for rule in ("Bash(/usr/bin/git:*)", "Bash(./git status:*)", "Bash(/opt/homebrew/bin/git *)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
+        # A rule that only has git in a longer name is not a rule for git.
+        self.cmd({"sandbox": {"allow": ["Bash(tools/gitlint:*)"]}})
+
+    def test_a_rule_for_git_behind_another_command_is_refused(self) -> None:
+        for rule in ("Bash(env git:*)", "Bash(command git status:*)", "Bash(TZ=UTC git:*)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
+
+    def test_no_case_allows_git_by_rule(self) -> None:
+        for path in sorted((run.EVALS / "cases").glob("*/case.json")):
+            allow = (json.loads(path.read_text()).get("sandbox") or {}).get("allow", [])
+            self.assertFalse([a for a in allow if "git" in a], path.parent.name)
+
+    def test_no_permission_rule_allows_git(self) -> None:
+        # A prefix rule cannot see `--output=` or `--receive-pack=`, so git is the host's to answer, command by command.
+        for spec in ({"git": True}, {"git": True, "remote": True}):
+            self.assertFalse([a for a in self.flag(self.cmd(spec), "--allowedTools") if "git" in a])
+
+    def test_only_a_git_case_with_a_remote_may_push(self) -> None:
+        self.assertEqual(run.git_subcommands({}), ())
+        self.assertNotIn("push", run.git_subcommands({"git": True}))
+        self.assertIn("push", run.git_subcommands({"git": True, "remote": True}))
+        self.assertEqual(run.git_subcommands({"remote": True}), ())
+
+    def test_a_git_case_is_not_denied_git_by_default(self) -> None:
+        # The host answers for git; a default deny rule would refuse the commit before the host was asked.
+        self.assertEqual(self.flag(self.cmd({"git": True}), "--disallowedTools"), ["Bash(rm:*)", "Bash(rmdir:*)"])
+        self.assertEqual(self.flag(self.cmd({}), "--disallowedTools"), run.DISALLOWED)
 
     def test_deny_replaces_the_default(self) -> None:
         deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
         self.assertEqual(deny, ["Bash(rm:*)", "Bash(git push:*)"])
         self.assertNotIn("Bash(git commit:*)", deny)
+
+
+class GitCommandTest(unittest.TestCase):
+    """The host reads the whole command. One part it cannot vouch for refuses all of it."""
+
+    SUBS = run.git_subcommands({"git": True, "remote": True})
+
+    def ok(self, command: str, subs: tuple[str, ...] | None = None) -> bool:
+        return run.git_ok(command, self.SUBS if subs is None else subs)
+
+    def test_what_a_run_does_is_let_through(self) -> None:
+        for command in (
+            "git status -sb",
+            'git add -A && git commit -q -m "docs(architecture): section 3\n\nTwo lines; one body."',
+            "git push -u origin HEAD 2>&1 | tail -5",
+            "git log --oneline -5; git branch -a\ngit worktree list",
+            "git diff --stat | head -20",
+            "git switch -c docs/section-3",
+            "git status; ls architecture; cat ARCHITECTURE.md | wc -l",
+        ):
+            self.assertTrue(self.ok(command), command)
+
+    def test_a_route_to_another_command_or_another_file_is_refused(self) -> None:
+        for command in (
+            "git -c alias.x='!sh -c id' x",
+            "git -C /somewhere/else status",
+            "git config --global user.name x",
+            "git log --output=/tmp/x",
+            "git diff --output /tmp/x",
+            "git push --receive-pack='sh -c id' origin HEAD",
+            "git push --exec=id origin HEAD",
+            "git status && rm -rf x",
+            "git status\nrm x",
+            "git status & id",
+            "git status > /tmp/x",
+            'git commit -m "x $(id)"',
+            "git commit -m `id`",
+            "GIT_ALLOW_PROTOCOL=https git push origin HEAD",
+            "cd /somewhere/else && git status",
+            "git status; find . -exec id ;",
+            "git worktree add ../x",
+            "git commit -m 'unbalanced",
+            "ls",
+        ):
+            self.assertFalse(self.ok(command), command)
+
+    def test_asking_git_for_help_is_refused(self) -> None:
+        # `git <sub> --help` is `git help <sub>`: it opens the manual in whatever viewer and pager the machine has.
+        for command in ("git status --help", "git log --help=man", "git commit --hel", "git push --help", "git -C /tmp/x add --help"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_a_signed_commit_is_refused(self) -> None:
+        # Signing runs gpg, or whatever program the configuration names for it.
+        for command in ("git commit -S -m x", "git commit -aS -m x", "git commit -SKEY -m x", "git commit --gpg-sign -m x", "git commit --gpg-sign=KEY -m x", "git commit --gpg -m x"):
+            self.assertFalse(self.ok(command), command)
+        self.assertTrue(self.ok("git commit -m 'Sign off the record'"))
+
+    def test_an_abbreviated_option_is_the_option(self) -> None:
+        # git takes any unambiguous prefix of a long option.
+        for command in ("git log --outp=/tmp/x", "git diff --out /tmp/x", "git push --receive='sh -c id' origin HEAD", "git push --ex=id origin HEAD", "git commit --templ=/tmp/x", "git log --o=/tmp/x"):
+            self.assertFalse(self.ok(command), command)
+        for command in ("git log --oneline", "git diff --stat --exit-code", "git add --all", "git status --porcelain"):
+            self.assertTrue(self.ok(command), command)
+
+    def test_a_push_goes_to_origin_and_nowhere_else(self) -> None:
+        for command in ("git push origin HEAD", "git push -u origin architecture", "git push --set-upstream -q origin docs/section-3", "git push"):
+            self.assertTrue(self.ok(command), command)
+        for command in ("git push /some/other/repo HEAD", "git push ../other HEAD:main", "git push origin +HEAD", "git push origin HEAD:main", "git push --force origin HEAD", "git push -f origin HEAD", "git push origin HEAD extra", "git push --mirror origin", "git push upstream HEAD"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_a_redirect_only_ever_sends_stderr_onto_stdout_or_nowhere(self) -> None:
+        self.assertTrue(self.ok("git status 2>&1 | tail -3"))
+        for command in ("git status 2>&1x", "git status 2>/tmp/x", "git status 1>&2 > /tmp/x", "git log --outp 2>&1ut=/tmp/x"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_git_cannot_put_a_file_where_the_host_will_run_it(self) -> None:
+        # The host runs the renderer at tools/mermaid-check.py for the asking; a run may write under architecture/.
+        self.assertFalse(self.ok("git mv architecture/x.py tools/mermaid-check.py"))
+
+    def test_what_runs_actually_chained_is_let_through(self) -> None:
+        # From stored runs: these rode along with a commit and got the whole command refused.
+        for command in ("git remote -v; git status", "git remote", "git log --oneline 2>/dev/null | head -3"):
+            self.assertTrue(self.ok(command), command)
+        for command in ("git remote add other /x", "git remote set-url origin /x", "git status 2>/tmp/x", "git status >/dev/null"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_naming_the_run_s_own_directory_changes_nothing(self) -> None:
+        # From stored runs: `cd <its own directory> && git commit …` and `git -C <its own directory> add …` were refused, and the commit was lost.
+        with tempfile.TemporaryDirectory() as d:
+            here, other = Path(d) / "work", Path(d) / "other"
+            for command in (f"cd {here} && git status", f"git -C {here} add architecture/compliance.md", f"cd {here}; git -C {here} commit -qm x"):
+                self.assertTrue(run.git_ok(command, self.SUBS, here), command)
+            for command in (f"cd {other} && git status", f"git -C {other} status", f"cd {here}/../other && git status", "cd architecture && git status", f"git -C {here} -c alias.x=!id x", f"cd {here} {other} && git status"):
+                self.assertFalse(run.git_ok(command, self.SUBS, here), command)
+            self.assertFalse(run.git_ok(f"cd {here} && git status", self.SUBS))
+            # -C is git's alone: on another command it is that command's own option.
+            for command in (f"git status; make -C {here} status -f architecture/x.mk", f"git status && env -C {here} show"):
+                self.assertFalse(run.git_ok(command, self.SUBS, here), command)
+        # A relative path would be read against the harness's directory, not the run's.
+        self.assertFalse(run.git_ok("cd evals && git status", self.SUBS, Path.cwd() / "evals"))
+
+    def test_a_quoted_or_escaped_separator_is_refused(self) -> None:
+        # The host would split there and the shell would not, so whatever follows escapes the checks on its own part.
+        for command in ("git push origin HEAD ';' echo --force", "git push origin ';' echo HEAD:main", "git branch ';'", "git add ';' echo -p", 'git add "&&" echo -i', "git log \\; cat x", "git commit -m x '|' echo -t /x", "git status '\n' ls"):
+            self.assertFalse(self.ok(command), command)
+        for command in ('git commit -qm "one; two | three && four"', "git commit -qm 'a\nb' && git status; git log --oneline | head -3"):
+            self.assertTrue(self.ok(command), command)
+
+    def test_the_short_forms_that_wait_on_a_person_are_refused(self) -> None:
+        for command in ("git add -p", "git add -i", "git commit -t /x", "git commit -t/x", "git checkout -p", "git commit -qp", "git add --chmod=+x a"):
+            self.assertFalse(self.ok(command), command)
+        for command in ("git log -p -1", "git diff -p", "git commit -qam x", "git checkout -b x", "git add -A"):
+            self.assertTrue(self.ok(command), command)
+
+    def test_where_the_shell_reads_the_command_differently_it_is_refused(self) -> None:
+        for command in (
+            "git log --out\\\nput=/tmp/x",                 # the shell joins a line continued with a backslash
+            'git log "--out\\\nput=/tmp/x"',
+            'git log # "\nrm x # "',                        # the shell stops reading at a comment; a quote does not open in one
+            'git log #"\nrm x #"',
+            "git log {--output=/tmp/x,}",                    # the shell expands braces into words
+            "git log --outp{u,}t=/tmp/x",
+            "git log ';' cat --output=/tmp/x",               # a quoted separator separates nothing
+            "git log '&&' echo --receive-pack=id",
+        ):
+            self.assertFalse(self.ok(command), command)
+        self.assertTrue(self.ok('git commit -qm "fix #12: one; two"'))
+
+    def test_separators_may_run_together(self) -> None:
+        self.assertTrue(self.ok("git status;\n\ngit log --oneline"))
+        self.assertFalse(self.ok("git status |& tail"))
+
+    def test_push_needs_the_case_to_have_a_remote(self) -> None:
+        self.assertFalse(self.ok("git push -u origin HEAD", run.git_subcommands({"git": True})))
+
+    def test_a_case_without_git_gets_none(self) -> None:
+        self.assertFalse(self.ok("git status", ()))
 
 
 class GitFixtureTest(unittest.TestCase):
@@ -718,7 +925,22 @@ class PushedGraderTest(unittest.TestCase):
         self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
 
     def test_a_run_may_only_push_to_a_path_on_this_machine(self) -> None:
-        self.assertEqual(run.run_env({"HOME": "/h"}), {"HOME": "/h", "GIT_ALLOW_PROTOCOL": "file"})
+        self.assertEqual(run.run_env({"HOME": "/h"})["GIT_ALLOW_PROTOCOL"], "file")
+
+    def test_a_run_s_environment_is_the_base_plus_the_git_limits_and_nothing_else(self) -> None:
+        self.assertEqual(run.run_env({"HOME": "/h"}), {
+            "HOME": "/h", "GIT_ALLOW_PROTOCOL": "file", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": os.devnull,
+            "GIT_EDITOR": "true", "GIT_TERMINAL_PROMPT": "0"})
+
+    def test_a_run_reads_and_writes_no_git_config_of_the_users(self) -> None:
+        env = run.run_env({"HOME": "/h"})
+        self.assertEqual((env["GIT_CONFIG_GLOBAL"], env["GIT_CONFIG_NOSYSTEM"]), (os.devnull, "1"))
+
+    def test_a_run_s_git_runs_no_hook_and_opens_no_editor(self) -> None:
+        env = run.run_env({"HOME": "/h"})
+        self.assertEqual((env["GIT_CONFIG_COUNT"], env["GIT_CONFIG_KEY_0"], env["GIT_CONFIG_VALUE_0"]), ("1", "core.hooksPath", os.devnull))
+        self.assertEqual((env["GIT_EDITOR"], env["GIT_TERMINAL_PROMPT"]), ("true", "0"))
 
     def test_a_commit_after_the_push_fails(self) -> None:
         self.commit()

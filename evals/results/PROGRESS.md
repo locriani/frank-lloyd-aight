@@ -1019,3 +1019,48 @@ Counted over today's stored Sonnet runs: 7 of 46 wrote a document through the sh
 **Review round.** Approved, with these fixed: the grader's `tee` half could not match; the sentence about a refused shell write did not say why it was refused, and so read as leave to retry with Write a refusal that was about the file; two wrong details in this entry.
 
 Left: the grader does not see `cp` or `mv` from a temporary file, `sed -i`, `dd`, a redirect into a variable, or a script that writes the file, and it would fail a commit message or a description that contains `> compliance.md`; it is in one case only, and five of the seven shell writes counted were in three others; no run exercised the refused-then-Write sentence; no harness change, so no new unit test.
+
+## Harness — the host answers for git; runs see none of the user's git config (2026-10-06)
+
+No plugin change and no version. Six cases allowed `Bash(git:*)`: the four merged before 2026-10-05, `triaged-finding-is-filed`, and the push case of 0.15.0. Under that rule a run can execute a shell through an alias (`git -c alias.x='!sh …' x`), reach any repo on the machine with `git -C`, and write the user's global config. The commit security review named it, and the review of #12 had listed it as left.
+
+**What it is now.** No permission rule names git, and `command()` raises on any git rule in a case's own allow list. For a case with `"git": true` a git command prompts the harness, and `git_ok` reads the whole command:
+
+- every part is an allowed subcommand (`GIT`; `push` only with `"remote": true`; listing worktrees and remotes) or a command that only reads (`READS`);
+- no option that writes a file, runs a command or waits on a person, abbreviated or not, in any part;
+- a push goes to `origin` as one plain ref at most, with no refspec and no force;
+- no substitution, no backslash, no brace, no comment, no quoted separator, and no redirect but `2>&1` and `2>/dev/null`;
+- `cd`, and `-C` on git alone, are let through only when they name the run's own directory by its absolute path;
+- no `git mv`, with which a run could move its own file onto the renderer the host runs for it.
+
+`run_env` cuts every run off from the user's global and system git config, points `core.hooksPath` at the null device over the work tree's own config, and sets `GIT_EDITOR=true` and `GIT_TERMINAL_PROMPT=0`.
+
+**How it got there.** Six rounds, each of the first five found wanting by the commit security review or by the reviewer of #14:
+
+| Round | Red | Green | What the round before it had let through |
+|---|---|---|---|
+| A rule per subcommand | a0800dc | f32713e | `Bash(git:*)` itself |
+| The host reads the command; abbreviations, push targets | 96aab3b, a138ae9 | 150d0c8 | `--output=`, `--receive-pack=`; then `--outp=` and a push to any repo |
+| Review of #14 | 86250cc | 150d0c8 | `git mv -f`, `--chmod`, `-p` `-i` `-t`, a second spelling of the git rule; and it refused `git remote -v` and `2>/dev/null`, which runs chain to a commit |
+| The run's own directory | 62194b2 | 85373ef | nothing; it refused `cd <own directory>` and `git -C <own directory>`, and two stored runs lost their commit to that |
+| Where the shell reads differently | acec8c9 | e2e75dc | a continued line, a comment, a brace expansion and a quoted separator, each carrying `--output=` |
+| Second review of #14 | 2083a3e | b6cc918 | `make -C <own directory> -f architecture/x.mk`, relabelled as git by the `-C` rewrite of the round before, which ran a makefile a run may write; `git push origin HEAD ';' echo --force`, a forced push past the push check; `-t/x`; a relative `cd` read against the harness's directory |
+
+The pipeline was red at every commit from 96aab3b to 86250cc, 81b76cb and 1b13708 included, and not only for the tests meant to fail: the new test class had been inserted in the middle of `PerCaseSandboxTest`, which left one existing test in a class without its helpers. The reviewer found it; 86250cc moved it back. Two existing tests changed: the example rule in `test_allow_is_appended_to_the_default` is now `Bash(wc:*)`, since a git rule is refused, and the whole-environment assertion the hook test lost is restored as a test of its own.
+
+The second review also found that a case with `"git": true` and no `sandbox.deny` of its own still carried the default deny rules for commit, add and push, so the six cases worked only because each restates its deny list. A git case's default no longer denies git. And nothing tested that the host is handed the case's git and the run's directory; a turn through the fake CLI now does.
+
+**On Sonnet.** `committed-work-is-pushed` is 3 of 3 under the host check in four runs (20261006-002938, -003541, -004349, and -011139 at b6cc918). The other git cases are red or unsteady on Sonnet with and without this change. Run 20261006-005118, three runs a case, on this branch at 85373ef and on its base at 05730c5, runs passed of three:
+
+| Case | Base, `Bash(git:*)` | This branch |
+|---|---|---|
+| `compliance-verdict-on-request` | 2 | 3 |
+| `fix-drift-dont-hand-it-back` | 0 | 0 |
+| `standalone-compliance` | 0 | 2 |
+| `triaged-finding-is-filed` | 0 | 0 |
+
+Neither difference is an effect of this change that the runs can show: `compliance-verdict-on-request` made no Bash call on either side. In that run the host refused no command made only of git and reads on this branch; every refusal on both sides was a shell loop, a `find` or a `$(…)`, two of them with a git part chained on. At b6cc918 `standalone-compliance` and `triaged-finding-is-filed` were red again (20261006-011139). `compliance-is-filed-to-the-builder` was not in the pair and is 0 of 3 on both sides in earlier runs.
+
+Left: `cat`, `grep` and `git diff --no-index` can read any file the process can; the option list is a deny list, not an allow list per subcommand, and the short forms are checked on three subcommands only; a glob is not refused; `command()` does not refuse a bare `Bash` rule; a commit message holding a backslash, a `$` or a backtick is refused with its commit; five git cases are red on Sonnet for reasons this change did not make and does not fix; runs edit the document through `python3 -` in the shell before falling back to Edit, which the harness refuses and the agent's rules do not forbid.
+
+**From the Codex review.** Two more ways out, red at 3fb0a74: `git commit -S` or `--gpg-sign` runs gpg or whatever program is configured for signing, and it was let through; and a case's allow rule naming git by its path, `Bash(/usr/bin/git:*)`, was not seen as a rule for git. Both are refused now. The third from that review was the standing rule `Bash(TZ=*)`: a rule that starts at the assignment allows whatever command follows it, so `TZ=UTC git -c alias.x='!sh' x` went past the host entirely. The rule is gone and the host answers for `TZ=<zone> date` with format arguments, matched in full (red at 3446bd5). An existing assertion said the rule was present; it now says no rule starts at `TZ=` (Zach, 2026-10-06 09:55, "ok"). **Third review round.** Blocked on one more way out: `git <subcommand> --help` is `git help`, which opens the manual in the machine's viewer and pager, and it was let through. It is refused now, and so is a case's allow rule that puts git behind another command, `Bash(env git:*)` (red at 06bbd25). Left from that round: a read chained to git takes any arguments, so `tail -f` would hang a run until its timeout. Still open from the same review: `git -C .` and `cd .` are refused where an absolute path to the run's own directory is accepted.
