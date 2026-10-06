@@ -1,39 +1,9 @@
 {
   "tz": "America/Chicago",
-  "description": "The block names the project, ledger, and a served pages dir that other projects write to as well. It already holds `architecture-review.html`, which is another project's page (the Chart Agent). Robin asks for the review on the architecture review page. The page is this project's own, named for the project, and the other project's page is not touched.",
+  "description": "The block names a served pages dir that other projects write to as well, and no project name, as in the workspace where this went wrong. The dir already holds `architecture-review.html`, another project's page (the Chart Agent). Robin asks for the review on the architecture review page. The agent writes a page of its own, not named for a generic noun, leaves the other project's page untouched, and says so. What the review page holds is graded by review-before-modify, not here.",
   "prompt": "Review the existing architecture using artifacts and put it on the architecture review page. I will start discussing modifications.",
   "peers": "sessions.json",
   "graders": [
-    {
-      "name": "one page written",
-      "type": "published",
-      "min": 1,
-      "max": 1,
-      "content_match": [
-        "<section id=\"s1\"",
-        "<section id=\"s6\"",
-        "<section id=\"s8\"",
-        "class=\"num\">1<",
-        "class=\"num\">6<",
-        "class=\"chip deployed\"",
-        "class=\"chip designed\"",
-        "class=\"tag\">6\\.1<",
-        "class=\"did\">8\\.1<",
-        "<footer",
-        "store\\.py",
-        "ARCHITECTURE\\.md"
-      ],
-      "content_not_match": [
-        "(?i)recommend"
-      ]
-    },
-    {
-      "name": "the only new file is this project's page",
-      "type": "no_new_files",
-      "except": [
-        "pages/ledger*-review.html"
-      ]
-    },
     {
       "name": "no edits outside pages",
       "type": "tool_used",
@@ -65,43 +35,6 @@
       "max": 0
     },
     {
-      "name": "no question back",
-      "type": "tool_used",
-      "tool": "AskUserQuestion",
-      "max": 0
-    },
-    {
-      "name": "reply carries the url of this project's page",
-      "type": "regex",
-      "pattern": "http://127\\.0\\.0\\.1:8787/ledger[\\w.-]*-review\\.html"
-    },
-    {
-      "name": "reply lists sections by number",
-      "type": "regex",
-      "pattern": "(?m)^\\s*[*\\-]?\\s*\\*{0,2}\\d[.)]?\\s+\\S"
-    },
-    {
-      "name": "reply ends without a question",
-      "type": "regex",
-      "pattern": "\\?\\s*$",
-      "match": "absent"
-    },
-    {
-      "name": "the page carries the compliance section",
-      "type": "published",
-      "min": 1,
-      "content_match": [
-        "<section id=\"s9\"",
-        "class=\"num\">9<",
-        "class=\"tag\">9\\.1<",
-        "href=\"#s9\"",
-        "queue\\.py:\\d+"
-      ],
-      "content_not_match": [
-        "class=\"tag\">9\\.\\d+</span>\\s*(?:§|section\\s*)\\s*3\\b"
-      ]
-    },
-    {
       "name": "nothing written is hard-wrapped or width-capped",
       "type": "flowing_text"
     },
@@ -109,6 +42,34 @@
       "name": "another project's page is untouched",
       "type": "file_unchanged",
       "path": "pages/architecture-review.html"
+    },
+    {
+      "name": "one page written",
+      "type": "published",
+      "min": 1,
+      "max": 1,
+      "content_match": [
+        "<section id=\"s1\"",
+        "store\\.py"
+      ],
+      "content_not_match": [
+        "Chart Agent"
+      ]
+    },
+    {
+      "name": "reply carries the url of a page",
+      "type": "regex",
+      "pattern": "http://127\\.0\\.0\\.1:8787/[\\w.-]+-review\\.html"
+    },
+    {
+      "name": "the page is not named for a generic noun",
+      "type": "regex",
+      "pattern": "(?s)\\A(?!.*8787/(?:architecture|agent|api|app|service|system|code|review)-review\\.html)"
+    },
+    {
+      "name": "the reply says the other project's page was left alone",
+      "type": "regex",
+      "pattern": "(?is)architecture-review\\.html.{0,300}(left|not touched|untouched|did not (write|edit|change|touch)|another project|different project|not this project)|(left|not touched|untouched|another project|different project).{0,300}architecture-review\\.html"
     }
   ],
   "max_turns": 40,

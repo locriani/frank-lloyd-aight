@@ -3,7 +3,6 @@
 ## Architecture
 
 - User: Robin (they/them)
-- Project: ledger
 - Architecture dir: `architecture/`
 - Canonical document: `docs/ARCHITECTURE.md`
 - Plan dir: `plans/`
