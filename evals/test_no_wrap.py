@@ -74,6 +74,12 @@ class MarkdownTest(unittest.TestCase):
         self.assertEqual(lines("a.md", "Run:\n\n\t> make build\n\t> make test\n"), [], "tab-indented code that starts with >")
         self.assertEqual(lines("a.md", "---\ntitle: A\nauthor: B\n...\n\nBody.\n"), [], "front matter closed with three dots")
 
+    def test_a_quote_inside_a_list_item_is_its_own_block(self) -> None:
+        self.assertEqual(lines("a.md", "- item text\n    > quoted line\n"), [])
+        self.assertEqual(lines("a.md", "1. item text\n    > quoted line\n"), [])
+        self.assertEqual(lines("a.md", "- a\n    - b\n        > quoted\n"), [])
+        self.assertEqual(lines("a.md", "- item text\n    continued here\n"), [2])
+
     def test_each_exemption_still_lets_a_wrap_be_named(self) -> None:
         for name, text, want in (
             ("after a tilde fence", "~~~\na\nb\n~~~\n\nA sentence\nwrapped.\n", [7]),
@@ -141,6 +147,10 @@ class WidthCapTest(unittest.TestCase):
         self.assertEqual(lines("a.html", '<div x-show="a > 1" style="max-width: 600px">text</div>\n'), [1])
         self.assertEqual(lines("a.html", '<p title="a < b" style="max-width: 600px">text</p>\n'), [1])
         self.assertEqual(lines("a.html", '<p\n  class="a"\n  style="max-width: 600px">text</p>\n'), [3])
+
+    def test_a_style_value_with_an_entity_is_named_on_its_own_line(self) -> None:
+        page = '<p\n class="a"\n style="font-family: &quot;A&quot;; max-width: 600px">t</p>\n'
+        self.assertEqual(lines("a.html", page), [3])
 
     def test_an_inline_diagram_keeps_its_own_size_and_lines(self) -> None:
         # A rendered Mermaid diagram states its drawn size and its label widths in its own styles. That is the drawing, not the page's text.
