@@ -30,10 +30,11 @@ INDENT = re.compile(r"(?: {4}|\t)")
 _CLOSED = r"#{1,6}\s|\||[^\s|][^|]*\||<|\[[^\]]+\]:\s|\[![A-Za-z]+\]\s*$|(?:[-*_=]\s*){3,}$|$"
 CLOSED = re.compile(rf"\s*(?:{_CLOSED})")
 # A line that starts its own block, so it never continues the line above.
-STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s)")
+# A quote marker here is one QUOTE did not reach: a quote inside a list item.
+STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s|>)")
 # ponytail: every absolute max-width is a cap, an image's or a tooltip's included; scope it by selector if one of those is ever wanted.
 CAPPED = re.compile(
-    r"(?<![-\w])(?:max-(?:width|inline-size)\s*:\s*[^;}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:\s*[^;}\n\"']*?\dch\b)",
+    r"(?<![-\w])(?:max-(?:width|inline-size)\s*:\s*[^;:}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:\s*[^;:}\n\"']*?\dch\b)",
     re.I,
 )
 
@@ -90,6 +91,9 @@ def markdown(text: str) -> list[tuple[int, str]]:
     return out
 
 
+STYLE_ATTR = re.compile(r"\sstyle\s*=\s*", re.I)
+
+
 class _Page(HTMLParser):
     """A page's wrapped text nodes and the width caps in its CSS. Code, scripts, styles and drawings keep their own lines, and a drawing its own sizes."""
 
@@ -109,8 +113,10 @@ class _Page(HTMLParser):
         self.css = tag == "style"
         style = dict(attrs).get("style")
         if style:
+            # The value arrives unescaped, so its line is found by the attribute's name, not its text.
             raw = self.get_starttag_text() or ""
-            self._caps(style, self.getpos()[0] + raw.count("\n", 0, max(raw.find(style), 0)))
+            at = STYLE_ATTR.search(raw)
+            self._caps(style, self.getpos()[0] + raw.count("\n", 0, at.end() if at else 0))
 
     def handle_endtag(self, tag: str) -> None:
         self.keep -= tag in self.KEEP and self.keep > 0
