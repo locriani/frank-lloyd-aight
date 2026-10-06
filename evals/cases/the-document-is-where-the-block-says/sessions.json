@@ -1,0 +1,12 @@
+[
+  {
+    "ref": "c0ffee",
+    "name": "4100-coord",
+    "state": "idle"
+  },
+  {
+    "ref": "1a2b3c",
+    "name": "4200-impl",
+    "state": "busy"
+  }
+]

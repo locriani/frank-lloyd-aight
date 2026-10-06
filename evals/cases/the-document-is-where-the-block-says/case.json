@@ -1,0 +1,39 @@
+{
+  "tz": "America/Chicago",
+  "description": "The block names the canonical document by a path of its own, and a path in the block is read from the workspace root. The architect opens the document there the first time: it does not look for it inside the architecture directory, and it never moves it.",
+  "prompt": "is the queue compliant with §4?",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "the document is not looked for inside the architecture directory",
+      "type": "tool_used",
+      "tool": ".*",
+      "input_match": "architecture/ARCHITECTURE\\.md",
+      "max": 0
+    },
+    {
+      "name": "the document is read where the block says",
+      "type": "tool_used",
+      "tool": "Read",
+      "input_match": "(?<!architecture/)ARCHITECTURE\\.md",
+      "min": 1
+    },
+    {
+      "name": "the document stays where it is",
+      "type": "file_unchanged",
+      "path": "ARCHITECTURE.md"
+    },
+    {
+      "name": "the verdict is anchored to the section asked about",
+      "type": "regex",
+      "pattern": "(?i)§\\s*4|section\\s*4"
+    },
+    {
+      "name": "the retry count is named as a gap",
+      "type": "regex",
+      "pattern": "(?i)(range\\(2\\)|two attempts|twice|second attempt|three attempts|third attempt)"
+    }
+  ],
+  "max_turns": 10,
+  "timeout_seconds": 300
+}
