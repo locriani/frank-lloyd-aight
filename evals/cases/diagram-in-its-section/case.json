@@ -23,10 +23,10 @@
       "pattern": "(?s)^## 2\\. Modules\\n(?:(?!^## ).)*?^```mermaid"
     },
     {
-      "name": "each diagram has a legend naming its shapes or edges directly above it",
+      "name": "each diagram has a sentence of its own directly above it",
       "type": "file_matches",
       "path": "architecture/overview.md",
-      "pattern": "(?i)^(?!#|\\||\\s*$)[^\\n]*\\b(?:rectangle|stadium|cylinder|box|boxe|arrow|edge|line|shape|node|solid|dashed)s?\\b[^\\n]*\\n\\n?```mermaid",
+      "pattern": "^(?!#|\\||```|\\s*$|The\\ detail\\ behind\\ `ARCHITECTUR|A\\ client\\ posts\\ an\\ event\\ for\\ a\\ |One\\ process\\.\\ The\\ store\\ is\\ lost)[^\\n]*\\S[^\\n]*\\n\\n?```mermaid",
       "count": 2
     },
     {
