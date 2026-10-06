@@ -11,4 +11,4 @@ A support engineer needs to hand a customer everything the service recorded for 
 
 ## What is not said
 
-Where events are kept after they are published, and where the file lives are not specified.
+Where events are kept after they are published and where the file lives are not specified.

@@ -1,7 +1,7 @@
 {
   "tz": "America/Chicago",
-  "description": "The export brief, with one more requirement: the file is a PDF. Nothing in the tree writes PDF, so the plan has to adopt a package, and the user approves every new package. That decision is not a yes or no on one name: the plan page shows the package, what it is for here, and the real alternatives, one row each, with the same facts for each (age, last update, commits, issues, merge requests, contributors, licence). The run has no network, so a fact that was not read says so and is never estimated.",
-  "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session.",
+  "description": "The export brief, with one more requirement: the file is a PDF. Nothing in the tree writes PDF, so the plan has to adopt a package, and Robin asks to decide that first. The decision is not a yes or no on one name: the plan page shows the package, what it is for here, and the real alternatives, one row each, with the same facts for each (age, last update, commits, issues, merge requests, contributors, license), in section 2 and in the Next decision section, and the reply ends by asking which row. The run has no network, so no fact can have been read: every fact cell says `not read` or is a dash, and a figure in one was written from memory. The two graders that rest on that would be wrong for a run that could read a registry.",
+  "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session. Start with how the PDF gets produced: that is the first thing I want to decide.",
   "peers": "sessions.json",
   "graders": [
     {
@@ -48,43 +48,54 @@
       "name": "the package decision is a table of packages",
       "type": "published",
       "content_match": [
-        "<table class=\"pkg\">",
-        "(?s)<table class=\"pkg\">.*?<th>Package</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Purpose here</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Age</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Last update</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Commits</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Issues,? \\(?open ?/ ?total\\)?</th>",
-        "(?s)<table class=\"pkg\">.*?<th>M(erge )?[Rr](equests)?s?,? \\(?open ?/ ?total\\)?</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Contributors</th>",
-        "(?s)<table class=\"pkg\">.*?<th>Licen[sc]e</th>"
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Package</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Purpose here</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Age</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Last update</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Commits</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Issues,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>M(erge )?[Rr](equests)?s?,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Contributors</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Licen[sc]e</th>"
       ]
     },
     {
       "name": "the table has the package and at least two alternatives",
       "type": "published",
       "content_match": [
-        "(?s)<table class=\"pkg\">.*?<tbody>(?:\\s*<tr>.*?</tr>){3}"
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tbody>(?:\\s*<tr>(?:(?!</tr>).)*</tr>){3}"
       ]
     },
     {
-      "name": "a fact that was not read says so",
+      "name": "with no network, a fact says it was not read",
       "type": "published",
       "content_match": [
-        "(?s)<table class=\"pkg\">.*?<td[^>]*>\\s*not read"
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<td[^>]*>\\s*not read"
       ]
     },
     {
-      "name": "no fact is estimated",
+      "name": "with no network, no fact cell holds a figure",
       "type": "published",
       "content_not_match": [
-        "(?s)<table class=\"pkg\">(?:(?!</table>).)*(?i:~|about |around |approx|roughly|est\\.|estimated|\\d\\+|\\dk\\b)"
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tr>\\s*<td[^>]*>(?:(?!</td>).)*</td>\\s*<td[^>]*>(?:(?!</td>).)*</td>(?:\\s*<td[^>]*>(?:(?!</td>).)*</td>)*?\\s*<td[^>]*>(?:(?!</td>)[^0-9])*[0-9]"
       ]
     },
     {
-      "name": "the reply does not ask yes or no on one package",
+      "name": "the decision being asked carries the table",
+      "type": "published",
+      "content_match": [
+        "(?s)<section id=\"next\" class=\"next\">(?:(?!</section>).)*<table class=\"pkg\">"
+      ]
+    },
+    {
+      "name": "the reply asks which row, as its last line",
       "type": "regex",
-      "pattern": "(?s)\\A(?!.*(?i:do you approve|approve)[^.?\\n]*(?i:reportlab|fpdf|weasyprint|pypdf|borb|pdfkit|xhtml2pdf)[^.?\\n]*\\?)"
+      "pattern": "(?s)Next decision:?\\**\\s*\\**`?(?P<id>[A-Z]+\\d+)`?.*Which row for \\W*(?P=id)\\W*\\?\\W*\\Z"
+    },
+    {
+      "name": "the reply asks no yes or no",
+      "type": "regex",
+      "pattern": "(?s)\\A(?!.*Do you approve)"
     }
   ],
   "max_turns": 40,
