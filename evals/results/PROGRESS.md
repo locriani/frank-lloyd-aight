@@ -1120,9 +1120,9 @@ Left, from the reviews of #21 and not in its entry: one reply listed the waiting
 Reported by a peer architecture session working on Equinox, 17:53: asked for a diagram on "the architecture review doc", it wrote into `architecture-review.html` in the shared pages dir, which was the OpenEMR Chart Agent's page, and reverted it. It relays Zach as saying the page for that work must be `equinox-review.html`, so that it does not collide with his other workstreams. Those words reached this session through the peer, not from Zach.
 
 - **The cause.** The review page spec named the page for "the directory or service reviewed" and gave `agent-review.html` and `api-review.html` as examples. Every project writes to one pages dir, and nothing told the agent to look at a page before writing into it.
-- **The rule,** in the agent, the skill and both page specs: the subject is the project's name, the block's `Project:` line when it has one and otherwise the repository's name, with the part reviewed after it when only a part is. Never a generic noun on its own. A page that exists is read before it is written into; if its name or its content is another project's, it is left alone whatever the user called the page, the agent writes its own, and says so in one line.
+- **The rule,** in the agent, the skill and both page specs: the subject is the project's name, the block's `Project:` line when it has one and otherwise the working directory's name, which the reply then says in one line, with the part reviewed after it when only a part is. Never a generic noun on its own. A page that exists is read before it is written into; whose it is depends on its content, and another project's is left alone whatever the user called the page: the agent writes its own and says so in one line. The skill has the same in short, and the plan page spec points at the review page spec.
 - **Case** `review-page-is-this-projects-own`: the pages dir already holds another project's `architecture-review.html`, the block has no project line, and Robin asks for the review "on the architecture review page".
-- **The harness blocked every write to a pages dir.** `ALLOWED` had `plans`, `reviews` and `architecture` and not `pages`, so `review-before-modify`, whose block names a pages dir, could not write its page. New unit test `test_a_served_pages_dir_is_writable`, red in CI on commit 8555e2d (run 37544062568), then the two rules.
+- **The harness blocked every write to a pages dir.** `ALLOWED` had `plans`, `reviews` and `architecture` and not `pages`, so `review-before-modify`, whose block names a pages dir, could not write its page. No pages rule had ever been in the list, so that case could not pass from the day it was added until now. New unit test `test_a_served_pages_dir_is_writable`, red in CI on commit 8555e2d (run 37544062568), then the two rules.
 
 Evidence, Sonnet. On the old rule with the harness fixed: 0 of 3, and two of the three overwrote the other project's page (20261006-181102). With the rule: every run wrote its own page, left the other untouched and said so, 5 of 5 (20261006-181701).
 
@@ -1130,11 +1130,21 @@ Evidence, Sonnet. On the old rule with the harness fixed: 0 of 3, and two of the
 
 An earlier form of the case had a `Project: ledger` line in the block. With that line the old rule already named the page `ledger-review.html` in 3 of 3 (20261006-180134), so the line was taken out to match the incident, where the block had none.
 
-Mine, not Zach's: the block line's name, `Project:`; the fallback to the repository's name; that a part follows the project in the name.
+**Review round.** Blocked on the naming half: its grader was a list of eight generic words read from the reply, which passed `arch-review.html` and failed a right reply that named the other page's address, and "the repository's name" meant nothing where there was no repository. Fixed here:
+
+- **The fallback** is the working directory's name, and the reply says the name came from there. The `Project:` line is listed as optional where the block is described, in the agent, the skill and the README.
+- **Whose page it is** is decided by content in the agent and the spec alike. This project's own older page under a generic name is left as it is, and the reply says it is still there.
+- **Graders** read the file that was written (`pages/cos-eval-*-review.html`, the working directory in a run) and no longer a word list; "left alone" no longer matches a bare `left`; the page-content grader also looks for the other page's title and opening text.
+- **Run at the commit:** 5 of 5 (20261006-184742). The earlier five (20261006-181701) regrade 3 of 5 under the new graders, the two red ones for not saying where the name came from, which was not yet asked of them.
+
+Mine, not Zach's: the block line's name, `Project:`; the fallback to the working directory's name; that a part follows the project in the name; that this project's own page under a generic name is left and not renamed.
 
 Left:
 
 - **Two existing cases are red and not because of this change.** `review-unserved` 0 of 3 and `review-before-modify` 2 of 3 (20261006-182848), nearly all on one grader, "the page carries the compliance section", whose `content_not_match` finds a section 9 entry tagged against section 3. The same grader failed on the old rule in 20261006-180134. Not looked into.
+- **Nothing pins the harness's allow list as a whole.** Both tests check that rules are in it, so an added rule fails no test. So on main before this.
+- **Two projects whose names share a start** (`api` and `api-gateway`) are told apart only by content, and no case covers it.
+- **Whether the CLI normalises `..`** before matching `./pages/**` is untested, as for the other three directories.
 - **The fallback name** in the eval is the temporary directory's name (`cos-eval-…-review.html`). In a workspace it is the worktree directory's name, which may not be the name the user wants; only a `Project:` line makes it exact, and the workspace `CLAUDE.md` is the user's to change.
 - **No case** covers a plan page, a page whose name is this project's and whose content is not, or a block that has the `Project:` line.
 - **The comment** in `test_allowlist_is_review_only` still lists three writable places; the test was not touched.
