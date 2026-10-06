@@ -685,6 +685,16 @@ class GitCommandTest(unittest.TestCase):
         for command in ("git remote add other /x", "git remote set-url origin /x", "git status 2>/tmp/x", "git status >/dev/null"):
             self.assertFalse(self.ok(command), command)
 
+    def test_naming_the_run_s_own_directory_changes_nothing(self) -> None:
+        # From stored runs: `cd <its own directory> && git commit …` and `git -C <its own directory> add …` were refused, and the commit was lost.
+        with tempfile.TemporaryDirectory() as d:
+            here, other = Path(d) / "work", Path(d) / "other"
+            for command in (f"cd {here} && git status", f"git -C {here} add architecture/compliance.md", f"cd {here}; git -C {here} commit -qm x"):
+                self.assertTrue(run.git_ok(command, self.SUBS, here), command)
+            for command in (f"cd {other} && git status", f"git -C {other} status", f"cd {here}/../other && git status", "cd architecture && git status", f"git -C {here} -c alias.x=!id x", f"cd {here} {other} && git status"):
+                self.assertFalse(run.git_ok(command, self.SUBS, here), command)
+            self.assertFalse(run.git_ok(f"cd {here} && git status", self.SUBS))
+
     def test_separators_may_run_together(self) -> None:
         self.assertTrue(self.ok("git status;\n\ngit log --oneline"))
         self.assertFalse(self.ok("git status |& tail"))
