@@ -32,7 +32,7 @@ CAPPED = re.compile(
 
 
 def markdown(text: str) -> list[tuple[int, str]]:
-    out, fence, prev = [], None, ""
+    out, fence, prev, quoted = [], None, "", False
     rows = text.split("\n")
     front = rows[0].strip() == "---"
     for n, raw in enumerate(rows, 1):
@@ -40,6 +40,10 @@ def markdown(text: str) -> list[tuple[int, str]]:
             front = n == 1 or raw.strip() != "---"
             continue
         line = QUOTE.sub("", raw)
+        # A quote that starts under an unquoted line is a new block, not that line's continuation.
+        was, quoted = quoted, line != raw
+        if quoted and not was:
+            prev = ""
         mark = FENCE.match(line)
         # A fence closes on its own character, at least as long as it opened; a shorter run inside it is content.
         if mark and (fence is None or (mark[1][0] == fence[0] and len(mark[1]) >= len(fence))):
