@@ -908,3 +908,13 @@ New ceiling, marked `ponytail:`: any line holding a pipe is read as a table row.
 New ceiling, marked `ponytail:`: a `calc()` with any percentage in it is read as following the window.
 
 Still open from the two reviews, not in this round: an Edit that completes a cap begun on the line above; caps through `var()`, other units and Tailwind classes; text after a comment's end mark on its closing line; an `<svg>` nothing closes exempting the caps after it; a math block with a blank line inside; a leading rule with a later rule hiding what lies between; wraps inside HTML blocks in markdown and beside inline tags; the hook being active in the baseline arm; and the eval-case findings on #7 and #8.
+
+## 0.14.0 — the plan page opens on one next decision (2026-10-05)
+
+Zach to Cerbo Architecture, 18:52: "Is not 'next decision'. It's a bunch of previous decisions and a bunch of referencs to new decisions and NO CONTEXT"; 18:56: "I am not APPROVING 10 CHANGES AT ONCE". To Equinox Architecture, 19:32: "give me the full context. in the future assume that I'm not going to scroll back."
+
+- **Spec:** `docs/plan-page.md` gains the Next decision section, above section 1 and unnumbered. Its shape is the one on Cerbo's page: one row's id and question in the heading, the problem, one proposal, what it costs, its basis, what it does not decide, and the rows waiting behind it as full-sentence questions. "The four under Head" is corrected to five.
+- **Agent and skill:** the reply restates that one decision in full and ends on `Do you approve <id>?`; other open rows follow as full sentences. Several changes are never asked under one id. A proposal is checked against the Decided table and the brief before it is made. A refused command is not a refused page.
+- **Case:** two graders added to `plan-page-first-reply`, none changed. Red on Sonnet with exactly those two failing (run 20261005-215255; the worktree's spec was being edited during that run, and the page carried the new style rule, so the agent may have read the new spec and still not followed it). With the rule: 2 of 3 (20261005-215416), the third writing no page after a refused `mkdir`. With the refused-command line: 3 of 3 (20261005-215714).
+
+Seen and not fixed here: in the runs read, the agent tried to edit `docs/ARCHITECTURE.md` on the first planning turn and the harness refused it, so "canonical document untouched" passed on an attempt. The grader should count the attempt.
