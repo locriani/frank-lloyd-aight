@@ -82,20 +82,24 @@
       "name": "the page opens on one next decision, readable cold",
       "type": "published",
       "content_match": [
-        "\\.next\\{",
         "<section id=\"next\" class=\"next\">\\s*<h2>Next decision: [A-Z]+\\d+, \\S",
         "<b>The problem\\.</b>",
         "<b>The proposal\\.</b>",
         "<b>What it costs\\.</b>",
         "<b>Basis\\.</b>",
         "<h3>Waiting behind it</h3>",
-        "<th>The question</th>"
+        "<th>The question</th>",
+        "<b>What it does not decide\\.</b>",
+        "(?s)<section id=\"next\".*<section id=\"s1\">"
+      ],
+      "content_not_match": [
+        "(?s)id=\"next\".*id=\"next\""
       ]
     },
     {
-      "name": "reply restates the one pending decision in full",
+      "name": "reply restates the one pending decision in full and ends on the ask",
       "type": "regex",
-      "pattern": "(?s)Next decision: [A-Z]+\\d+, .*The problem.*The proposal.*Do you approve [A-Z]+\\d+\\?"
+      "pattern": "(?s)\\A(?!.*Do you approve.*Do you approve).*Next decision:?\\**\\s*`?(?P<id>[A-Z]+\\d+)`?\\**,? .*The problem.*The proposal.*Do you approve \\W*(?P=id)\\W*\\?\\W*\\Z"
     },
     {
       "name": "canonical document untouched",
