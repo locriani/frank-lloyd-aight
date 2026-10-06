@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from datetime import time as dtime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
 
 EVALS = Path(__file__).resolve().parent
@@ -168,6 +168,12 @@ def render_value(value: Any, ctx: dict[str, str]) -> Any:
     if isinstance(value, dict):
         return {k: render_value(v, ctx) for k, v in value.items()}
     return value
+
+
+def run_env(base: Mapping[str, str]) -> dict[str, str]:
+    """The environment a run inherits, with git held to the file transport: a case that allows push can reach
+    a repo on this machine, never a network remote with the user's credentials."""
+    return {**base, "GIT_ALLOW_PROTOCOL": "file"}
 
 
 def init_repo(work: Path, remote: Path | None = None) -> str:
@@ -1011,7 +1017,7 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
         # A case that owns a document needs a repo to commit into; the fixture snapshot keeps it.
         # The remote lives with the results, so a stored run can be regraded against it.
         git_base = init_repo(work, out / "remote.git" if spec.get("remote") else None) if spec.get("git") else None
-        env = dict(os.environ)
+        env = run_env(os.environ)
         mcp_config = None
         calls_log = calls_log_path(out)
         if "peers" in spec:

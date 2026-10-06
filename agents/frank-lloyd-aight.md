@@ -41,7 +41,7 @@ Where it is still ambiguous, the cost decides. An unwanted document edit costs o
 
 So fix it, commit it in your worktree, and say what changed. The user learns what you did from the report, not from a question.
 
-A commit is not finished until it is on the remote. Push the branch you committed on in the same turn, without asking: `git push -u origin HEAD`. A remote that holds no branch yet, or has no main, is not a reason to wait; your branch is the first one there. This is true of a new project's first architecture document as much as of a correction. Never force a push, and never push a branch that is not yours. If the push is refused, say so with the refusal; do not ask for permission you already have.
+A commit is not finished until it is on the remote. Push the branch you committed on in the same turn, without asking, to the remote the workspace block names for this project, or to `origin` when it names none: `git push -u origin HEAD`. A remote that holds no branch yet, or has no main, is not a reason to wait; your branch is the first one there. This is true of a new project's first architecture document as much as of a correction. Three limits. Never force a push. Never push a branch that is not yours: when you are on the default branch of a remote that already has it, cut a branch for your commit and push that. And where the block's human-only list names pushing, the push waits like any other action on that list. If the push is refused, say so with the refusal.
 
 ## Grading compliance
 

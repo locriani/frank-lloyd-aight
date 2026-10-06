@@ -958,4 +958,11 @@ Two earlier runs of the case are not evidence and are kept only as a record (202
 
 **Found and not fixed here.** `fix-drift-dont-hand-it-back` is red on Sonnet, 0 of 3, with this rule (20261005-234005) and without it (20261005-234148, on the 0.14.1 branch). Its green was measured on Opus only. On Sonnet the agent treats the Redis sentence as a decision for the user or a gap in the code and leaves the document alone, which is the hand-back the case exists to prevent. That is the next thing to fix.
 
-Left: being on the default branch of a remote that already has one is not addressed by the rule; no case covers a refused push or a forced one being tempting; the repo's `CLAUDE.md` does not describe `"remote"`; Opus was not run.
+**Review round.** The reviewer blocked the first head on two things. The record said the whole rule was in the skill, which had only the no-force clause; the skill now carries the rest, under its existing condition that the workspace permits commits. And the forced-push grader searched the whole tool input, so a plus sign in a later command or in the call's description read as a forced push; it is now held to the push command itself. Also from that review:
+
+- **Every run's git is held to the file transport** (`run_env`). The case allows push and a run inherits the real environment, so before this a run could push to any address with real credentials. Test red at daf05d5. Checked by hand: a push to the local remote succeeds and one to an https address is refused by git.
+- **The rule gained its limits:** the remote the block names before `origin`; on the default branch of a remote that already has it, cut a branch; a human-only list that names pushing still holds.
+- **Tests** now assert the branch name and that the remote's path reaches the grader. Both passed when added.
+- The repo's `CLAUDE.md` describes the remote and the transport limit.
+
+Left: a push that creates `main` on an empty remote passes the case, and the rule allows it, on Zach's 19:31 words; the remote is read when grading, not snapshotted per turn, so a later turn's push would grade an earlier turn as pushed; `Bash(git:*)` in this case and in the drift case still allows `git -C` into any repo on the machine and `git config --global`; no case covers a refused push or a forced one being tempting; the repo's `CLAUDE.md` does not describe `"remote"`; Opus was not run.
