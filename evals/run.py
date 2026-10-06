@@ -205,15 +205,21 @@ def _refused(token: str) -> bool:
 def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool:
     """Whether the host lets a whole Bash command through for a git case. Every part of it must be one the host can vouch for:
     an allowed git subcommand with no refused option, or a command that only reads. Anything it cannot read is refused."""
-    lex = shlex.shlex(command, posix=True, punctuation_chars=";&|<>()\n")
-    lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""
+    def lexed(text: str) -> list[str]:
+        lex = shlex.shlex(text, posix=True, punctuation_chars=";&|<>()\n")
+        lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""
+        return list(lex)
+    operators = lambda ts: [t for t in ts if not t.strip(";&|<>()\n")]
     try:
-        tokens = list(lex)
+        tokens = lexed(command)
+        # With no backslash in the command a quoted stretch is exactly this, and an operator inside one is an argument to
+        # the shell: the host would split the command there and the shell would not.
+        if "\\" in command or operators(tokens) != operators(lexed(re.sub(r"'[^']*'|\"[^\"]*\"", "Q", command))):
+            return False
     except ValueError:
         return False
-    # Where the shell would read it differently from these tokens: a continued line, a comment, a brace expansion. And a
-    # quoted separator separates nothing in the shell, so a refused option is refused in every part, not only git's.
-    if "\\\n" in command or any(t.startswith("#") or "{" in t or _refused(t) for t in tokens):
+    # Where the shell would read it differently from these tokens: a comment, a brace expansion.
+    if any(t.startswith("#") or "{" in t or _refused(t) for t in tokens):
         return False
     # The redirects let through send stderr onto stdout or to the null device, each as its own three tokens.
     for i in range(len(tokens) - 2, 0, -1):
@@ -228,14 +234,14 @@ def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool
         else:
             parts[-1].append(token)
     parts = [p for p in parts if p]
-    here = lambda path: cwd is not None and Path(path).resolve() == cwd.resolve()
+    here = lambda path: cwd is not None and Path(path).is_absolute() and Path(path).resolve() == cwd.resolve()
     def part_ok(p: list[str]) -> bool:
         if p[0] in READS:
             return True
         # Naming the run's own directory, which it is already in, changes nothing.
         if p[0] == "cd":
             return len(p) == 2 and here(p[1])
-        if p[1:2] == ["-C"] and len(p) > 3 and here(p[2]):
+        if p[0] == "git" and p[1:2] == ["-C"] and len(p) > 3 and here(p[2]):
             p = ["git"] + p[3:]
         sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
         # Listing worktrees and remotes only reads; every other form of either changes something.
@@ -243,7 +249,7 @@ def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool
         if p[0] != "git" or not named:
             return False
         # The short forms that wait on a person or take a template: -p, -i, -t.
-        if sub in ("add", "commit", "checkout") and any(re.fullmatch(r"-[A-Za-z]*[pit][A-Za-z]*", t) for t in p[2:]):
+        if sub in ("add", "commit", "checkout") and any(re.match(r"-[A-Za-z]*[pit]", t) for t in p[2:]):
             return False
         if sub != "push":
             return True
@@ -636,7 +642,8 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     if any(re.match(r"Bash\(\s*git\b", rule) for rule in sandbox.get("allow", [])):
         raise ValueError(f"{case.name}: a rule for git is never allowed; set \"git\": true and the host answers for git (see git_ok)")
     allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
-    disallowed = list(sandbox.get("deny", DISALLOWED))
+    # The host answers for a git case's git; a default deny rule would refuse the commit before the host was asked.
+    disallowed = list(sandbox.get("deny", [d for d in DISALLOWED if not (case.spec.get("git") and "git" in d)]))
     cmd = [
         "claude", "-p",
         "--model", model,
@@ -727,6 +734,7 @@ def drive_turns(
 
     The harness is the permission host (`--permission-prompt-tool stdio`): a `control_request` for
     AskUserQuestion is answered from `answers[n-1]` (see `answer_question`) and logged to `host_log`;
+    a Bash command is let through when it is the renderer on files or, for a git case, passes `git_ok`;
     any other prompted tool is denied, logged as `host_deny`, and its id kept on the turn, because the
     CLI's own `permission_denials` need not list a host denial.
     """
