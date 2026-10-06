@@ -153,6 +153,24 @@ Anything with two or more attributes is a table inside `<div class="scroll">`, a
 | decided | `pill done` | The user answered. |
 | follows | `pill done` | Forced by a decided row, which it names. Never shown as a decision and never asked. |
 
+## A package
+
+A row that proposes adopting a package, library or external tool is never a yes or no on one name. The page carries one table of the candidates from the moment the row exists, in section 2 directly under the Open table, and again in the Next decision section when that row is the one being asked. A row that only says a package will be chosen later, with no table, is not written. The table holds the proposed package first, then every real alternative, one row each. Writing it by hand is an alternative only when that is a real option, and it is its own row with dashes for the facts that do not apply.
+
+```html
+<div class="scroll"><table class="pkg">
+  <thead><tr><th>Package</th><th>Purpose here</th><th>Age</th><th>Last update</th><th>Commits</th><th>Issues (open / total)</th><th>MRs (open / total)</th><th>Contributors</th><th>License</th></tr></thead>
+  <tbody>
+    <tr><td>NAME</td><td>What it would do in this plan.</td><td>first release, date</td><td>date</td><td>count</td><td>open / total</td><td>open / total</td><td>count</td><td>licence</td></tr>
+  </tbody>
+</table></div>
+```
+
+- **Every cell is a fact that was read,** from the registry or the repository, or the words `not read`. Never an estimate, a rounding with `~` or `+`, or a figure from memory.
+- **Age** is the date of the first release. When the repository is older or younger than that, the cell gives both.
+- **A repository that holds several packages:** counts that are for the whole repository say `repo-wide` in the cell.
+- **The question asked** is which row, not whether. The user's approval is still required before anything is installed or depended on.
+
 ## Diagrams
 
 A diagram is the renderer's SVG placed inline in `<div class="diagram">`, with a one-sentence legend in a `p` above it. It sits in the section it explains, beside the table or text it draws: section 3 for the structure, or the appended section whose subject it is. The page never has a section that only collects diagrams. It is rendered before it goes on the page, and it shows real structure (see the agent's Diagrams section). Split a diagram whose arrows cross or whose labels overlap. When the renderer produces no SVG, the structure stays as the folder tree and the signatures, and the page has no diagram.
