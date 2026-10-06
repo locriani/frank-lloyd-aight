@@ -814,3 +814,9 @@ Zach clarified that Frank Lloyd AIght has no standing knowledge of Chief of Stuf
 The Claude agent, portable skill, review page spec, package descriptions, and workspace requirements no longer depend on another agent or a particular publisher. A compliance gap may be marked `unassigned` until an owner is provided. The review page has a URL only when the workspace names a served pages directory.
 
 New case `standalone-compliance` removes all peer and publisher configuration from the fixture. Baseline: RED (3 of 12), `evals/results/20260925-033345`; it wrote a review note instead of the compliance record. Agent: GREEN (12 of 12) in all three Opus runs, `evals/results/20260925-033525`; each filed the three code gaps with file lines, marked the owner unassigned, committed the record, reported its path, and left the code and specification unchanged. The 110 unit tests pass.
+
+## 0.10.2 — the repo's commit rule matches the agent's (2026-10-05)
+
+`CLAUDE.md` said "Nothing is committed by a session; Zach says when", while `agents/frank-lloyd-aight.md` and the portable skill both say the agent commits its own work in its own worktree. The repo rule was the stale one: Zach, 2026-09-18 23:00, "EVERY session makes meaningful small commits but we USE WORKTREES", and 2026-09-23 15:31, "all code changes should require a PR". The rule now says a session commits in small commits in its own worktree and branch, and reaches main only through a pull request.
+
+No agent, skill, grader or case changed, so there is no red case for this stage and no eval was run.
