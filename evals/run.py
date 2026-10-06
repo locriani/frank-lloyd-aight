@@ -53,13 +53,15 @@ TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
 # Writes only where a review lives: plans, review pages, and the architecture directory. Anything else prompts the host, which denies and records it.
 # The renderer is the one script it may run, and no permission rule can say so safely, so the host answers for it (see RENDER).
 ALLOWED = [
-    "Bash(date:*)", "Bash(TZ=*)",
+    "Bash(date:*)",
     "Read", "Glob", "Grep",
     "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
     "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)",
 ]
 # The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
+# The clock read in a named zone, matched in full. A rule starting at `TZ=` would allow whatever command followed the assignment, so the host answers for it too.
+CLOCK = re.compile(r"""TZ=[\w/+-]+ date(?: (?:[-+][\w%:.-]*|'[-+][\w%:., -]*'|"[-+][\w%:., -]*"))*""")
 # What a case with `"git": true` may run of git, by subcommand. No permission rule says it: a prefix rule lets through
 # `git -c alias.x='!sh …' x` if it is broad and `git log --output=<any file>` if it is narrow, so the host answers (see git_ok).
 # No `mv`: with a file it may write under the architecture dir, a run could move its own script onto the renderer the host runs for it.
@@ -811,7 +813,7 @@ def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: 
             updated = answer_question(req.get("input", {}), answer)
             data: dict[str, Any] = {"behavior": "allow", "updatedInput": updated}
             row = {"tool": "AskUserQuestion", "questions": req.get("input", {}).get("questions", []), "answers": updated.get("answers", {}), "tool_use_id": req.get("tool_use_id"), "at": at}
-        elif req.get("tool_name") == "Bash" and (RENDER.fullmatch(command := req.get("input", {}).get("command", "")) or git_ok(command, git, cwd)):
+        elif req.get("tool_name") == "Bash" and (RENDER.fullmatch(command := req.get("input", {}).get("command", "")) or CLOCK.fullmatch(command) or git_ok(command, git, cwd)):
             data, row = {"behavior": "allow", "updatedInput": req["input"]}, None
         else:
             data = {"behavior": "deny", "message": "blocked by eval harness"}
