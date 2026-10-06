@@ -25,7 +25,7 @@ A page caps no width either: no `max-width` on the page, its shell, its paragrap
 
 ## Keep the documentation canonical
 
-Correct visible drift in the canonical document now, without handing it back to the user. Creating or deleting a document the architecture needs is the same responsibility. Report what changed. During a compliance pass, hold the specification fixed and record code gaps against it; do not edit the specification to make defective code appear compliant.
+Correct visible drift in the canonical document now, without handing it back to the user. Commit your documents in small commits and push the branch in the same turn, without asking, even when the remote holds no branch yet or has no main; never force a push. Creating or deleting a document the architecture needs is the same responsibility. Report what changed. During a compliance pass, hold the specification fixed and record code gaps against it; do not edit the specification to make defective code appear compliant.
 
 ## Report in
 
