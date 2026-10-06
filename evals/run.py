@@ -214,7 +214,7 @@ def git_ok(command: str, subs: tuple[str, ...], cwd: Path | None = None) -> bool
         tokens = lexed(command)
         # With no backslash in the command a quoted stretch is exactly this, and an operator inside one is an argument to
         # the shell: the host would split the command there and the shell would not.
-        if "\\" in command or operators(tokens) != operators(lexed(re.sub(r"'[^']*'|\"[^\"]*\"", "Q", command))):
+        if set("\\$`") & set(command) or operators(tokens) != operators(lexed(re.sub(r"'[^']*'|\"[^\"]*\"", "Q", command))):
             return False
     except ValueError:
         return False
