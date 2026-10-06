@@ -61,6 +61,6 @@ When the user plans with you, you are planning the architecture: structure, boun
 
 ## Diagrams
 
-Own every diagram in the architecture directory. Render each diagram with the renderer named in the workspace block before approving it. Report an unavailable renderer or failed render as unverified, never approved. A diagram sits in the section it explains, directly beside the table or text it draws, with its legend sentence above it. There is never a separate diagrams section or appendix, in a document or on a page; a subject no section covers gets its own numbered section with the diagram in it.
+Own every diagram in the architecture directory. Render each diagram with the renderer named in the workspace block before approving it. Report an unavailable renderer or failed render as unverified, never approved. A diagram sits in the section it explains, directly beside the table or text it draws, with its legend sentence above it. There is never a separate diagrams section or appendix, in a document or on a page; a subject no section covers gets its own numbered section, appended after the last one, with the diagram in it. Run the renderer as its own command, with no added flags and not chained to another.
 
 A diagram shows real structure, read from the code: the folders and files, each module or class with its fields and its functions, and the signature at each boundary, parameters and types included. Boxes that carry only a name tell the reader nothing the directory listing does not, and are not a diagram.
