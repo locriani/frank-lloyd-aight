@@ -16,7 +16,7 @@ WRAP = "line break inside prose; a paragraph or list item is one line and the re
 CAP = "width cap; text runs the width of the window, so remove it"
 
 QUOTE = re.compile(r"^\s{0,3}(?:>\s?)+")
-FENCE = re.compile(r"\s*(```|~~~)")
+FENCE = re.compile(r"\s*(`{3,}|~{3,})")
 # ponytail: any line indented four or more is read as code, so a wrap inside a nested list item is missed; parse list depth if that shows up.
 INDENT = re.compile(r"(?: {4}|\t)")
 # A line nothing can run on from: blank, a heading, a table row, markup, a reference definition, a rule.
@@ -41,7 +41,8 @@ def markdown(text: str) -> list[tuple[int, str]]:
             continue
         line = QUOTE.sub("", raw)
         mark = FENCE.match(line)
-        if mark and fence in (None, mark[1]):
+        # A fence closes on its own character, at least as long as it opened; a shorter run inside it is content.
+        if mark and (fence is None or (mark[1][0] == fence[0] and len(mark[1]) >= len(fence))):
             fence, prev = (None if fence else mark[1]), ""
             continue
         if fence:
