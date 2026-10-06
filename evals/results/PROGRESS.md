@@ -965,4 +965,6 @@ Two earlier runs of the case are not evidence and are kept only as a record (202
 - **Tests** now assert the branch name and that the remote's path reaches the grader. Both passed when added.
 - The repo's `CLAUDE.md` describes the remote and the transport limit.
 
+With the review fixes the case ran 2 of 3 as first graded (20261005-235141). The third run changed, committed and pushed, and failed only "the reply says what changed", a verb list copied from the drift case that its reply ("Section 3 … now says …", "I removed the old claims") did not happen to use. In this case only, the list gains "removed" and "now says", and a grader is added that the reply says it is pushed. Regraded with those, the run is 3 of 3. The drift case's own grader is unchanged.
+
 Left: a push that creates `main` on an empty remote passes the case, and the rule allows it, on Zach's 19:31 words; the remote is read when grading, not snapshotted per turn, so a later turn's push would grade an earlier turn as pushed; `Bash(git:*)` in this case and in the drift case still allows `git -C` into any repo on the machine and `git config --global`; no case covers a refused push or a forced one being tempting; the repo's `CLAUDE.md` does not describe `"remote"`; Opus was not run.

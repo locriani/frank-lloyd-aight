@@ -52,7 +52,7 @@
     {
       "name": "the reply says what changed",
       "type": "regex",
-      "pattern": "(?i)\\b(corrected|updated|fixed|rewrote|replaced|changed)\\b"
+      "pattern": "(?i)\\b(corrected|updated|fixed|rewrote|replaced|changed|removed|now says)\\b"
     },
     {
       "name": "does not ask whether to fix it",
@@ -90,6 +90,11 @@
       "name": "the queue code is untouched",
       "type": "file_unchanged",
       "path": "src/app/queue.py"
+    },
+    {
+      "name": "the reply says it is pushed",
+      "type": "regex",
+      "pattern": "(?i)\\bpushed\\b"
     }
   ],
   "max_turns": 20,
