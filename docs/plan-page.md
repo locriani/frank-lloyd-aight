@@ -141,7 +141,7 @@ Anything with two or more attributes is a table inside `<div class="scroll">`, a
 ```
 
 - **ID:** one or two capital letters for the row's subject and a number (`D1`, `K7`, `M3`). An id is never reused and never renumbered, and a row keeps its id when it moves from Open to Decided.
-- **One proposal per row,** not a menu. Alternatives that were read and rejected go in the research file named in section 5.
+- **One proposal per row,** not a menu. Alternatives that were read and rejected go in the research file named in section 5. The one exception is a row that proposes a package (see A package): its alternatives are on the page, in its table.
 - **Basis:** `Read in <source>` with the file and line, document section or page that was read, or `My reasoning` when it rests on no source. Add `Not read: <what>` wherever a gap remains. A row is proposed only from what was read; a third-party page is named as one.
 - **Status,** the pill in the last column:
 
@@ -155,21 +155,21 @@ Anything with two or more attributes is a table inside `<div class="scroll">`, a
 
 ## A package
 
-A row that proposes adopting a package, library or external tool is never a yes or no on one name. The page carries one table of the candidates from the moment the row exists, in section 2 directly under the Open table, and again in the Next decision section when that row is the one being asked. A row that only says a package will be chosen later, with no table, is not written. The table holds the proposed package first, then every real alternative, one row each. Writing it by hand is an alternative only when that is a real option, and it is its own row with dashes for the facts that do not apply.
+A row that proposes adopting a package, library or external tool is never a yes or no on one name. The page carries one table of the candidates from the moment the row exists, in section 2 directly under the Open table, and again in the Next decision section when that row is the one being asked. A row that only says a package will be chosen later, with no table, is not written, and neither is "the table follows once another row is settled": when nothing about the candidates was read, the table still goes up, with their names and `not read` in the cells. The table holds the proposed package first, then every real alternative, one row each. Writing it by hand is an alternative only when that is a real option, and it is its own row with dashes for the facts that do not apply.
 
 ```html
 <div class="scroll"><table class="pkg">
   <thead><tr><th>Package</th><th>Purpose here</th><th>Age</th><th>Last update</th><th>Commits</th><th>Issues (open / total)</th><th>MRs (open / total)</th><th>Contributors</th><th>License</th></tr></thead>
   <tbody>
-    <tr><td>NAME</td><td>What it would do in this plan.</td><td>first release, date</td><td>date</td><td>count</td><td>open / total</td><td>open / total</td><td>count</td><td>licence</td></tr>
+    <tr><td>NAME</td><td>What it would do in this plan.</td><td>first release, date</td><td>date</td><td>count</td><td>open / total</td><td>open / total</td><td>count</td><td>license</td></tr>
   </tbody>
 </table></div>
 ```
 
-- **Every cell is a fact that was read,** from the registry or the repository, or the words `not read`. Never an estimate, a rounding with `~` or `+`, or a figure from memory.
+- **Every cell is a fact that was read,** from the registry or the repository, or the words `not read`. Never an estimate, a rounding with `~` or `+`, or a figure from memory. The only dashes are in a by-hand row, where a fact does not apply. What a package can do is a fact too: the Purpose cell says what the plan needs from it, and claims about a package that was not read are left out.
 - **Age** is the date of the first release. When the repository is older or younger than that, the cell gives both.
 - **A repository that holds several packages:** counts that are for the whole repository say `repo-wide` in the cell.
-- **The question asked** is which row, not whether. The user's approval is still required before anything is installed or depended on.
+- **The question asked** is which row, not whether. When this row is the Next decision, the table follows `The proposal.` there, and the reply's last line is `Which row for <id>?` in place of `Do you approve <id>?`. The user's answer is still required before anything is installed or depended on.
 
 ## Diagrams
 
