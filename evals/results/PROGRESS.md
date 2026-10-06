@@ -1122,7 +1122,7 @@ Reported by a peer architecture session working on Equinox, 17:53: asked for a d
 - **The cause.** The review page spec named the page for "the directory or service reviewed" and gave `agent-review.html` and `api-review.html` as examples. Every project writes to one pages dir, and nothing told the agent to look at a page before writing into it.
 - **The rule,** in the agent, the skill and both page specs: the subject is the project's name, the block's `Project:` line when it has one and otherwise the repository's name, with the part reviewed after it when only a part is. Never a generic noun on its own. A page that exists is read before it is written into; if its name or its content is another project's, it is left alone whatever the user called the page, the agent writes its own, and says so in one line.
 - **Case** `review-page-is-this-projects-own`: the pages dir already holds another project's `architecture-review.html`, the block has no project line, and Robin asks for the review "on the architecture review page".
-- **The harness blocked every write to a pages dir.** `ALLOWED` had `plans`, `reviews` and `architecture` and not `pages`, so `review-before-modify`, whose block names a pages dir, could not write its page. New unit test `test_a_served_pages_dir_is_writable`, red in CI on 3 commits back (run 37544062568), then the two rules.
+- **The harness blocked every write to a pages dir.** `ALLOWED` had `plans`, `reviews` and `architecture` and not `pages`, so `review-before-modify`, whose block names a pages dir, could not write its page. New unit test `test_a_served_pages_dir_is_writable`, red in CI on commit 8555e2d (run 37544062568), then the two rules.
 
 Evidence, Sonnet. On the old rule with the harness fixed: 0 of 3, and two of the three overwrote the other project's page (20261006-181102). With the rule: every run wrote its own page, left the other untouched and said so, 5 of 5 (20261006-181701).
 
@@ -1138,4 +1138,3 @@ Left:
 - **The fallback name** in the eval is the temporary directory's name (`cos-eval-…-review.html`). In a workspace it is the worktree directory's name, which may not be the name the user wants; only a `Project:` line makes it exact, and the workspace `CLAUDE.md` is the user's to change.
 - **No case** covers a plan page, a page whose name is this project's and whose content is not, or a block that has the `Project:` line.
 - **The comment** in `test_allowlist_is_review_only` still lists three writable places; the test was not touched.
-
