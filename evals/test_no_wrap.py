@@ -49,6 +49,15 @@ class MarkdownTest(unittest.TestCase):
         self.assertEqual(lines("a.md", "> ```\n> one\n> two\n> ```\n"), [])
 
 
+    def test_a_longer_fence_holds_a_shorter_one(self) -> None:
+        nested = "````markdown\n```\nline one\nline two\n```\n````\n"
+        self.assertEqual(lines("a.md", nested), [])
+        self.assertEqual(lines("a.md", nested + "\nA paragraph\nwrapped.\n"), [9])
+
+    def test_a_quote_under_a_paragraph_is_its_own_block(self) -> None:
+        self.assertEqual(lines("a.md", "A complete paragraph.\n> A separate one-line quote.\n"), [])
+
+
 class HtmlTest(unittest.TestCase):
     def test_text_broken_inside_an_element_is_named(self) -> None:
         self.assertEqual(lines("p.html", "<main>\n<p>The queue retries three times and\n   then gives up.</p>\n</main>\n"), [3])
@@ -76,6 +85,15 @@ class WidthCapTest(unittest.TestCase):
             ".a { max-width: none; }\n.grid { grid-template-columns: 190px minmax(0, 1fr); }\n</style>\n"
         )
         self.assertEqual(lines("p.html", css), [])
+
+    def test_a_cap_is_a_declaration_not_a_mention_or_a_media_query(self) -> None:
+        self.assertEqual(lines("a.css", "@media ( max-width: 900px) { main { padding: 0; } }\n"), [])
+        self.assertEqual(lines("a.css", "@media (\n  max-width: 900px\n) { main { padding: 0; } }\n"), [])
+        self.assertEqual(lines("a.css", "/* max-width: 860px; is forbidden */\nmain { width: 100%; }\n"), [])
+        self.assertEqual(lines("a.html", "<p>Do not use max-width: 860px; on this page.</p>\n"), [])
+        self.assertEqual(lines("a.html", '<p style="max-width: 100%"><b style="font-size: 12px">text</b></p>\n'), [])
+        self.assertEqual(lines("a.css", "main { max-width:\n  860px; }\n"), [1])
+        self.assertEqual(lines("a.css", "@media (max-width: 900px) { main { max-width: 500px; } }\n"), [1])
 
     def test_an_inline_diagram_keeps_its_own_size_and_lines(self) -> None:
         # A rendered Mermaid diagram states its drawn size and its label widths in its own styles. That is the drawing, not the page's text.
@@ -130,6 +148,15 @@ class HookTest(unittest.TestCase):
             wrapped = {"file_path": str(path), "old_string": "Status: draft", "new_string": "Status: final, and\nmore to say"}
             self.assertEqual(self.decision({"tool_name": "Edit", "tool_input": wrapped}), "deny")
 
+    def test_an_edit_does_not_answer_for_a_cap_on_the_line_below(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "a.css"
+            path.write_text("body { color: red; }\nmain { max-width: 860px; }\n")
+            unrelated = {"file_path": str(path), "old_string": "red", "new_string": "blue"}
+            self.assertIsNone(self.decision({"tool_name": "Edit", "tool_input": unrelated}))
+            capping = {"file_path": str(path), "old_string": "color: red", "new_string": "max-width: 40em"}
+            self.assertEqual(self.decision({"tool_name": "Edit", "tool_input": capping}), "deny")
+
     def test_an_edit_inside_a_fence_is_let_through(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "doc.md"
@@ -175,6 +202,13 @@ class GraderTest(unittest.TestCase):
             ok, why = run.grade({"type": "flowing_text"}, rec)
         self.assertFalse(ok)
         self.assertIn("reviews/a-review.html:2", why)
+
+    def test_joining_two_fixture_paragraphs_is_the_agents_wrap(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            rec = self.record(tmp, {"a.md": "First paragraph.\n\nSecond paragraph.\n"}, {"a.md": "First paragraph.\nSecond paragraph.\n"})
+            ok, why = run.grade({"type": "flowing_text"}, rec)
+        self.assertFalse(ok)
+        self.assertIn("a.md:2", why)
 
     def test_lines_the_fixture_already_held_are_not_the_agents(self) -> None:
         old = "# T\n\nAn old paragraph that was\nwrapped before.\n"
