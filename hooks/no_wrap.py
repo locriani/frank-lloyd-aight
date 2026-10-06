@@ -16,11 +16,15 @@ WRAP = "line break inside prose; a paragraph or list item is one line and the re
 CAP = "width cap; text runs the width of the window, so remove it"
 
 QUOTE = re.compile(r"^\s{0,3}(?:>\s?)+")
-FENCE = re.compile(r"\s*(`{3,}|~{3,})")
+# What opens a block that keeps its own lines: a code fence, or a math fence alone on its line. A comment left open is the third (see _opens).
+FENCE = re.compile(r"\s*(`{3,}|~{3,}|\$\$(?=\s*$))")
+COMMENT = "<!--"
+BREAKS = ("  ", "\\", "<br>", "<br/>", "<br />")
 # ponytail: any line indented four or more is read as code, so a wrap inside a nested list item is missed; parse list depth if that shows up.
 INDENT = re.compile(r"(?: {4}|\t)")
-# A line nothing can run on from: blank, a heading, a table row, markup, a reference definition, a rule.
-_CLOSED = r"#{1,6}\s|\||<|\[[^\]]+\]:\s|(?:[-*_=]\s*){3,}$|$"
+# A line nothing can run on from: blank, a heading, a table row, markup, a reference definition, an alert marker, a rule.
+# ponytail: any line holding a pipe is read as a table row, so a wrap in prose that has a pipe in it is missed.
+_CLOSED = r"#{1,6}\s|[^|\n]*\||<|\[[^\]]+\]:\s|\[![A-Za-z]+\]\s*$|(?:[-*_=]\s*){3,}$|$"
 CLOSED = re.compile(rf"\s*(?:{_CLOSED})")
 # A line that starts its own block, so it never continues the line above.
 STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s)")
@@ -31,10 +35,27 @@ CAPPED = re.compile(
 )
 
 
+def _opens(line: str) -> str | None:
+    """The marker of the verbatim block this line opens, if it opens one."""
+    mark = FENCE.match(line)
+    if mark:
+        return mark[1]
+    return COMMENT if line.lstrip().startswith(COMMENT) and "-->" not in line else None
+
+
+def _closes(line: str, block: str) -> bool:
+    """A fence closes on a line that is only its own character, at least as long as it opened; a comment on its end mark."""
+    if block == COMMENT:
+        return "-->" in line
+    run = line.strip()
+    return len(run) >= len(block) and run == block[0] * len(run)
+
+
 def markdown(text: str) -> list[tuple[int, str]]:
-    out, fence, prev, quoted = [], None, "", False
+    out, block, prev, quoted = [], None, "", False
     rows = text.split("\n")
-    front = rows[0].strip() == "---"
+    # Front matter is closed by a second rule; a leading rule with none after it is only a rule.
+    front = rows[0].strip() == "---" and any(row.strip() == "---" for row in rows[1:])
     for n, raw in enumerate(rows, 1):
         if front:
             front = n == 1 or raw.strip() != "---"
@@ -44,15 +65,15 @@ def markdown(text: str) -> list[tuple[int, str]]:
         was, quoted = quoted, line != raw
         if quoted and not was:
             prev = ""
-        mark = FENCE.match(line)
-        # A fence closes on its own character, at least as long as it opened; a shorter run inside it is content.
-        if mark and (fence is None or (mark[1][0] == fence[0] and len(mark[1]) >= len(fence))):
-            fence, prev = (None if fence else mark[1]), ""
+        if block:
+            block = None if _closes(line, block) else block
             continue
-        if fence:
+        block = _opens(line)
+        if block:
+            prev = ""
             continue
-        code = INDENT.match(raw)
-        if prev and not code and not STARTS.match(line) and not prev.endswith(("  ", "\\")):
+        code = INDENT.match(line)
+        if prev and not code and not STARTS.match(line) and not prev.endswith(BREAKS):
             out.append((n, WRAP))
         prev = "" if code or CLOSED.match(line) else line
     return out
@@ -90,9 +111,15 @@ def html(text: str) -> list[tuple[int, str]]:
 
 # Not declarations: a drawing's own size and label widths, a comment, and the condition of an at-rule such as a breakpoint.
 SVG = re.compile(r"<svg\b.*?</svg>", re.I | re.S)
-SKIPPED = (SVG, re.compile(r"/\*.*?\*/", re.S), re.compile(r"@(?:media|container|supports)\b[^{;]*", re.I))
-# Where a page holds CSS: a style element's body, or a style attribute's value.
-STYLED = re.compile(r"<style\b[^>]*>(.*?)</style>|\bstyle\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.S)
+SKIPPED = (
+    SVG,
+    re.compile(r"/\*.*?\*/", re.S),
+    re.compile(r"@(?:media|container|supports|import)\b[^{;]*", re.I),
+    re.compile(r"\[[^\]\n]*\]"),  # an attribute selector's value is not a declaration
+    re.compile(r"calc\([^()]*%[^()]*\)", re.I),  # a width worked out from a percentage follows the window
+)
+# Where a page holds CSS: a style element's body, or the value of a style attribute inside a real tag.
+STYLED = re.compile(r"<style\b[^>]*>(.*?)</style>|<[a-z][^<>]*?\sstyle\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.S)
 
 
 def _blank(m: re.Match) -> str:

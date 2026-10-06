@@ -884,3 +884,16 @@ Agent arm, Sonnet. Before (`20261005-190241`): RED, 6 of 12. No page was written
 What the case does not show: a second turn (a row answered, the page rewritten at the same path with the turn number raised, the user's words kept off it), a workspace with a pages dir, and a diagram on the page. Not run: the baseline arm, any Opus run, and the other cases against the new section.
 
 Cost: about **$0.65** over four Sonnet runs.
+
+## 0.13.1 — the no-wrap hook stops refusing valid writes (2026-10-05)
+
+Zach, 21:23: "continuously take the improvements and write code to fix them." This is the first round, taken from the reviewer agent's and the Codex connector's comments on #6, and limited to refusals of valid writes, because the hook runs in every session where the plugin is enabled.
+
+- **Markdown, no longer refused as a wrap:** a GitHub alert, a table with no leading pipe, indented code inside a quote, a `$$` math block, a comment over several lines, a line ended with a break tag, and a fence line with text inside a fence.
+- **Markdown, now caught:** a leading rule with no second rule after it was taken for front matter, which hid every wrap in the file.
+- **CSS, no longer refused as a cap:** a `calc()` worked out from a percentage, an `@import` condition, an attribute selector's value, an escaped example inside `pre`, and a `data-style` attribute.
+- **Shape:** the fence, math and comment states are one verbatim-block state with `_opens` and `_closes`, in place of a fence special case.
+
+New ceiling, marked `ponytail:`: any line holding a pipe is read as a table row.
+
+Still open from the two reviews, not in this round: an Edit that completes a cap begun on the line above; caps through `var()`, other units and Tailwind classes; two regexes that are quadratic on unclosed tags; wraps inside HTML blocks in markdown and beside inline tags; the hook being active in the baseline arm; and the eval-case findings on #7 and #8.
