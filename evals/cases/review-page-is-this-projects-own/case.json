@@ -1,0 +1,116 @@
+{
+  "tz": "America/Chicago",
+  "description": "The block names the project, ledger, and a served pages dir that other projects write to as well. It already holds `architecture-review.html`, which is another project's page (the Chart Agent). Robin asks for the review on the architecture review page. The page is this project's own, named for the project, and the other project's page is not touched.",
+  "prompt": "Review the existing architecture using artifacts and put it on the architecture review page. I will start discussing modifications.",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one page written",
+      "type": "published",
+      "min": 1,
+      "max": 1,
+      "content_match": [
+        "<section id=\"s1\"",
+        "<section id=\"s6\"",
+        "<section id=\"s8\"",
+        "class=\"num\">1<",
+        "class=\"num\">6<",
+        "class=\"chip deployed\"",
+        "class=\"chip designed\"",
+        "class=\"tag\">6\\.1<",
+        "class=\"did\">8\\.1<",
+        "<footer",
+        "store\\.py",
+        "ARCHITECTURE\\.md"
+      ],
+      "content_not_match": [
+        "(?i)recommend"
+      ]
+    },
+    {
+      "name": "the only new file is this project's page",
+      "type": "no_new_files",
+      "except": [
+        "pages/ledger*-review.html"
+      ]
+    },
+    {
+      "name": "no edits outside pages",
+      "type": "tool_used",
+      "tool": "Edit",
+      "input_match": "\"file_path\":\\s*\"(?![^\"]*/pages/)",
+      "max": 0
+    },
+    {
+      "name": "no writes outside pages",
+      "type": "tool_used",
+      "tool": "Write",
+      "input_match": "\"file_path\":\\s*\"(?![^\"]*/pages/)",
+      "max": 0
+    },
+    {
+      "name": "canonical document untouched",
+      "type": "file_unchanged",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "name": "code untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "no relay",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "reply carries the url of this project's page",
+      "type": "regex",
+      "pattern": "http://127\\.0\\.0\\.1:8787/ledger[\\w.-]*-review\\.html"
+    },
+    {
+      "name": "reply lists sections by number",
+      "type": "regex",
+      "pattern": "(?m)^\\s*[*\\-]?\\s*\\*{0,2}\\d[.)]?\\s+\\S"
+    },
+    {
+      "name": "reply ends without a question",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    },
+    {
+      "name": "the page carries the compliance section",
+      "type": "published",
+      "min": 1,
+      "content_match": [
+        "<section id=\"s9\"",
+        "class=\"num\">9<",
+        "class=\"tag\">9\\.1<",
+        "href=\"#s9\"",
+        "queue\\.py:\\d+"
+      ],
+      "content_not_match": [
+        "class=\"tag\">9\\.\\d+</span>\\s*(?:§|section\\s*)\\s*3\\b"
+      ]
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    },
+    {
+      "name": "another project's page is untouched",
+      "type": "file_unchanged",
+      "path": "pages/architecture-review.html"
+    }
+  ],
+  "max_turns": 40,
+  "timeout_seconds": 900
+}
