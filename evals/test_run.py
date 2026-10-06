@@ -578,20 +578,22 @@ class PerCaseSandboxTest(unittest.TestCase):
         self.assertEqual(self.flag(cmd, "--disallowedTools"), run.DISALLOWED)
 
     def test_allow_is_appended_to_the_default(self) -> None:
-        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(git status:*)"]}})
+        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(wc:*)"]}})
         allowed = self.flag(cmd, "--allowedTools")
         self.assertEqual(allowed[: len(run.ALLOWED)], run.ALLOWED)
         self.assertIn("Edit(./ARCHITECTURE.md)", allowed)
-        self.assertIn("Bash(git status:*)", allowed)
+        self.assertIn("Bash(wc:*)", allowed)
 
-    def test_every_git_subcommand_at_once_is_refused(self) -> None:
-        # `git -c alias.x='!sh …' x` runs a shell, and `git -C` reaches any repo on the machine.
-        with self.assertRaises(ValueError):
-            self.cmd({"sandbox": {"allow": ["Bash(git:*)"]}})
+    def test_a_git_rule_in_a_case_s_own_allow_is_refused(self) -> None:
+        # `git -c alias.x='!sh …' x` runs a shell, and any rule for git is answered by prefix, past the host.
+        for rule in ("Bash(git:*)", "Bash(git *)", "Bash(git log:*)", "Bash( git:*)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
 
-    def test_no_case_allows_every_git_subcommand(self) -> None:
+    def test_no_case_allows_git_by_rule(self) -> None:
         for path in sorted((run.EVALS / "cases").glob("*/case.json")):
-            self.assertNotIn('"Bash(git:*)"', path.read_text(), path.parent.name)
+            allow = (json.loads(path.read_text()).get("sandbox") or {}).get("allow", [])
+            self.assertFalse([a for a in allow if "git" in a], path.parent.name)
 
     def test_no_permission_rule_allows_git(self) -> None:
         # A prefix rule cannot see `--output=` or `--receive-pack=`, so git is the host's to answer, command by command.
@@ -603,6 +605,11 @@ class PerCaseSandboxTest(unittest.TestCase):
         self.assertNotIn("push", run.git_subcommands({"git": True}))
         self.assertIn("push", run.git_subcommands({"git": True, "remote": True}))
         self.assertEqual(run.git_subcommands({"remote": True}), ())
+
+    def test_deny_replaces_the_default(self) -> None:
+        deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
+        self.assertEqual(deny, ["Bash(rm:*)", "Bash(git push:*)"])
+        self.assertNotIn("Bash(git commit:*)", deny)
 
 
 class GitCommandTest(unittest.TestCase):
@@ -667,16 +674,26 @@ class GitCommandTest(unittest.TestCase):
         for command in ("git status 2>&1x", "git status 2>/tmp/x", "git status 1>&2 > /tmp/x", "git log --outp 2>&1ut=/tmp/x"):
             self.assertFalse(self.ok(command), command)
 
+    def test_git_cannot_put_a_file_where_the_host_will_run_it(self) -> None:
+        # The host runs the renderer at tools/mermaid-check.py for the asking; a run may write under architecture/.
+        self.assertFalse(self.ok("git mv architecture/x.py tools/mermaid-check.py"))
+
+    def test_what_runs_actually_chained_is_let_through(self) -> None:
+        # From stored runs: these rode along with a commit and got the whole command refused.
+        for command in ("git remote -v; git status", "git remote", "git log --oneline 2>/dev/null | head -3"):
+            self.assertTrue(self.ok(command), command)
+        for command in ("git remote add other /x", "git remote set-url origin /x", "git status 2>/tmp/x", "git status >/dev/null"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_separators_may_run_together(self) -> None:
+        self.assertTrue(self.ok("git status;\n\ngit log --oneline"))
+        self.assertFalse(self.ok("git status |& tail"))
+
     def test_push_needs_the_case_to_have_a_remote(self) -> None:
         self.assertFalse(self.ok("git push -u origin HEAD", run.git_subcommands({"git": True})))
 
     def test_a_case_without_git_gets_none(self) -> None:
         self.assertFalse(self.ok("git status", ()))
-
-    def test_deny_replaces_the_default(self) -> None:
-        deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
-        self.assertEqual(deny, ["Bash(rm:*)", "Bash(git push:*)"])
-        self.assertNotIn("Bash(git commit:*)", deny)
 
 
 class GitFixtureTest(unittest.TestCase):
@@ -800,6 +817,12 @@ class PushedGraderTest(unittest.TestCase):
 
     def test_a_run_may_only_push_to_a_path_on_this_machine(self) -> None:
         self.assertEqual(run.run_env({"HOME": "/h"})["GIT_ALLOW_PROTOCOL"], "file")
+
+    def test_a_run_s_environment_is_the_base_plus_the_git_limits_and_nothing_else(self) -> None:
+        self.assertEqual(run.run_env({"HOME": "/h"}), {
+            "HOME": "/h", "GIT_ALLOW_PROTOCOL": "file", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": os.devnull,
+            "GIT_EDITOR": "true", "GIT_TERMINAL_PROMPT": "0"})
 
     def test_a_run_reads_and_writes_no_git_config_of_the_users(self) -> None:
         env = run.run_env({"HOME": "/h"})
