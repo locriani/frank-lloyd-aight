@@ -627,6 +627,11 @@ class PerCaseSandboxTest(unittest.TestCase):
         # A rule that only has git in a longer name is not a rule for git.
         self.cmd({"sandbox": {"allow": ["Bash(tools/gitlint:*)"]}})
 
+    def test_a_rule_for_git_behind_another_command_is_refused(self) -> None:
+        for rule in ("Bash(env git:*)", "Bash(command git status:*)", "Bash(TZ=UTC git:*)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
+
     def test_no_case_allows_git_by_rule(self) -> None:
         for path in sorted((run.EVALS / "cases").glob("*/case.json")):
             allow = (json.loads(path.read_text()).get("sandbox") or {}).get("allow", [])
@@ -696,6 +701,11 @@ class GitCommandTest(unittest.TestCase):
             "git commit -m 'unbalanced",
             "ls",
         ):
+            self.assertFalse(self.ok(command), command)
+
+    def test_asking_git_for_help_is_refused(self) -> None:
+        # `git <sub> --help` is `git help <sub>`: it opens the manual in whatever viewer and pager the machine has.
+        for command in ("git status --help", "git log --help=man", "git commit --hel", "git push --help", "git -C /tmp/x add --help"):
             self.assertFalse(self.ok(command), command)
 
     def test_a_signed_commit_is_refused(self) -> None:
