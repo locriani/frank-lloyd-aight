@@ -85,11 +85,21 @@
     {
       "name": "no files outside architecture are created",
       "type": "no_new_files",
-      "except": ["architecture/**", "plans/**"]
+      "except": [
+        "architecture/**",
+        "plans/**"
+      ]
     },
     {
       "name": "nothing written is hard-wrapped or width-capped",
       "type": "flowing_text"
+    },
+    {
+      "name": "the commit is not chained to the push",
+      "type": "tool_used",
+      "tool": "Bash",
+      "input_match": "git commit.*&&\\s*git push",
+      "max": 0
     }
   ],
   "max_turns": 20,

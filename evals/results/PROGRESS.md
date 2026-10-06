@@ -985,3 +985,15 @@ Found in the stored runs of 2026-10-06: with a block that reads "Architecture di
 **Found and not fixed here.** In the same run `standalone-compliance` is 0 of 3 on one grader, the commit, and the cause is not the path. Since 0.15.0 the agent chains the push onto the commit (`git switch -c … && git add … && git commit … && git push -u origin HEAD`). The case has no remote and denies push, the whole line is refused, and the commit is lost with it. Each reply says the commit and the push were not made, and none makes the commit on its own. `fix-drift-dont-hand-it-back` is 0 of 3 as before, which is the question open on #13.
 
 Left: the graders see only the literal path in a tool call, so a listing of the directory or a `cd` into it passes; nothing tests a block whose file sits above the working directory; the marketplace description and `docs/design-inputs.md` still speak of `architecture/` as the thing kept canonical; the count of 33 of 51 is a search of stored streams for the path, in runs that are local and not kept in the repo.
+
+## 0.15.2 — the commit and the push are two commands (2026-10-06)
+
+Found in round 7's runs. Since the push rule of 0.15.0 the agent writes one line, `git switch -c … && git add … && git commit … && git push -u origin HEAD`. Where the push is refused the whole line is refused, and the commit is lost with it. The reply says the commit was not made and the agent does not make it on its own. That is the commit grader failing in `standalone-compliance`, 0 of 3 (20261006-013036, in the round 7 worktree).
+
+- **Rule,** in the agent and the skill: the commit and the push are two commands, never one line joined with `&&`. A refused push leaves the commit standing; a refused commit is made again on its own before the reply; nothing is reported as committed that `git log` does not show.
+- **Case:** one grader added to `standalone-compliance`, no Bash call that chains a push to a commit. Regraded with it, the three runs from before the rule fail it and the commit grader, 0 of 3. With the rule the commit is made in 3 of 3 and chained in none (20261006-013516); the case is 2 of 3, the third run failing "no invented communication route" for naming a coordinator in its reply.
+- **Across the same run,** twelve runs of four cases: eleven commit on a line of their own, and one (`triaged-finding-is-filed`, run 3) chains, is refused, and commits again alone. `committed-work-is-pushed` 3 of 3.
+
+**Found and not fixed here.** `compliance-is-filed-to-the-builder` and `triaged-finding-is-filed` are still 0 of 3 on Sonnet, on the owner in the record and the messages to the implementer and the coordinator, as before this change.
+
+Left: the grader sees `&&` between the two and not `;` or a newline; the "make it again" clause was exercised by one run and has no grader; "since 0.15.0" is from the runs of 2026-10-06 and no run from before 0.15.0 was searched for the chain.
