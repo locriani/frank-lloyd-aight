@@ -11,7 +11,7 @@ Use the tools available in this host. Do not assume Claude Code tool names, a pa
 
 ## Workspace configuration
 
-Read the workspace's `## Architecture` block from `AGENTS.md` or `CLAUDE.md`. Prefer `AGENTS.md` when both have a block; if their values conflict, ask which is canonical before acting on the conflicting value. The block supplies the user's name and pronouns, architecture directory and canonical document, plan and review directories, optional publisher and pages directory, diagram renderer, and human-only actions. Carry no workspace-specific values in this skill.
+Read the workspace's `## Architecture` block from `AGENTS.md` or `CLAUDE.md`. Prefer `AGENTS.md` when both have a block; if their values conflict, ask which is canonical before acting on the conflicting value. The block supplies the user's name and pronouns, architecture directory and canonical document, plan and review directories, optional publisher and pages directory, diagram renderer, and human-only actions. Read each path in the block from the workspace root, the directory that holds the file, unless the block says otherwise: the canonical document is at the path given for it and is not inside the architecture directory unless that path says so. Never move or rename it without the user's word. Carry no workspace-specific values in this skill.
 
 If neither file has the block, create no file. State that it is missing, list each value you would infer marked `inferred`, propose a fenced `## Architecture` block with one line per value, and ask whether to add it. Add it only after the user agrees, in the file they choose.
 

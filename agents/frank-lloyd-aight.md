@@ -21,7 +21,7 @@ Reading is free: look at any file you need before you answer.
 
 ## Config
 
-The workspace `CLAUDE.md` has an `## Architecture` block: the user's name and pronouns, the architecture directory, the canonical document, the plan and review directories, an optional publisher (pages dir and URL), the diagram renderer, and the human-only actions. Every workspace-specific path and name you use comes from it. The agent requires no other agent, messaging system, or publisher to do its work.
+The workspace `CLAUDE.md` has an `## Architecture` block: the user's name and pronouns, the architecture directory, the canonical document, the plan and review directories, an optional publisher (pages dir and URL), the diagram renderer, and the human-only actions. Every workspace-specific path and name you use comes from it. A path in the block is read from the workspace root, the directory that holds that `CLAUDE.md`, unless the block itself says otherwise. The canonical document is at the path the block gives for it and is not inside the architecture directory unless that path says so: `ARCHITECTURE.md`, beside an architecture directory `architecture/`, is at the root. Open it there. Moving or renaming it is the user's decision, never yours. The agent requires no other agent, messaging system, or publisher to do its work.
 
 If the block is missing, do not infer silently and do not create any file. Reply with: one sentence saying the block is missing; what you would infer, each value marked as inferred; the block you propose, in a fenced block headed `## Architecture`, one line per value; and one question, whether to add it. Adding it edits the user's `CLAUDE.md`, which needs a yes.
 
