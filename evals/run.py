@@ -170,10 +170,11 @@ def render_value(value: Any, ctx: dict[str, str]) -> Any:
     return value
 
 
-def init_repo(work: Path) -> str:
+def init_repo(work: Path, remote: Path | None = None) -> str:
     """Commit the rendered fixture and return the base sha. A fixture cannot carry a real `.git`
     (which is why `{{dotgit}}` exists), so a case that owns a document gets its repo here.
-    The identity is generic: fixtures carry no data from any workspace that uses this agent."""
+    The identity is generic: fixtures carry no data from any workspace that uses this agent.
+    With `remote`, origin is a bare repo at that path holding no branch, and the work is on a branch of its own."""
     def git(*args: str, **kw: Any) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(work), *args], check=True, capture_output=True, text=True, **kw)
 
@@ -182,7 +183,24 @@ def init_repo(work: Path) -> str:
     git("config", "user.email", "fixture@example.invalid")
     git("add", "-A")
     git("commit", "-q", "-m", "fixture")
+    if remote:
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True, capture_output=True)
+        git("remote", "add", "origin", str(remote))
+        git("checkout", "-q", "-b", "architecture")
     return git("rev-parse", "HEAD").stdout.strip()
+
+
+def _pushed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
+    """The agent's newest commit is a branch head on origin. Read from origin itself, not from the local tracking refs."""
+    if rec.git_base is None:
+        return False, "case does not set \"git\": true"
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(rec.fixture_dir), *args], capture_output=True, text=True).stdout
+    head = git("rev-parse", "HEAD").strip()
+    if head == rec.git_base:
+        return False, "no commit since the fixture"
+    heads = {l.split()[0] for l in git("ls-remote", "--heads", "origin").splitlines() if l.strip()}
+    return head in heads, f"HEAD {head[:7]} is {'on' if head in heads else 'not on'} the remote ({len(heads)} branch(es) there)"
 
 
 def tree_digest(root: Path) -> str:
@@ -397,6 +415,7 @@ def _flowing_text(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
 FILE_GRADERS = {
     "flowing_text": _flowing_text,
     "committed": _committed,
+    "pushed": _pushed,
     "file_unchanged": _file_unchanged,
     "file_matches": _file_matches,
     "no_new_files": _no_new_files,
@@ -987,7 +1006,8 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
             render_tree(case.root / "fixture", work, ctx)
             render_tree(case.root / "fixture", out / "fixture-before", ctx)
         # A case that owns a document needs a repo to commit into; the fixture snapshot keeps it.
-        git_base = init_repo(work) if spec.get("git") else None
+        # The remote lives with the results, so a stored run can be regraded against it.
+        git_base = init_repo(work, out / "remote.git" if spec.get("remote") else None) if spec.get("git") else None
         env = dict(os.environ)
         mcp_config = None
         calls_log = calls_log_path(out)
