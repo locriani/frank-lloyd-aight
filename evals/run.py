@@ -55,8 +55,8 @@ TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
 ALLOWED = [
     "Bash(date:*)",
     "Read", "Glob", "Grep",
-    "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
-    "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)",
+    "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./pages/**)", "Edit(./architecture/**)",
+    "Write(./plans/**)", "Write(./reviews/**)", "Write(./pages/**)", "Write(./architecture/**)",
 ]
 # The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
