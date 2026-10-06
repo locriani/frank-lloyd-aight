@@ -896,4 +896,13 @@ Zach, 21:23: "continuously take the improvements and write code to fix them." Th
 
 New ceiling, marked `ponytail:`: any line holding a pipe is read as a table row.
 
-Still open from the two reviews, not in this round: an Edit that completes a cap begun on the line above; caps through `var()`, other units and Tailwind classes; two regexes that are quadratic on unclosed tags; wraps inside HTML blocks in markdown and beside inline tags; the hook being active in the baseline arm; and the eval-case findings on #7 and #8.
+**Review round.** The reviewer agent blocked the first head (4df0fce) on two new refusals and named misses the fixes had introduced. Red at fbf2f6b, with a still-caught case beside each exemption so that widening one fails a test.
+
+- **No longer refused:** tab-indented code whose lines start with `>`; front matter closed with three dots.
+- **Caught again:** a wrap after a math fence nothing closes (math now ends on a blank line), after a comment mark inside indented code, and on an indented continuation inside a quote; a cap after a bracket inside a string, and in a tag whose earlier attribute holds `>` or `<`.
+- **Page CSS is read by the HTML parser, not a regex.** `_Page` hands each style element's body and each style attribute's value to `caps()`. This removes `STYLED`, `html_caps` and the `SVG` regex, and with them the two patterns that were quadratic on unclosed tags. The three patterns this branch added are bounded too: 80,000 hostile characters check in about 0.01 s each.
+- **Behaviour change:** an indented line directly under prose is that prose continued, as CommonMark has it, and no longer code. Against 347 real markdown and HTML files here the only differences from main are two September daily logs, where it names hard-wrapped list items main missed.
+
+New ceiling, marked `ponytail:`: a `calc()` with any percentage in it is read as following the window.
+
+Still open from the two reviews, not in this round: an Edit that completes a cap begun on the line above; caps through `var()`, other units and Tailwind classes; text after a comment's end mark on its closing line; a leading rule with a later rule hiding what lies between; wraps inside HTML blocks in markdown and beside inline tags; the hook being active in the baseline arm; and the eval-case findings on #7 and #8.

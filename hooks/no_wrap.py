@@ -15,16 +15,19 @@ from pathlib import Path
 WRAP = "line break inside prose; a paragraph or list item is one line and the renderer wraps it"
 CAP = "width cap; text runs the width of the window, so remove it"
 
-QUOTE = re.compile(r"^\s{0,3}(?:>\s?)+")
-# What opens a block that keeps its own lines: a code fence, or a math fence alone on its line. A comment left open is the third (see _opens).
+# A quote marker sits at most three spaces in; a tab or four spaces before it make the line code.
+QUOTE = re.compile(r"^ {0,3}(?:>[ \t]?)+")
+# What opens a verbatim block, which keeps its own lines: a code fence, a math fence alone on its line, or a comment left open.
+MATH, COMMENT = "$$", "<!--"
 FENCE = re.compile(r"\s*(`{3,}|~{3,}|\$\$(?=\s*$))")
-COMMENT = "<!--"
-BREAKS = ("  ", "\\", "<br>", "<br/>", "<br />")
-# ponytail: any line indented four or more is read as code, so a wrap inside a nested list item is missed; parse list depth if that shows up.
+OPEN_COMMENT = re.compile(r" {0,3}<!--(?!.*-->)")
+FRONT_END = ("---", "...")
+BREAK_TAGS = ("<br>", "<br/>", "<br />")
+# ponytail: a line indented four or more under a blank line is read as code, so a wrap inside a nested list item is missed; parse list depth if that shows up.
 INDENT = re.compile(r"(?: {4}|\t)")
 # A line nothing can run on from: blank, a heading, a table row, markup, a reference definition, an alert marker, a rule.
 # ponytail: any line holding a pipe is read as a table row, so a wrap in prose that has a pipe in it is missed.
-_CLOSED = r"#{1,6}\s|[^|\n]*\||<|\[[^\]]+\]:\s|\[![A-Za-z]+\]\s*$|(?:[-*_=]\s*){3,}$|$"
+_CLOSED = r"#{1,6}\s|\||[^\s|][^|]*\||<|\[[^\]]+\]:\s|\[![A-Za-z]+\]\s*$|(?:[-*_=]\s*){3,}$|$"
 CLOSED = re.compile(rf"\s*(?:{_CLOSED})")
 # A line that starts its own block, so it never continues the line above.
 STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s)")
@@ -40,61 +43,83 @@ def _opens(line: str) -> str | None:
     mark = FENCE.match(line)
     if mark:
         return mark[1]
-    return COMMENT if line.lstrip().startswith(COMMENT) and "-->" not in line else None
+    return COMMENT if OPEN_COMMENT.match(line) else None
 
 
-def _closes(line: str, block: str) -> bool:
-    """A fence closes on a line that is only its own character, at least as long as it opened; a comment on its end mark."""
-    if block == COMMENT:
-        return "-->" in line
+def _ends(line: str, verbatim: str) -> bool:
+    """A comment ends on its end mark, math on its fence or a blank line, a code fence on a run of its own character at least as long."""
     run = line.strip()
-    return len(run) >= len(block) and run == block[0] * len(run)
+    if verbatim == COMMENT:
+        return "-->" in line
+    if verbatim == MATH:
+        return run in ("", MATH)
+    return len(run) >= len(verbatim) and run == verbatim[0] * len(run)
+
+
+def _breaks(line: str) -> bool:
+    """The line ends in a break the author asked for."""
+    return line.endswith(("  ", "\\")) or line.rstrip().lower().endswith(BREAK_TAGS)
 
 
 def markdown(text: str) -> list[tuple[int, str]]:
-    out, block, prev, quoted = [], None, "", False
+    out, verbatim, prev, quoted = [], None, "", False
     rows = text.split("\n")
-    # Front matter is closed by a second rule; a leading rule with none after it is only a rule.
-    front = rows[0].strip() == "---" and any(row.strip() == "---" for row in rows[1:])
+    # Front matter is closed by a second rule or three dots; a leading rule with neither after it is only a rule.
+    front = rows[0].strip() == "---" and any(row.strip() in FRONT_END for row in rows[1:])
     for n, raw in enumerate(rows, 1):
         if front:
-            front = n == 1 or raw.strip() != "---"
+            front = n == 1 or raw.strip() not in FRONT_END
             continue
         line = QUOTE.sub("", raw)
         # A quote that starts under an unquoted line is a new block, not that line's continuation.
         was, quoted = quoted, line != raw
         if quoted and not was:
             prev = ""
-        if block:
-            block = None if _closes(line, block) else block
+        if verbatim:
+            verbatim = None if _ends(line, verbatim) else verbatim
             continue
-        block = _opens(line)
-        if block:
+        verbatim = _opens(line)
+        if verbatim:
             prev = ""
             continue
-        code = INDENT.match(line)
-        if prev and not code and not STARTS.match(line) and not prev.endswith(BREAKS):
+        # Code cannot interrupt a paragraph: an indented line under prose is that prose continued.
+        code = not prev and INDENT.match(line)
+        if prev and not STARTS.match(line) and not _breaks(prev):
             out.append((n, WRAP))
         prev = "" if code or CLOSED.match(line) else line
     return out
 
 
-class _Text(HTMLParser):
-    """Text nodes that carry a line break between words. Code, scripts, styles and drawings keep their own lines."""
+class _Page(HTMLParser):
+    """A page's wrapped text nodes and the width caps in its CSS. Code, scripts, styles and drawings keep their own lines, and a drawing its own sizes."""
 
     KEEP = {"pre", "script", "style", "textarea", "svg"}
 
     def __init__(self) -> None:
         super().__init__()
-        self.keep, self.out = 0, []
+        self.keep, self.svg, self.css, self.out = 0, 0, False, []
+
+    def _caps(self, css: str, line: int) -> None:
+        if not self.svg:
+            self.out += [(line + n - 1, why) for n, why in caps(css)]
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         self.keep += tag in self.KEEP
+        self.svg += tag == "svg"
+        self.css = tag == "style"
+        style = dict(attrs).get("style")
+        if style:
+            raw = self.get_starttag_text() or ""
+            self._caps(style, self.getpos()[0] + raw.count("\n", 0, max(raw.find(style), 0)))
 
     def handle_endtag(self, tag: str) -> None:
         self.keep -= tag in self.KEEP and self.keep > 0
+        self.svg -= tag == "svg" and self.svg > 0
+        self.css = False
 
     def handle_data(self, data: str) -> None:
+        if self.css:
+            self._caps(data, self.getpos()[0])
         # ponytail: a break that falls right beside an inline tag is its own text node and is missed.
         body = data.strip()
         if not self.keep and "\n" in body:
@@ -103,23 +128,20 @@ class _Text(HTMLParser):
 
 
 def html(text: str) -> list[tuple[int, str]]:
-    parser = _Text()
+    parser = _Page()
     parser.feed(text)
     parser.close()
     return parser.out
 
 
-# Not declarations: a drawing's own size and label widths, a comment, and the condition of an at-rule such as a breakpoint.
-SVG = re.compile(r"<svg\b.*?</svg>", re.I | re.S)
+# Not declarations: a comment, the condition of an at-rule such as a breakpoint, and an attribute selector, which never holds a brace.
 SKIPPED = (
-    SVG,
     re.compile(r"/\*.*?\*/", re.S),
     re.compile(r"@(?:media|container|supports|import)\b[^{;]*", re.I),
-    re.compile(r"\[[^\]\n]*\]"),  # an attribute selector's value is not a declaration
-    re.compile(r"calc\([^()]*%[^()]*\)", re.I),  # a width worked out from a percentage follows the window
+    re.compile(r"\[[^\]\[\n{};]*\]"),
 )
-# Where a page holds CSS: a style element's body, or the value of a style attribute inside a real tag.
-STYLED = re.compile(r"<style\b[^>]*>(.*?)</style>|<[a-z][^<>]*?\sstyle\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.S)
+# ponytail: a calc() with any percentage in it is read as following the window, so calc(600px + 0%) is missed.
+CALC = re.compile(r"calc\((?:[^();{}]|\([^();{}]*\))*\)", re.I)
 
 
 def _blank(m: re.Match) -> str:
@@ -131,21 +153,11 @@ def caps(text: str) -> list[tuple[int, str]]:
     """Width caps in CSS text."""
     for skip in SKIPPED:
         text = skip.sub(_blank, text)
+    text = CALC.sub(lambda m: _blank(m) if "%" in m[0] else m[0], text)
     return [(text.count("\n", 0, m.start()) + 1, CAP) for m in CAPPED.finditer(text)]
 
 
-def html_caps(text: str) -> list[tuple[int, str]]:
-    """Width caps in a page's CSS only; a cap named in its prose is not one."""
-    text = SVG.sub(_blank, text)
-    kept = list(re.sub(r"[^\n]", " ", text))
-    for m in STYLED.finditer(text):
-        a, b = m.span(m.lastindex)
-        kept[a:b] = text[a:b]
-        kept[b] = ";"  # one declaration never runs on into the next style
-    return caps("".join(kept))
-
-
-CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html, html_caps), ".htm": (html, html_caps), ".css": (caps,)}
+CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html,), ".htm": (html,), ".css": (caps,)}
 
 
 def problems(name: str, text: str) -> list[tuple[int, str]]:
