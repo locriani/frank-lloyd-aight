@@ -973,14 +973,38 @@ Left: a push that creates `main` on an empty remote passes the case, and the rul
 
 No plugin change and no version. Six cases allowed `Bash(git:*)`: the four merged before 2026-10-05, `triaged-finding-is-filed`, and the push case of 0.15.0. Under that rule a run can execute a shell through an alias (`git -c alias.x='!sh …' x`), reach any repo on the machine with `git -C`, and write the user's global config. The commit security review named it, and the review of #12 had listed it as left.
 
-It took three attempts, each of the first two caught by the commit security review:
+**What it is now.** No permission rule names git, and `command()` raises on any git rule in a case's own allow list. For a case with `"git": true` a git command prompts the harness, and `git_ok` reads the whole command:
 
-1. **A permission rule per subcommand** (a0800dc red, f32713e green). Still lets through `git log --output=<any file>` and `git push --receive-pack=<any command>`: a prefix rule cannot see an option.
-2. **The host answers for git** (96aab3b red, then green). No permission rule names git; a git command prompts the harness, and `git_ok` reads the whole command. Every part of it must be an allowed subcommand with no option that writes a file or runs a command, or a command that only reads; nothing else may be chained, substituted or redirected. It matched refused options by their full names, and git takes any unambiguous prefix (`--outp=`).
-3. **Abbreviations, push targets, redirects** (a138ae9 red, then green). An option that abbreviates a refused one is refused. A push goes to `origin` as one plain ref at most, with no refspec and no force, so it cannot name another repo on the machine. The one redirect let through is `2>&1`.
+- every part is an allowed subcommand (`GIT`; `push` only with `"remote": true`; listing worktrees and remotes) or a command that only reads (`READS`);
+- no option that writes a file, runs a command or waits on a person, abbreviated or not, in any part;
+- a push goes to `origin` as one plain ref at most, with no refspec and no force;
+- no substitution, no brace, no comment, no continued line, and no redirect but `2>&1` and `2>/dev/null`;
+- `cd` and `-C` are let through only when they name the run's own directory;
+- no `git mv`, with which a run could move its own file onto the renderer the host runs for it.
 
-Beside it, `run_env` cuts every run off from the user's global and system git config, points `core.hooksPath` at the null device over the work tree's own config, and sets `GIT_EDITOR=true` and `GIT_TERMINAL_PROMPT=0`. `command()` raises on `Bash(git:*)`, and one existing test that used that rule as its example of an appended rule now uses a subcommand rule.
+`run_env` cuts every run off from the user's global and system git config, points `core.hooksPath` at the null device over the work tree's own config, and sets `GIT_EDITOR=true` and `GIT_TERMINAL_PROMPT=0`.
 
-On Sonnet under the host check: `committed-work-is-pushed` 3 of 3 (20261006-003541). `triaged-finding-is-filed` 0 of 3 in the same run; its baseline on Sonnet was never measured, two of its three failures are the same missing owner and missing messages `compliance-is-filed-to-the-builder` shows without this change, and one is new and from this change: run 3 tried `git -C <its own directory> checkout -b …`, was refused, and did not commit.
+**How it got there.** Five rounds, each of the first four found wanting by the commit security review or by the reviewer of #14:
 
-Left: `-C` is refused even when it names the run's own directory, because the check does not know the directory; `cat`, `grep` and `git diff --no-index` can read any file the process can; the option list is a deny list with abbreviations handled, not an allow list per subcommand; `compliance-is-filed-to-the-builder`, `fix-drift-dont-hand-it-back`, `standalone-compliance` and `compliance-verdict-on-request` were not rerun under the host check; two runs edited the document through `python3 -` in the shell before falling back to Edit, which the harness refused and the agent's rules do not forbid.
+| Round | Red | Green | What the round before it had let through |
+|---|---|---|---|
+| A rule per subcommand | a0800dc | f32713e | `Bash(git:*)` itself |
+| The host reads the command; abbreviations, push targets | 96aab3b, a138ae9 | 150d0c8 | `--output=`, `--receive-pack=`; then `--outp=` and a push to any repo |
+| Review of #14 | 86250cc | 150d0c8 | `git mv -f`, `--chmod`, `-p` `-i` `-t`, a second spelling of the git rule; and it refused `git remote -v` and `2>/dev/null`, which runs chain to a commit |
+| The run's own directory | 62194b2 | 85373ef | nothing; it refused `cd <own directory>` and `git -C <own directory>`, and two stored runs lost their commit to that |
+| Where the shell reads differently | acec8c9 | e2e75dc | a continued line, a comment, a brace expansion and a quoted separator, each carrying `--output=` |
+
+The pipeline was red at every commit from 96aab3b to 86250cc, 81b76cb and 1b13708 included, and not only for the tests meant to fail: the new test class had been inserted in the middle of `PerCaseSandboxTest`, which left one existing test in a class without its helpers. The reviewer found it; 86250cc moved it back. Two existing tests changed: the example rule in `test_allow_is_appended_to_the_default` is now `Bash(wc:*)`, since a git rule is refused, and the whole-environment assertion the hook test lost is restored as a test of its own.
+
+**On Sonnet.** `committed-work-is-pushed` is 3 of 3 under the host check in each of three runs (20261006-002938, -003541, -004349). The five other git cases are red on Sonnet with and without this change. Run 20261006-005118, three runs a case, on this branch at 85373ef and on its base at 05730c5:
+
+| Case | Base, `Bash(git:*)` | This branch |
+|---|---|---|
+| `compliance-verdict-on-request` | red | green |
+| `fix-drift-dont-hand-it-back` | red | red |
+| `standalone-compliance` | red | red |
+| `triaged-finding-is-filed` | red | red |
+
+In that run the host refused no git command on this branch; every refusal on both sides was a shell loop or a `find`, which the harness has always refused. `compliance-is-filed-to-the-builder` was not in the pair and is 0 of 3 on both sides in earlier runs. The pair ran one round before e2e75dc and was not repeated after it.
+
+Left: `cat`, `grep` and `git diff --no-index` can read any file the process can; the option list is a deny list, not an allow list per subcommand; behind a quoted separator a short `-p` or `-i` still reaches `git add`, untested in a run; a glob is not refused; five git cases are red on Sonnet for reasons this change did not make and does not fix; runs edit the document through `python3 -` in the shell before falling back to Edit, which the harness refuses and the agent's rules do not forbid.
