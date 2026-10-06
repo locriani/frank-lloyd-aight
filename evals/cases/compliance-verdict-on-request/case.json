@@ -101,6 +101,20 @@
         "plans/**",
         "architecture/**"
       ]
+    },
+    {
+      "name": "the document is not looked for inside the architecture directory",
+      "type": "tool_used",
+      "tool": "Read|Bash|Glob|Grep",
+      "input_match": "architecture/ARCHITECTURE\\.md",
+      "max": 0
+    },
+    {
+      "name": "the document is opened where the block says",
+      "type": "tool_used",
+      "tool": "Read|Bash",
+      "input_match": "(?<!architecture/)ARCHITECTURE\\.md",
+      "min": 1
     }
   ],
   "max_turns": 10,
