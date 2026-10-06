@@ -138,8 +138,7 @@ def written(event: dict) -> tuple[str, str, set[int] | None]:
     after, lines = parts[0], set()
     for part in parts[1:]:
         first = after.count("\n") + 1
-        # One line past the new text: a wrap is named on the line that continues.
-        lines.update(range(first, first + new.rstrip("\n").count("\n") + 2))
+        lines.update(range(first, first + new.rstrip("\n").count("\n") + 1))
         after += new + part
     return path, after, lines
 
@@ -150,7 +149,8 @@ def main() -> int:
         if event.get("tool_name") not in ("Write", "Edit"):
             return 0
         path, text, lines = written(event)
-        found = [(n, why) for n, why in problems(path, text) if lines is None or n in lines]
+        # A wrap is named on the line that continues, so the line after the edit answers for a wrap. A cap answers only where it was written.
+        found = [(n, why) for n, why in problems(path, text) if lines is None or n in lines or (why == WRAP and n - 1 in lines)]
     except (ValueError, TypeError, AttributeError, OSError):
         return 0
     if found:
