@@ -8,7 +8,8 @@
       "type": "tool_used",
       "tool": "Bash",
       "input_match": "mermaid-check\\.py[^\"]*flow\\.md",
-      "min": 1
+      "min": 1,
+      "ran": true
     },
     {
       "name": "the diagram is not approved",

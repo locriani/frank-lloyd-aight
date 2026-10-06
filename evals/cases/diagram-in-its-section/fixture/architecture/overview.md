@@ -9,7 +9,7 @@ A client posts an event for a session. `api.enqueue` hands it to `queue.publish`
 | Step | Caller | Callee | What crosses |
 |---|---|---|---|
 | 1 | client | `api.enqueue` | the session id and the event |
-| 2 | `api.enqueue` | `queue.publish` | the event |
+| 2 | `api.enqueue` | `queue.publish` | the event with the session id added |
 | 3 | client | `api.get_session` | the session id |
 | 4 | `api.get_session` | `store.get` | the session id |
 
