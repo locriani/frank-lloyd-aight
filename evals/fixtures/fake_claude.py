@@ -6,7 +6,8 @@ cwd so tests can check per-turn fixture snapshots. A user message containing SLE
 BACKGROUND is followed by an unprompted notification turn; INLINE carries the notification inside its own
 turn; LINGER keeps the process alive after stdin closes. QUESTION asks one AskUserQuestion through a
 control_request and reports the label the host answered with; DENYME asks permission for a Bash rm and
-reports whether the host denied it, with an empty permission_denials in the result either way.
+reports whether the host denied it, with an empty permission_denials in the result either way; GITHERE
+asks permission for a git command that names its own directory and reports the same.
 """
 
 import json
@@ -78,6 +79,15 @@ while True:
         emit({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_deny_1", "name": "Bash", "input": {"command": "rm -rf x"}}]}})
         answer = ask_host("Bash", {"command": "rm -rf x"}, "toolu_deny_1") or {}
         final = "denied by host" if answer.get("behavior") == "deny" else "ran rm"
+        emit(text(final))
+        emit(result(final))
+        continue
+    if "GITHERE" in msg:
+        command = f"cd {Path.cwd()} && git status"
+        emit(init())
+        emit({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_git_1", "name": "Bash", "input": {"command": command}}]}})
+        answer = ask_host("Bash", {"command": command}, "toolu_git_1") or {}
+        final = "denied by host" if answer.get("behavior") == "deny" else "let through"
         emit(text(final))
         emit(result(final))
         continue

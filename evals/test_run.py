@@ -468,6 +468,12 @@ class MultiTurnTest(unittest.TestCase):
             turns = run.drive_turns(self.FAKE, ["QUESTION pick"], Path(cwd), None, 20, lambda n: None, answers=[None], host_log=log)
             self.assertEqual(run.parse_stream(turns[0].events).last_text, "answered: Keep (Recommended)")
 
+    def test_the_host_is_handed_the_case_s_git_and_the_run_s_directory(self) -> None:
+        for git, want in ((("status",), "let through"), ((), "denied by host")):
+            with tempfile.TemporaryDirectory() as cwd:
+                turns = run.drive_turns(self.FAKE, ["GITHERE"], Path(cwd), None, 20, lambda n: None, answers=[None], git=git)
+                self.assertEqual(run.parse_stream(turns[0].events).last_text, want)
+
     def test_other_prompt_is_denied_and_recorded(self) -> None:
         # A prompted tool that is not the question tool is denied by the host and counted as a denied attempt even when the result's permission_denials is empty.
         spec = {"turns": [{"prompt": "DENYME", "graders": [{"name": "no rm", "type": "tool_used", "tool": "Bash", "max": 0}]}]}
@@ -606,6 +612,11 @@ class PerCaseSandboxTest(unittest.TestCase):
         self.assertIn("push", run.git_subcommands({"git": True, "remote": True}))
         self.assertEqual(run.git_subcommands({"remote": True}), ())
 
+    def test_a_git_case_is_not_denied_git_by_default(self) -> None:
+        # The host answers for git; a default deny rule would refuse the commit before the host was asked.
+        self.assertEqual(self.flag(self.cmd({"git": True}), "--disallowedTools"), ["Bash(rm:*)", "Bash(rmdir:*)"])
+        self.assertEqual(self.flag(self.cmd({}), "--disallowedTools"), run.DISALLOWED)
+
     def test_deny_replaces_the_default(self) -> None:
         deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
         self.assertEqual(deny, ["Bash(rm:*)", "Bash(git push:*)"])
@@ -669,7 +680,7 @@ class GitCommandTest(unittest.TestCase):
         for command in ("git push /some/other/repo HEAD", "git push ../other HEAD:main", "git push origin +HEAD", "git push origin HEAD:main", "git push --force origin HEAD", "git push -f origin HEAD", "git push origin HEAD extra", "git push --mirror origin", "git push upstream HEAD"):
             self.assertFalse(self.ok(command), command)
 
-    def test_a_redirect_is_only_ever_stderr_onto_stdout(self) -> None:
+    def test_a_redirect_only_ever_sends_stderr_onto_stdout_or_nowhere(self) -> None:
         self.assertTrue(self.ok("git status 2>&1 | tail -3"))
         for command in ("git status 2>&1x", "git status 2>/tmp/x", "git status 1>&2 > /tmp/x", "git log --outp 2>&1ut=/tmp/x"):
             self.assertFalse(self.ok(command), command)
@@ -694,6 +705,24 @@ class GitCommandTest(unittest.TestCase):
             for command in (f"cd {other} && git status", f"git -C {other} status", f"cd {here}/../other && git status", "cd architecture && git status", f"git -C {here} -c alias.x=!id x", f"cd {here} {other} && git status"):
                 self.assertFalse(run.git_ok(command, self.SUBS, here), command)
             self.assertFalse(run.git_ok(f"cd {here} && git status", self.SUBS))
+            # -C is git's alone: on another command it is that command's own option.
+            for command in (f"git status; make -C {here} status -f architecture/x.mk", f"git status && env -C {here} show"):
+                self.assertFalse(run.git_ok(command, self.SUBS, here), command)
+        # A relative path would be read against the harness's directory, not the run's.
+        self.assertFalse(run.git_ok("cd evals && git status", self.SUBS, Path.cwd() / "evals"))
+
+    def test_a_quoted_or_escaped_separator_is_refused(self) -> None:
+        # The host would split there and the shell would not, so whatever follows escapes the checks on its own part.
+        for command in ("git push origin HEAD ';' echo --force", "git push origin ';' echo HEAD:main", "git branch ';'", "git add ';' echo -p", 'git add "&&" echo -i', "git log \\; cat x", "git commit -m x '|' echo -t /x", "git status '\n' ls"):
+            self.assertFalse(self.ok(command), command)
+        for command in ('git commit -qm "one; two | three && four"', "git commit -qm 'a\nb' && git status; git log --oneline | head -3"):
+            self.assertTrue(self.ok(command), command)
+
+    def test_the_short_forms_that_wait_on_a_person_are_refused(self) -> None:
+        for command in ("git add -p", "git add -i", "git commit -t /x", "git commit -t/x", "git checkout -p", "git commit -qp", "git add --chmod=+x a"):
+            self.assertFalse(self.ok(command), command)
+        for command in ("git log -p -1", "git diff -p", "git commit -qam x", "git checkout -b x", "git add -A"):
+            self.assertTrue(self.ok(command), command)
 
     def test_where_the_shell_reads_the_command_differently_it_is_refused(self) -> None:
         for command in (
