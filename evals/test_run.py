@@ -242,6 +242,11 @@ class ToolUsedTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("1", detail)
 
+    def test_a_refused_call_did_not_run(self) -> None:
+        ok, detail = run.grade({"type": "tool_used", "tool": "Bash", "input_match": r"git\s+commit", "min": 1, "ran": True}, self.rec)
+        self.assertFalse(ok)
+        self.assertIn("0 ran", detail)
+
     def test_absent_tool_fails_min(self) -> None:
         ok, _ = run.grade({"type": "tool_used", "tool": "Agent", "min": 1}, self.rec)
         self.assertFalse(ok)
