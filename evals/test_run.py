@@ -649,6 +649,24 @@ class GitCommandTest(unittest.TestCase):
         ):
             self.assertFalse(self.ok(command), command)
 
+    def test_an_abbreviated_option_is_the_option(self) -> None:
+        # git takes any unambiguous prefix of a long option.
+        for command in ("git log --outp=/tmp/x", "git diff --out /tmp/x", "git push --receive='sh -c id' origin HEAD", "git push --ex=id origin HEAD", "git commit --templ=/tmp/x", "git log --o=/tmp/x"):
+            self.assertFalse(self.ok(command), command)
+        for command in ("git log --oneline", "git diff --stat --exit-code", "git add --all", "git status --porcelain"):
+            self.assertTrue(self.ok(command), command)
+
+    def test_a_push_goes_to_origin_and_nowhere_else(self) -> None:
+        for command in ("git push origin HEAD", "git push -u origin architecture", "git push --set-upstream -q origin docs/section-3", "git push"):
+            self.assertTrue(self.ok(command), command)
+        for command in ("git push /some/other/repo HEAD", "git push ../other HEAD:main", "git push origin +HEAD", "git push origin HEAD:main", "git push --force origin HEAD", "git push -f origin HEAD", "git push origin HEAD extra", "git push --mirror origin", "git push upstream HEAD"):
+            self.assertFalse(self.ok(command), command)
+
+    def test_a_redirect_is_only_ever_stderr_onto_stdout(self) -> None:
+        self.assertTrue(self.ok("git status 2>&1 | tail -3"))
+        for command in ("git status 2>&1x", "git status 2>/tmp/x", "git status 1>&2 > /tmp/x", "git log --outp 2>&1ut=/tmp/x"):
+            self.assertFalse(self.ok(command), command)
+
     def test_push_needs_the_case_to_have_a_remote(self) -> None:
         self.assertFalse(self.ok("git push -u origin HEAD", run.git_subcommands({"git": True})))
 
