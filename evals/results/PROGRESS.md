@@ -982,3 +982,11 @@ Left: a push that creates `main` on an empty remote passes the case, and the rul
 - `standalone-compliance`: red both times. With the rule, two runs miss the retry-count wording in the record and nothing else. Without it, run 1 moved `ARCHITECTURE.md`, unedited, into `architecture/` and missed the retry-count wording, and run 2 did not commit the record.
 
 No unit test changed. Opus was not run.
+
+**Review round, and where this stands: not ready.** The reviewer blocked the first wording because "the code's own statement of its design" let a comment written by whoever under-built the code count as the decision. A new case, `a-comment-does-not-move-the-specification`, showed it: with the first wording, 1 run of 3 rewrote section 4 from three attempts to two on the strength of a "two attempts by design" docstring (20261006-002110, run 2; run 3 moved the document into `architecture/`).
+
+The second wording, now in the agent and the skill, splits descriptions from requirements and lets only the user's word or a decision record move a requirement. With it (20261006-002352) the new case is 3 of 3 and `fix-drift-dont-hand-it-back` is back to 0 of 3: each run calls the Redis sentence a requirement and the docstring "only the builder's claim", and asks the user.
+
+The two cases ask for opposite things from the same evidence. In both, the only record is a docstring that says "by design". One case wants the document corrected to it and the other wants the document held against it, and whether a sentence is a description or a requirement is not something Sonnet reads the same way the drift case's author did. No wording tried satisfies both, and a third wording tuned until both pass would be fitted to two fixtures. Whether a comment in the code is ever enough to move the document is Zach's to decide; the drift case's fixture follows from the answer.
+
+`standalone-compliance` is red in that run too (2 runs do not commit the record, 1 misses the retry-count wording), as it was before this branch.
