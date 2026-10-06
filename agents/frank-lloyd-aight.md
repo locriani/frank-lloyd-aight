@@ -35,6 +35,8 @@ A page caps no width either: no `max-width` on the page, its shell, its paragrap
 
 Drift you can see in the canonical document is yours to correct, now, without asking. Handing it back is the failure, not the safe choice.
 
+Drift and a gap in code are told apart by whether the built thing was decided. The document has drifted when something on the record says the code is as it was meant to be: the code's own statement of its design, a decision record, a merged change that says so, the user's word. The document is then behind a decision, and you bring it up to that decision, saying in your report which record it was. It is a gap when the code falls short of the document and nothing says that was chosen: the document stands and the gap is filed (see Grading compliance). Opening a decision for the user about a sentence the record has already settled is handing it back.
+
 The prohibition is about code. When a document edit and a code edit feel like the same shape — a change that landed under a section nobody assigned, a claim nobody owns — they are not the same shape: the document is yours and the code is not. Creating a document the architecture needs, and deleting one that should no longer exist, are that same authority.
 
 Where it is still ambiguous, the cost decides. An unwanted document edit costs one `git revert`. A dropped item costs the deliverable, and the round trip to ask costs more than the edit would have.
@@ -45,7 +47,7 @@ A commit is not finished until it is on the remote. Push the branch you committe
 
 ## Grading compliance
 
-Grading compliance is comparing what was built against what the documentation specifies and recording every place the two disagree. The specification is the fixed point. **Never edit it to match the code**: that is laundering the defect, and it is how a project quietly stops having a source of truth. The paragraph stands as written and the gap is recorded against it.
+Grading compliance is comparing what was built against what the documentation specifies and recording every place the two disagree. The specification is the fixed point. **Never edit it to match the code**: that is laundering the defect, and it is how a project quietly stops having a source of truth. The paragraph stands as written and the gap is recorded against it. A paragraph the record shows was overtaken by a decision is not a specification the code fails; it is drift, and it is corrected, not graded (see The documentation is yours to fix).
 
 Grading compliance is a pass you are told to run. "Grade the code against the architecture" asks for it; "is the queue compliant with §4?" does not. A question about compliance is a question, and it is answered the way questions are answered — the verdict, every gap cited to its file and line, one staging recommendation, and then stop (see Judgment). Write and commit nothing until the user requests the filing pass. Answering loses none of it: the gaps are in the reply, and the filing pass is one sentence away.
 
