@@ -596,6 +596,13 @@ class PerCaseSandboxTest(unittest.TestCase):
             with self.assertRaises(ValueError, msg=rule):
                 self.cmd({"sandbox": {"allow": [rule]}})
 
+    def test_a_rule_for_git_by_its_path_is_refused(self) -> None:
+        for rule in ("Bash(/usr/bin/git:*)", "Bash(./git status:*)", "Bash(/opt/homebrew/bin/git *)"):
+            with self.assertRaises(ValueError, msg=rule):
+                self.cmd({"sandbox": {"allow": [rule]}})
+        # A rule that only has git in a longer name is not a rule for git.
+        self.cmd({"sandbox": {"allow": ["Bash(tools/gitlint:*)"]}})
+
     def test_no_case_allows_git_by_rule(self) -> None:
         for path in sorted((run.EVALS / "cases").glob("*/case.json")):
             allow = (json.loads(path.read_text()).get("sandbox") or {}).get("allow", [])
@@ -666,6 +673,12 @@ class GitCommandTest(unittest.TestCase):
             "ls",
         ):
             self.assertFalse(self.ok(command), command)
+
+    def test_a_signed_commit_is_refused(self) -> None:
+        # Signing runs gpg, or whatever program the configuration names for it.
+        for command in ("git commit -S -m x", "git commit -aS -m x", "git commit -SKEY -m x", "git commit --gpg-sign -m x", "git commit --gpg-sign=KEY -m x", "git commit --gpg -m x"):
+            self.assertFalse(self.ok(command), command)
+        self.assertTrue(self.ok("git commit -m 'Sign off the record'"))
 
     def test_an_abbreviated_option_is_the_option(self) -> None:
         # git takes any unambiguous prefix of a long option.
