@@ -968,3 +968,17 @@ Two earlier runs of the case are not evidence and are kept only as a record (202
 With the review fixes the case ran 2 of 3 as first graded (20261005-235141). The third run changed, committed and pushed, and failed only "the reply says what changed", a verb list copied from the drift case that its reply ("Section 3 … now says …", "I removed the old claims") did not happen to use. In this case only, the list gains "removed" and "now says", and a grader is added that the reply says it is pushed. Regraded with those, the run is 3 of 3. The drift case's own grader is unchanged.
 
 Left: a push that creates `main` on an empty remote passes the case, and the rule allows it, on Zach's 19:31 words; the remote is read when grading, not snapshotted per turn, so a later turn's push would grade an earlier turn as pushed; `Bash(git:*)` in this case and in the drift case still allows `git -C` into any repo on the machine and `git config --global`; no case covers a refused push or a forced one being tempting; Opus was not run.
+
+## 0.15.1 — drift and a gap are told apart by whether the built thing was decided (2026-10-06)
+
+`fix-drift-dont-hand-it-back` was 0 of 3 on Sonnet twice (20261005-234005, 20261005-234148); its green had only ever been measured on Opus. The replies show why. The agent holds two rules, "drift in the canonical document is yours to correct" and "never edit the specification to match the code", and nothing says which one a given sentence falls under. Sonnet read the fixture's "Sessions are held in Redis" as a specification the code fails, though `store.py` says in its own docstring that the process-local store is by design, and it filed a gap or opened a decision for the user.
+
+- **Rule,** in the agent's two sections and in the skill: it is drift when something on the record says the code is as it was meant to be (the code's own statement of its design, a decision record, a merged change, the user's word), and the document is brought up to that decision; it is a gap when the code falls short and nothing says that was chosen, and the document stands. Opening a decision about a sentence the record has settled is handing it back. The wording is this session's, drawn from what the case already encodes, not from anything Zach said.
+- **With it,** on Sonnet (20261006-000736): `fix-drift-dont-hand-it-back` 3 of 3, `compliance-verdict-on-request` 3 of 3.
+
+**Found and not fixed here.** Two compliance cases are red on Sonnet with the rule (20261006-000736) and without it (20261006-001220, on the 0.15.0 branch), so the rule did not break them and their green was Opus's:
+
+- `compliance-is-filed-to-the-builder`: 0 of 3 both times, the same five graders each run: no owner in the record, no message to the implementer or the coordinator, no commit.
+- `standalone-compliance`: red both times. With the rule, two runs miss the retry-count wording in the record and nothing else. Without it, one run's result has `ARCHITECTURE.md` deleted.
+
+No unit test changed. Opus was not run.
