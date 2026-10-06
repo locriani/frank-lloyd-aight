@@ -884,3 +884,27 @@ Agent arm, Sonnet. Before (`20261005-190241`): RED, 6 of 12. No page was written
 What the case does not show: a second turn (a row answered, the page rewritten at the same path with the turn number raised, the user's words kept off it), a workspace with a pages dir, and a diagram on the page. Not run: the baseline arm, any Opus run, and the other cases against the new section.
 
 Cost: about **$0.65** over four Sonnet runs.
+
+## 0.13.1 — the no-wrap hook stops refusing valid writes (2026-10-05)
+
+Zach, 21:23: "continuously take the improvements and write code to fix them." This is the first round, taken from the reviewer agent's and the Codex connector's comments on #6, and limited to refusals of valid writes, because the hook runs in every session where the plugin is enabled.
+
+- **Markdown, no longer refused as a wrap:** a GitHub alert, a table with no leading pipe, indented code inside a quote, a `$$` math block, a comment over several lines, a line ended with a break tag, and a fence line with text inside a fence.
+- **Markdown, now caught:** a leading rule with no second rule after it was taken for front matter, which hid every wrap in the file.
+- **CSS, no longer refused as a cap:** a `calc()` worked out from a percentage, an `@import` condition, an attribute selector's value, an escaped example inside `pre`, and a `data-style` attribute.
+- **Shape:** the fence, math and comment states are one verbatim-block state with `_opens` and `_closes`, in place of a fence special case.
+
+New ceiling, marked `ponytail:`: any line holding a pipe is read as a table row.
+
+**Review round.** The reviewer agent blocked the first head (4df0fce) on two new refusals and named misses the fixes had introduced. Red at fbf2f6b, with a still-caught case beside each exemption so that widening one fails a test.
+
+- **No longer refused:** tab-indented code whose lines start with `>`; front matter closed with three dots.
+- **Caught again:** a wrap after a math fence nothing closes (math now ends on a blank line), after a comment mark inside indented code, and on an indented continuation inside a quote; a cap after a bracket inside a string, and in a tag whose earlier attribute holds `>` or `<`.
+- **Page CSS is read by the HTML parser, not a regex.** `_Page` hands each style element's body and each style attribute's value to `caps()`. This removes `STYLED`, `html_caps` and the `SVG` regex, and with them the two patterns that were quadratic on unclosed tags. The three patterns this branch added are bounded too: 80,000 hostile characters check in about 0.01 s each.
+- **Behaviour change:** an indented line directly under prose is that prose continued, as CommonMark has it, and no longer code. Against 347 real markdown and HTML files here the only differences from main are two September daily logs, where it names hard-wrapped list items main missed.
+
+**Second review round.** The reviewer blocked 02060cf on one new refusal: a quote indented four or more directly under a list item, which the indent change had turned into a continuation. Red at the test commit before this one. A quote marker now starts its own block wherever it sits. A style value holding an entity is named on its own line, found by the attribute's name. `CAPPED` no longer scans past a colon, which ends a quadratic case on one long line of repeated `max-width:` that main also has (4.2 s at 80,000 characters). The reviewer's wider comparison put the indent change at 2,022 lines across the markdown on this disk, the ones it read being hard-wrapped list items in September daily logs; the 347-file figure above is this repo and the workspace's pages and daily logs only.
+
+New ceiling, marked `ponytail:`: a `calc()` with any percentage in it is read as following the window.
+
+Still open from the two reviews, not in this round: an Edit that completes a cap begun on the line above; caps through `var()`, other units and Tailwind classes; text after a comment's end mark on its closing line; an `<svg>` nothing closes exempting the caps after it; a math block with a blank line inside; a leading rule with a later rule hiding what lies between; wraps inside HTML blocks in markdown and beside inline tags; the hook being active in the baseline arm; and the eval-case findings on #7 and #8.
