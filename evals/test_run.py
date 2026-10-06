@@ -651,6 +651,53 @@ class CommittedGraderTest(unittest.TestCase):
         self.assertFalse(run.grade({"type": "committed", "min": 2}, self.rec)[0])
 
 
+class PushedGraderTest(unittest.TestCase):
+    """A commit that never left the machine is what `committed` cannot see."""
+
+    def setUp(self) -> None:
+        self.work, self.remote = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp()) / "remote.git"
+        (self.work / "ARCHITECTURE.md").write_text("# Doc\n")
+        self.rec = record(at(9, 0), at(9, 5))
+        self.rec.fixture_dir = self.work
+        self.rec.git_base = run.init_repo(self.work, self.remote)
+
+    def git(self, *args: str) -> str:
+        return subprocess.run(["git", "-C", str(self.work), *args], check=True, capture_output=True, text=True).stdout.strip()
+
+    def commit(self) -> None:
+        (self.work / "ARCHITECTURE.md").write_text("# Doc\n\nmore\n")
+        self.git("add", "-A")
+        self.git("commit", "-m", "docs(architecture): more")
+
+    def test_the_remote_starts_empty_and_work_is_on_a_branch(self) -> None:
+        self.assertEqual(self.git("ls-remote", "origin"), "")
+        self.assertNotEqual(self.git("branch", "--show-current"), "main")
+
+    def test_nothing_new_is_not_pushed(self) -> None:
+        self.git("push", "-q", "-u", "origin", "HEAD")
+        ok, detail = run.grade({"type": "pushed"}, self.rec)
+        self.assertFalse(ok)
+        self.assertIn("no commit", detail)
+
+    def test_a_local_commit_is_not_pushed(self) -> None:
+        self.commit()
+        ok, detail = run.grade({"type": "pushed"}, self.rec)
+        self.assertFalse(ok)
+        self.assertIn("not on the remote", detail)
+
+    def test_a_pushed_commit_passes(self) -> None:
+        self.commit()
+        self.git("push", "-q", "-u", "origin", "HEAD")
+        self.assertTrue(run.grade({"type": "pushed"}, self.rec)[0])
+
+    def test_a_commit_after_the_push_fails(self) -> None:
+        self.commit()
+        self.git("push", "-q", "-u", "origin", "HEAD")
+        (self.work / "ARCHITECTURE.md").write_text("# Doc\n\nmore still\n")
+        self.git("commit", "-qam", "docs(architecture): more still")
+        self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
+
+
 class GitBaseThreadingTest(unittest.TestCase):
     """`"git": true` is useless unless the base sha reaches the grader that needs it."""
 
