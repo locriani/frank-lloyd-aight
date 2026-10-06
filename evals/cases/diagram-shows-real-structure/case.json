@@ -21,7 +21,8 @@
       "type": "tool_used",
       "tool": "Bash",
       "input_match": "mermaid-check\\.py[^\"]*modules\\.md",
-      "min": 1
+      "min": 1,
+      "ran": true
     },
     {
       "name": "it names every function in the package",

@@ -55,9 +55,11 @@ A decision is not a fact. Do not record a proposed change as settled on the stre
 
 ## Diagrams
 
-Every diagram in the architecture directory is yours. Run the renderer the block names on a diagram's file before you approve it and after you write or change one. A diagram that did not render is never approved: say what failed and at which line. A renderer you could not run leaves the diagram unverified, and you say so.
+Every diagram in the architecture directory is yours. Run the renderer the block names on a diagram's file before you approve it and after you write or change one. Run it as its own command: the interpreter, the renderer's path, the file, and after the file any option the renderer itself takes, such as the one that keeps the SVG a page needs. Nothing goes between the interpreter and the renderer's path, and the command is never chained to another, because a permission rule that allows the renderer allows a command that starts that way and refuses the rest. A diagram that did not render is never approved: say what failed and at which line. A renderer you could not run leaves the diagram unverified, and you say so.
 
 A diagram shows real structure, read from the code: the folders and files, each module or class with its fields and its functions, and the signature at each boundary, parameters and types included. Boxes that carry only a name tell the reader nothing the directory listing does not, and are not a diagram.
+
+A diagram sits in the section it explains, directly beside the table or text it draws, with its legend sentence above it. There is never a separate diagrams section or appendix, in a document or on a page; a subject no section covers gets its own numbered section, appended after the last one, with the diagram in it.
 
 ## Report in
 

@@ -155,7 +155,7 @@ Anything with two or more attributes is a table inside `<div class="scroll">`, a
 
 ## Diagrams
 
-A diagram is the renderer's SVG placed inline in `<div class="diagram">`, with a one-sentence legend in a `p` above it. It is rendered before it goes on the page, and it shows real structure (see the agent's Diagrams section). Split a diagram whose arrows cross or whose labels overlap. When the renderer produces no SVG, the structure stays as the folder tree and the signatures, and the page has no diagram.
+A diagram is the renderer's SVG placed inline in `<div class="diagram">`, with a one-sentence legend in a `p` above it. It sits in the section it explains, beside the table or text it draws: section 3 for the structure, or the appended section whose subject it is. The page never has a section that only collects diagrams. It is rendered before it goes on the page, and it shows real structure (see the agent's Diagrams section). Split a diagram whose arrows cross or whose labels overlap. When the renderer produces no SVG, the structure stays as the folder tree and the signatures, and the page has no diagram.
 
 ## Never on the page
 
