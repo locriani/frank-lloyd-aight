@@ -375,7 +375,11 @@ def _committed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
 
 
 def _flowing_text(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
-    """Nothing the turn wrote breaks a line inside prose or caps text width. A line the fixture already held is not the agent's."""
+    """Nothing the turn wrote breaks a line inside prose or caps text width. A finding the fixture already had, on the same pair of lines, is not the agent's."""
+    def keyed(rel: str, text: str) -> list[tuple[int, tuple[str, str, str]]]:
+        rows = text.split("\n")
+        return [(n, (rows[n - 2] if n > 1 else "", rows[n - 1], why)) for n, why in no_wrap.problems(rel, text)]
+
     found = []
     for rel in sorted(_files(rec.fixture_dir)):
         if Path(rel).suffix.lower() not in no_wrap.CHECKS:
@@ -383,8 +387,8 @@ def _flowing_text(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
         before, after = _read(rec.before_dir, rel), _read(rec.fixture_dir, rel)
         if after == before:
             continue
-        held, rows = set((before or "").split("\n")), after.split("\n")
-        found += [f"{rel}:{n} {why}" for n, why in no_wrap.problems(rel, after) if rows[n - 1] not in held]
+        held = {key for _, key in keyed(rel, before or "")}
+        found += [f"{rel}:{n} {key[2]}" for n, key in keyed(rel, after) if key not in held]
     return not found, "; ".join(found[:5]) or "no hard wrap or width cap in what the turn wrote"
 
 

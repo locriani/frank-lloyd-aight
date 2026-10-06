@@ -16,7 +16,7 @@ WRAP = "line break inside prose; a paragraph or list item is one line and the re
 CAP = "width cap; text runs the width of the window, so remove it"
 
 QUOTE = re.compile(r"^\s{0,3}(?:>\s?)+")
-FENCE = re.compile(r"\s*(```|~~~)")
+FENCE = re.compile(r"\s*(`{3,}|~{3,})")
 # ponytail: any line indented four or more is read as code, so a wrap inside a nested list item is missed; parse list depth if that shows up.
 INDENT = re.compile(r"(?: {4}|\t)")
 # A line nothing can run on from: blank, a heading, a table row, markup, a reference definition, a rule.
@@ -26,13 +26,13 @@ CLOSED = re.compile(rf"\s*(?:{_CLOSED})")
 STARTS = re.compile(rf"\s*(?:{_CLOSED}|[-*+]\s|\d+[.)]\s)")
 # ponytail: every absolute max-width is a cap, an image's or a tooltip's included; scope it by selector if one of those is ever wanted.
 CAPPED = re.compile(
-    r"(?<![-\w(])(?:max-(?:width|inline-size)\s*:[^;}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:[^;}\n\"']*?\dch\b)",
+    r"(?<![-\w])(?:max-(?:width|inline-size)\s*:\s*[^;}\n\"']*?\d(?:px|ch|r?em|ex|pt)\b|(?:width|inline-size)\s*:\s*[^;}\n\"']*?\dch\b)",
     re.I,
 )
 
 
 def markdown(text: str) -> list[tuple[int, str]]:
-    out, fence, prev = [], None, ""
+    out, fence, prev, quoted = [], None, "", False
     rows = text.split("\n")
     front = rows[0].strip() == "---"
     for n, raw in enumerate(rows, 1):
@@ -40,8 +40,13 @@ def markdown(text: str) -> list[tuple[int, str]]:
             front = n == 1 or raw.strip() != "---"
             continue
         line = QUOTE.sub("", raw)
+        # A quote that starts under an unquoted line is a new block, not that line's continuation.
+        was, quoted = quoted, line != raw
+        if quoted and not was:
+            prev = ""
         mark = FENCE.match(line)
-        if mark and fence in (None, mark[1]):
+        # A fence closes on its own character, at least as long as it opened; a shorter run inside it is content.
+        if mark and (fence is None or (mark[1][0] == fence[0] and len(mark[1]) >= len(fence))):
             fence, prev = (None if fence else mark[1]), ""
             continue
         if fence:
@@ -83,16 +88,37 @@ def html(text: str) -> list[tuple[int, str]]:
     return parser.out
 
 
-# A drawing states its own size and label widths; blanked, line for line, before caps are looked for.
+# Not declarations: a drawing's own size and label widths, a comment, and the condition of an at-rule such as a breakpoint.
 SVG = re.compile(r"<svg\b.*?</svg>", re.I | re.S)
+SKIPPED = (SVG, re.compile(r"/\*.*?\*/", re.S), re.compile(r"@(?:media|container|supports)\b[^{;]*", re.I))
+# Where a page holds CSS: a style element's body, or a style attribute's value.
+STYLED = re.compile(r"<style\b[^>]*>(.*?)</style>|\bstyle\s*=\s*(?:\"([^\"]*)\"|'([^']*)')", re.I | re.S)
+
+
+def _blank(m: re.Match) -> str:
+    """The match as spaces, its line breaks kept, so every line number after it stays right."""
+    return re.sub(r"[^\n]", " ", m[0])
 
 
 def caps(text: str) -> list[tuple[int, str]]:
-    text = SVG.sub(lambda m: "\n" * m[0].count("\n"), text)
+    """Width caps in CSS text."""
+    for skip in SKIPPED:
+        text = skip.sub(_blank, text)
     return [(text.count("\n", 0, m.start()) + 1, CAP) for m in CAPPED.finditer(text)]
 
 
-CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html, caps), ".htm": (html, caps), ".css": (caps,)}
+def html_caps(text: str) -> list[tuple[int, str]]:
+    """Width caps in a page's CSS only; a cap named in its prose is not one."""
+    text = SVG.sub(_blank, text)
+    kept = list(re.sub(r"[^\n]", " ", text))
+    for m in STYLED.finditer(text):
+        a, b = m.span(m.lastindex)
+        kept[a:b] = text[a:b]
+        kept[b] = ";"  # one declaration never runs on into the next style
+    return caps("".join(kept))
+
+
+CHECKS = {".md": (markdown,), ".markdown": (markdown,), ".html": (html, html_caps), ".htm": (html, html_caps), ".css": (caps,)}
 
 
 def problems(name: str, text: str) -> list[tuple[int, str]]:
@@ -117,8 +143,7 @@ def written(event: dict) -> tuple[str, str, set[int] | None]:
     after, lines = parts[0], set()
     for part in parts[1:]:
         first = after.count("\n") + 1
-        # One line past the new text: a wrap is named on the line that continues.
-        lines.update(range(first, first + new.rstrip("\n").count("\n") + 2))
+        lines.update(range(first, first + new.rstrip("\n").count("\n") + 1))
         after += new + part
     return path, after, lines
 
@@ -129,7 +154,8 @@ def main() -> int:
         if event.get("tool_name") not in ("Write", "Edit"):
             return 0
         path, text, lines = written(event)
-        found = [(n, why) for n, why in problems(path, text) if lines is None or n in lines]
+        # A wrap is named on the line that continues, so the line after the edit answers for a wrap. A cap answers only where it was written.
+        found = [(n, why) for n, why in problems(path, text) if lines is None or n in lines or (why == WRAP and n - 1 in lines)]
     except (ValueError, TypeError, AttributeError, OSError):
         return 0
     if found:
