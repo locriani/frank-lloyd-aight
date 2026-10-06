@@ -59,6 +59,10 @@ ALLOWED = [
 ]
 # The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
+# What a case with `"git": true` may run, by subcommand. Never `Bash(git:*)`: `git -c alias.x='!sh …' x` runs a shell and
+# `git -C` reaches any repo on the machine. A prefix rule per subcommand refuses both, since neither starts with one.
+GIT = [f"Bash(git {sub}:*)" for sub in (
+    "status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "worktree list", "add", "commit", "mv", "switch", "checkout")]
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
 # These reach real Claude sessions on this machine. No eval run may expose them.
 PEER_TOOLS = ("ListAgents", "SendMessage")
@@ -171,9 +175,10 @@ def render_value(value: Any, ctx: dict[str, str]) -> Any:
 
 
 def run_env(base: Mapping[str, str]) -> dict[str, str]:
-    """The environment a run inherits, with git held to the file transport: a case that allows push can reach
-    a repo on this machine, never a network remote with the user's credentials."""
-    return {**base, "GIT_ALLOW_PROTOCOL": "file"}
+    """The environment a run inherits, with git held to the file transport and cut off from the user's own config:
+    a case that allows push can reach a repo on this machine, never a network remote with the user's credentials,
+    and a run neither reads the user's aliases and helpers nor writes to them."""
+    return {**base, "GIT_ALLOW_PROTOCOL": "file", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 
 
 def init_repo(work: Path, remote: Path | None = None) -> str:
@@ -556,7 +561,10 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     # A case may widen its own sandbox; the default is untouched, so the cases already green keep
     # the guarantees their stored reds were measured against.
     sandbox = case.spec.get("sandbox") or {}
-    allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
+    if "Bash(git:*)" in sandbox.get("allow", []):
+        raise ValueError(f"{case.name}: Bash(git:*) is never allowed; set \"git\": true and the harness allows git by subcommand")
+    git = (GIT + (["Bash(git push:*)"] if case.spec.get("remote") else [])) if case.spec.get("git") else []
+    allowed = ALLOWED + git + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
     disallowed = list(sandbox.get("deny", DISALLOWED))
     cmd = [
         "claude", "-p",
