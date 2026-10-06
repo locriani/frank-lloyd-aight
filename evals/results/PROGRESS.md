@@ -1086,3 +1086,17 @@ Mine, not Zach's: "age" is the date of the first release, with the repository's 
 
 Left: no run had a network, so no case shows a table filled with read facts, only that unread ones say so, and the two no-network graders would be wrong for a run that could read a registry; the green tables name alternatives the run did not read, and some Purpose cells still say what a library can do from memory; the row count does not check that three rows are three packages; the Gauntlet-wide rule that Zach approves every new package is unchanged and is not tested here.
 
+## 0.15.5, 2026-10-06: a package nobody read is not proposed
+
+From the second review of #20, which approved it with four findings; Zach, 11:36: "fix them all".
+
+- **V2, the contradiction.** 0.15.4 said unread candidates were no reason to leave the row at "no proposal yet", which told the agent to propose a package it had not read; all five merged runs did. Now a package is proposed only from facts read about it. With none read, the table still goes up, the row's proposal is `No package is proposed: no candidate was read`, and the rows are in no order of preference.
+- **V1, the recommendation and the reply's table.** Step 4 defined the `Recommend:` line twice, and the package form was followed in 0 of 5. The step now defines the line once per kind of row: `Recommend: <row>, because <a fact you read>.` or `Recommend: no row, because no candidate was read.` The reply carries the table as a Markdown table. Both are graded.
+- **V3, the graders.** "The reply asks no yes or no" also fails `yes or no`, `shall I use`, `OK to add` and `go ahead with`. The figure grader is replaced by one that fails any fact cell that is not `not read` or a dash, so a license from memory fails too.
+- **V4.** `plan-page-first-reply` run at this head: 5 of 5 (20261006-113715).
+
+Evidence, Sonnet. Red: the five merged runs (20261006-111025) regraded under the new graders fail "no package is proposed" and "the recommendation names no row" in 5 of 5, and "the reply carries the table" in 1. With the rule: 2 of 5 (20261006-113715). The three red runs asked where the PDF is produced, not which package: the prompt said "start with how the PDF gets produced", and with no package proposed the agent read that as the place. I changed the prompt to "start with which package writes the PDF". That is a change to the case's prompt and to no grader. Then 5 of 5 (20261006-114644): every page says no package is proposed, every reply has the table, recommends no row and ends on `Which row for <id>?`.
+
+Mine, not Zach's: the fixed wordings `No package is proposed` and `Recommend: no row`; that the reply's table is Markdown.
+
+Left: no run on the old rule was made with the new prompt, so the red is the regrade; no run had a network, so the `Recommend: <row>, because <a fact you read>` form has never been produced or graded; Purpose cells in some runs still describe a library by its approach ("by rendering an HTML table"), which nothing grades.
