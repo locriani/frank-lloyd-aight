@@ -98,6 +98,11 @@ class SandboxGuardTest(unittest.TestCase):
         # No permission rule lets python run: a rule's wildcard cannot tell the renderer's file arguments from a shell escape. The host answers for the renderer.
         self.assertEqual([a for a in run.ALLOWED if "python" in a], [])
 
+    def test_a_served_pages_dir_is_writable(self) -> None:
+        # A block that names a pages dir puts the review page there, so a case with one needs the write let through.
+        for rule in ("Edit(./pages/**)", "Write(./pages/**)"):
+            self.assertIn(rule, run.ALLOWED, rule)
+
     def test_host_lets_the_clock_be_read_in_a_zone_and_nothing_else(self) -> None:
         def denied(command: str) -> bool:
             proc = unittest.mock.Mock(stdin=io.StringIO())
