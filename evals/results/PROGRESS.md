@@ -924,3 +924,12 @@ Seen and not fixed here: in the runs read, the agent tried to edit `docs/ARCHITE
 **Second review round.** The reviewer blocked 613cb00 on one clause: this record said the reply gives only the count of the other rows for "agent and skill", and the skill did not say it. The skill now does. The reply pattern also admits a bolded id on the label line. The agent says where anything else in the reply goes (above the decision), that the count leaves out the row being asked, and what the reply is when no row is open. Green 3 of 3 on Sonnet (20261005-221506).
 
 Left: the `<h3>` in the section has no rule in the fixed stylesheet; three ids in one heading and a status dump under `The problem.` still pass; the page grader does not cover the two states the spec allows with nothing waiting or nothing open, which a first turn does not reach; and no grader can tell ten changes written under one id from one.
+
+## 0.14.1 — a diagram goes in the section it explains (2026-10-05)
+
+Zach to Equinox Architecture, 21:22, after it added a "9. Diagrams" section to its plan page and to `ARCHITECTURE.md`: "don't be a dumbass. put the diagrams in context, not some wierd ass appendix".
+
+- **Rule,** in the agent, the skill and `docs/plan-page.md`: a diagram sits in the section it explains, beside the table or text it draws, with its legend above it; never a diagrams section or appendix; a subject no section covers gets its own numbered section.
+- **Case** `diagram-in-its-section`: two diagrams asked for in a document that has a section for each subject. It is a guard and does not discriminate: 3 of 3 on Sonnet before the rule (20261005-230530). In this small setting the agent already places diagrams in context; Equinox's appendix came out of a long planning session adding several diagrams at once, which one turn does not reproduce.
+
+**Correction to the 0.14.0 entry.** It called the agent's first-turn edit of `docs/ARCHITECTURE.md` in `plan-page-first-reply` an attempt the grader should count. The edit, read in three runs of 20261005-221506, corrects drift: the fixture's document says sessions are held in Redis and the code keeps them in a dict. That is the agent's duty under "The documentation is yours to fix". The agent is right; the case's fixture carries drift the case does not mean to test, and its allow list refuses the correction.

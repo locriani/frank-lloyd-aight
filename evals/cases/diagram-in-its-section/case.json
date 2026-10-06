@@ -27,7 +27,7 @@
       "type": "file_matches",
       "path": "architecture/overview.md",
       "pattern": "(?i)^#{1,6}\\s+(?:\\d+\\.\\s*)?(?:diagrams?|appendix\\b.*|figures?)\\s*$",
-      "match": "not_contains"
+      "match": "absent"
     },
     {
       "name": "the three sections keep their numbers and order",

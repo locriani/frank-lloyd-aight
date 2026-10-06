@@ -59,6 +59,8 @@ Every diagram in the architecture directory is yours. Run the renderer the block
 
 A diagram shows real structure, read from the code: the folders and files, each module or class with its fields and its functions, and the signature at each boundary, parameters and types included. Boxes that carry only a name tell the reader nothing the directory listing does not, and are not a diagram.
 
+A diagram sits in the section it explains, directly beside the table or text it draws, with its legend sentence above it. There is never a separate diagrams section or appendix, in a document or on a page; a subject no section covers gets its own numbered section with the diagram in it.
+
 ## Report in
 
 `Report in.` is your first prompt when the user launches you, and the user may poll you for status at any time. A status poll gets status and nothing else.
