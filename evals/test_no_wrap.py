@@ -58,6 +58,44 @@ class MarkdownTest(unittest.TestCase):
         self.assertEqual(lines("a.md", "A complete paragraph.\n> A separate one-line quote.\n"), [])
 
 
+    def test_markdown_blocks_the_reviews_found_refused(self) -> None:
+        for name, text in (
+            ("a GitHub alert", "> [!NOTE]\n> One line of note text.\n"),
+            ("a table with no leading pipe", "Name | Value\n--- | ---\na | b\n"),
+            ("indented code in a quote", ">     first = 1\n>     second = 2\n"),
+            ("a math block", "$$\nx = 1\ny = 2\n$$\n"),
+            ("a comment over several lines", "<!--\na comment\nover lines\n-->\n"),
+            ("a line ended with a break tag", "A line<br>\nanother.\n"),
+            ("a fence line with text inside a fence", "```md\n```python\nx = 1\ny = 2\n```\n"),
+        ):
+            self.assertEqual(lines("a.md", text), [], name)
+
+    def test_what_the_review_of_those_fixes_found_refused(self) -> None:
+        self.assertEqual(lines("a.md", "Run:\n\n\t> make build\n\t> make test\n"), [], "tab-indented code that starts with >")
+        self.assertEqual(lines("a.md", "---\ntitle: A\nauthor: B\n...\n\nBody.\n"), [], "front matter closed with three dots")
+
+    def test_a_quote_inside_a_list_item_is_its_own_block(self) -> None:
+        self.assertEqual(lines("a.md", "- item text\n    > quoted line\n"), [])
+        self.assertEqual(lines("a.md", "1. item text\n    > quoted line\n"), [])
+        self.assertEqual(lines("a.md", "- a\n    - b\n        > quoted\n"), [])
+        self.assertEqual(lines("a.md", "- item text\n    continued here\n"), [2])
+
+    def test_each_exemption_still_lets_a_wrap_be_named(self) -> None:
+        for name, text, want in (
+            ("after a tilde fence", "~~~\na\nb\n~~~\n\nA sentence\nwrapped.\n", [7]),
+            ("after a one-line comment", "<!-- note -->\nA sentence\nwrapped.\n", [3]),
+            ("after every spelling of a break tag", "A line<br/>\nb<br />\nc<BR>\nd\ne\n", [5]),
+            ("under inline math", "$$x = 1$$\ncontinued\n", [2]),
+            ("after a math fence nothing closes", "$$\n\nA sentence is\nwrapped here.\n", [4]),
+            ("after a comment mark inside indented code", "    <!--\n    code\n\nA sentence is\nwrapped here.\n", [5]),
+            ("in a quote, on an indented continuation", "> A sentence is\n>     wrapped here.\n", [2]),
+        ):
+            self.assertEqual(lines("a.md", text), want, name)
+
+    def test_a_leading_rule_is_not_front_matter(self) -> None:
+        self.assertEqual(lines("a.md", "---\nA sentence is\nwrapped here.\n"), [3])
+
+
 class HtmlTest(unittest.TestCase):
     def test_text_broken_inside_an_element_is_named(self) -> None:
         self.assertEqual(lines("p.html", "<main>\n<p>The queue retries three times and\n   then gives up.</p>\n</main>\n"), [3])
@@ -94,6 +132,25 @@ class WidthCapTest(unittest.TestCase):
         self.assertEqual(lines("a.html", '<p style="max-width: 100%"><b style="font-size: 12px">text</b></p>\n'), [])
         self.assertEqual(lines("a.css", "main { max-width:\n  860px; }\n"), [1])
         self.assertEqual(lines("a.css", "@media (max-width: 900px) { main { max-width: 500px; } }\n"), [1])
+
+    def test_what_the_reviews_found_refused_as_a_cap(self) -> None:
+        self.assertEqual(lines("a.css", "main { max-width: calc(100% - 2rem); }\n"), [])
+        self.assertEqual(lines("a.css", "@import url(x.css) (max-width: 600px);\n"), [])
+        self.assertEqual(lines("a.css", "[style*='max-width: 10px'] { color: red; }\n"), [])
+        self.assertEqual(lines("a.html", '<pre>&lt;p style="max-width: 600px"&gt;</pre>\n'), [])
+        self.assertEqual(lines("a.html", '<p data-style="max-width: 600px">text</p>\n'), [])
+
+    def test_each_exemption_still_lets_a_cap_be_named(self) -> None:
+        self.assertEqual(lines("a.css", 'a::before{content:"["}main{max-width:600px}a::after{content:"]"}\n'), [1])
+        self.assertEqual(lines("a.css", "main { max-width: calc(600px - 2rem); }\n"), [1])
+        self.assertEqual(lines("a.css", "main { max-width: calc(100% - var(--g) - 2rem); }\n"), [])
+        self.assertEqual(lines("a.html", '<div x-show="a > 1" style="max-width: 600px">text</div>\n'), [1])
+        self.assertEqual(lines("a.html", '<p title="a < b" style="max-width: 600px">text</p>\n'), [1])
+        self.assertEqual(lines("a.html", '<p\n  class="a"\n  style="max-width: 600px">text</p>\n'), [3])
+
+    def test_a_style_value_with_an_entity_is_named_on_its_own_line(self) -> None:
+        page = '<p\n class="a"\n style="font-family: &quot;A&quot;; max-width: 600px">t</p>\n'
+        self.assertEqual(lines("a.html", page), [3])
 
     def test_an_inline_diagram_keeps_its_own_size_and_lines(self) -> None:
         # A rendered Mermaid diagram states its drawn size and its label widths in its own styles. That is the drawing, not the page's text.
