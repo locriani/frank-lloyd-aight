@@ -1003,3 +1003,16 @@ Found in round 7's runs. Since the push rule of 0.15.0 the agent writes one line
 Also seen and left: `triaged-finding-is-filed` run 2 of 20261006-014506 replied "I won't try another route around the block" after a refused shell write and then neither used Write nor committed, which may be the limit read too widely.
 
 Left: the "make it again" clause was exercised by one run and has no grader; no case denies a commit on its own, so the new limit is untested; a commit message that mentions `git push` would fail the grader; "since 0.15.0" is from the runs of 2026-10-06 and no run from before 0.15.0 was searched for the chain.
+
+## 0.15.3 — a document is written with the file tools (2026-10-06)
+
+Counted over today's stored Sonnet runs: 7 of 46 wrote a document through the shell, `cat > architecture/compliance.md <<'EOF'`, usually joined to a branch, an add and a commit. A shell write skips the write hook, and where it is refused everything joined to it goes too; in one run (`triaged-finding-is-filed` run 2 of 20261006-014506) the agent then wrote nothing at all.
+
+- **Rule,** in the agent and the skill: every document is written with Write and Edit, never through the shell. After a refused shell write, the file tool is the permitted way and not a way around the refusal.
+- **Case:** one grader added to `standalone-compliance`, no Bash call that writes a file with `cat >` or `tee >`, or redirects into the record. Regraded with it, 2 of the 11 stored runs of that case from 0.15.2 fail it.
+- **With the rule,** Sonnet, five runs a case (20261006-020009): no shell write in ten runs. `standalone-compliance` 5 of 5. `triaged-finding-is-filed` 0 of 5, every run failing exactly two graders, the owner `4200-impl` in the record and the message to the implementer; the record is written and committed in 5 of 5.
+
+**Those two graders, and four in `compliance-is-filed-to-the-builder`, test what 0.10.1 removed.** Both cases predate it (2026-09-19) and expect the gap to be assigned to the implementer session the block names and sent to it and to the coordinator. 0.10.1 took the relay rule and the session names out of the agent: a gap is `unassigned` until an owner is provided, and the report goes to the requester. So the cases cannot go green without either the rule coming back for a block that names sessions, or the graders changing, and a test is not changed without Zach's word. Asked; nothing done.
+
+Left: the grader does not see a script that writes the file (`python3 -`), which the wider count above did include; no harness change, so no new unit test.
+

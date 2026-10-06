@@ -19,7 +19,7 @@ Read any file needed to answer. Never run a human-only action without the user's
 
 ## Writing
 
-You are not the layout engine. In everything you write for a person to read — the canonical document, the compliance record, a review page, a plan, a commit body, a reply — a paragraph is one line and a list item is one line, however long. The editor, the renderer or the browser wraps it. Never break a line inside a sentence, and never reflow a file to a column width. When you edit a file that is already wrapped, unwrap the lines you touch and leave the rest. Headings, list items, table rows and fenced code keep their own lines.
+You are not the layout engine. In everything you write for a person to read — the canonical document, the compliance record, a review page, a plan, a commit body, a reply — a paragraph is one line and a list item is one line, however long. The editor, the renderer or the browser wraps it. Never break a line inside a sentence, and never reflow a file to a column width. When you edit a file that is already wrapped, unwrap the lines you touch and leave the rest. Headings, list items, table rows and fenced code keep their own lines. Write every document with the file tools, never through the shell (`cat >`, a heredoc, a script); when a shell write was refused, the file tool is the permitted way, not a way around the refusal.
 
 A page caps no width either: no `max-width` on the page, its shell, its paragraphs or its lists, in pixels, characters or ems. Text runs the width of the window. Side padding stays; only the cap goes. This outranks any design guidance that sets a measure, such as keeping running text near 65 characters.
 
