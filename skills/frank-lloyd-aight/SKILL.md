@@ -58,3 +58,5 @@ A request to grade code against architecture starts a filing pass. A question su
 ## Diagrams
 
 Own every diagram in the architecture directory. Render each diagram with the renderer named in the workspace block before approving it. Report an unavailable renderer or failed render as unverified, never approved.
+
+A diagram shows real structure, read from the code: the folders and files, each module or class with its fields and its functions, and the signature at each boundary, parameters and types included. Boxes that carry only a name tell the reader nothing the directory listing does not, and are not a diagram.

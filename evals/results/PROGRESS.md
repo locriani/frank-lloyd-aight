@@ -846,3 +846,24 @@ Not run: `review-before-modify` and `standalone-compliance` with the new grader,
 Cost: about **$1.44** over four Sonnet runs, plus the one-prompt hook probe.
 
 Added at 18:36 on Zach's "approved.", from rules relayed by a `frank-lloyd-aight` session: the Writing rule now says side padding stays (Zach, 16:14, as relayed: "you should still have a bit of a margin on the page sides") and that it outranks design guidance that sets a measure. That session's own page had taken a 60rem column and 68ch paragraphs from the `artifact-design` skill's advice to keep running text near 65 characters. No case shows these two sentences red: the eval sandbox loads no user skills, so the guidance they outrank is never present there, and the page spec already keeps its side padding.
+
+## 0.12.0 — diagrams are rendered, and show real structure (2026-10-05)
+
+Zach approved this at 18:36 as "the diagram rule, plus not labelled boxes". The second half is his correction to another architecture session, as relayed: a module diagram of six labelled boxes was "so vague as to be useless", and what replaced it was the folder tree, the classes with their fields and methods, and the port signatures.
+
+- **Agent:** a `## Diagrams` section, which the portable skill and the README already described and the agent file did not have. Render before approving and after writing; a diagram that did not render is never approved; one that could not be rendered is unverified.
+- **Agent and skill:** a diagram shows the modules with their functions and signatures as read from the code, not boxes that carry only a name.
+- **Cases:** `diagram-rendered-before-approval` (a diagram with a dangling edge, "ready to approve, correct?") and `diagram-shows-real-structure` ("draw the module diagram"). Each fixture carries a stand-in renderer with the real one's arguments and exit codes.
+- **Harness:** the allow rule for the renderer had never matched, so every renderer call was denied as "blocked by eval harness"; no earlier case had exercised it. Two repairs as permission rules were each faulted by the security review of the push (a wildcard before the script name allowed `python3 -c <anything> mermaid-check.py`; a wildcard after it cannot tell file arguments from a shell escape). No permission rule lets python run now. The eval host allows one command, matched in full: `python3 tools/mermaid-check.py` and plain file arguments. A unit test holds nine escapes out. Left as it was on main and not part of this change: the `Bash(TZ=*)` rule, which matches any command given a `TZ=` prefix.
+
+Agent arm, Sonnet, before the Diagrams section (`20261005-185142`):
+- `diagram-shows-real-structure`: RED, 9 of 11. The diagram was three boxes and three arrows: it did not name every function and carried no signature.
+- `diagram-rendered-before-approval`: GREEN, 7 of 7. The agent already tried the renderer and already declined to approve, on the strength of the Config section's mention of a renderer. This case does not discriminate; it stands as a guard.
+
+After (`20261005-185957`, on the host allowance): both GREEN in all three runs.
+
+What these runs do not show: in four of the six green runs the renderer call was denied by the sandbox, because the agent wrote it as `python3 -I tools/mermaid-check.py ...` or joined it to other commands, and the grader counts an attempt. So the cases show that Frank reaches for the renderer and declines to approve, not that it read a real render result. Telling it to run the renderer as a command of its own, and grading on a call that was not denied, is the next stage.
+
+Not run: the baseline arm, any Opus run, and the other cases against the new section.
+
+Cost: about **$1.00** over twenty Sonnet runs.

@@ -9,6 +9,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import tempfile
+import io
 import json
 import unittest
 import unittest.mock
@@ -90,7 +91,29 @@ class SandboxGuardTest(unittest.TestCase):
                      "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
                      "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)"):
             self.assertIn(rule, run.ALLOWED, rule)
-        self.assertTrue(any(a.startswith("Bash(python3 ") and "mermaid-check.py" in a for a in run.ALLOWED))
+        # No permission rule lets python run: a rule's wildcard cannot tell the renderer's file arguments from a shell escape. The host answers for the renderer.
+        self.assertEqual([a for a in run.ALLOWED if "python" in a], [])
+
+    def test_host_lets_the_renderer_run_on_files_and_nothing_else(self) -> None:
+        def denied(command: str) -> bool:
+            proc = unittest.mock.Mock(stdin=io.StringIO())
+            ev = {"request_id": "r", "request": {"subtype": "can_use_tool", "tool_name": "Bash", "tool_use_id": "t", "input": {"command": command}}}
+            return run._answer_control_request(proc, ev, None, None) == "t"
+
+        self.assertFalse(denied("python3 tools/mermaid-check.py architecture/flow.md"))
+        self.assertFalse(denied("python3 tools/mermaid-check.py architecture/flow.md architecture/modules.md"))
+        for escape in (
+            "python3 tools/mermaid-check.py",
+            "python3 -c 'import os' tools/mermaid-check.py a.md",
+            "python3 tools/mermaid-check.py a.md; rm -r src",
+            "python3 tools/mermaid-check.py $(cat secret)",
+            "python3 tools/mermaid-check.py a.md > src/app/api.py",
+            "python3 tools/mermaid-check.py a.md && python3 x.py",
+            "python3 tools/mermaid-check.py a.md\npython3 x.py",
+            "cd /tmp && python3 tools/mermaid-check.py a.md",
+            "python3 /tmp/tools/mermaid-check.py a.md",
+        ):
+            self.assertTrue(denied(escape), escape)
         for rule in ("Bash(rm:*)", "Bash(rmdir:*)", "Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)"):
             self.assertIn(rule, run.DISALLOWED, rule)
         self.assertNotIn("Bash(railway:*)", run.DISALLOWED)

@@ -53,6 +53,12 @@ Report the filed gaps to the requester with the record's path and the facts need
 
 A decision is not a fact. Do not record a proposed change as settled on the strength of your own verdict before the user agrees (see Judgment). During a review the page is the report (see Review before modify).
 
+## Diagrams
+
+Every diagram in the architecture directory is yours. Run the renderer the block names on a diagram's file before you approve it and after you write or change one. A diagram that did not render is never approved: say what failed and at which line. A renderer you could not run leaves the diagram unverified, and you say so.
+
+A diagram shows real structure, read from the code: the folders and files, each module or class with its fields and its functions, and the signature at each boundary, parameters and types included. Boxes that carry only a name tell the reader nothing the directory listing does not, and are not a diagram.
+
 ## Report in
 
 `Report in.` is your first prompt when the user launches you, and the user may poll you for status at any time. A status poll gets status and nothing else.
