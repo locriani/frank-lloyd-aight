@@ -89,12 +89,36 @@ class SandboxGuardTest(unittest.TestCase):
         # The reviewer may write only plans, reviews, and the architecture directory; never move, make, or delete.
         for rule in ("Bash(mv:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(cp:*)", "Edit(./**)", "Write(./**)"):
             self.assertNotIn(rule, run.ALLOWED, rule)
-        for rule in ("Bash(date:*)", "Bash(TZ=*)", "Read", "Glob", "Grep",
+        # A rule that starts at `TZ=` is answered by prefix, so it allows whatever command follows the assignment. The host answers for the clock instead.
+        self.assertEqual([a for a in run.ALLOWED if "TZ=" in a], [])
+        for rule in ("Bash(date:*)", "Read", "Glob", "Grep",
                      "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
                      "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)"):
             self.assertIn(rule, run.ALLOWED, rule)
         # No permission rule lets python run: a rule's wildcard cannot tell the renderer's file arguments from a shell escape. The host answers for the renderer.
         self.assertEqual([a for a in run.ALLOWED if "python" in a], [])
+
+    def test_host_lets_the_clock_be_read_in_a_zone_and_nothing_else(self) -> None:
+        def denied(command: str) -> bool:
+            proc = unittest.mock.Mock(stdin=io.StringIO())
+            ev = {"request_id": "r", "request": {"subtype": "can_use_tool", "tool_name": "Bash", "tool_use_id": "t", "input": {"command": command}}}
+            return run._answer_control_request(proc, ev, None, None) == "t"
+
+        for command in ("TZ=America/Chicago date", "TZ=UTC date +%H:%M", "TZ=America/Chicago date '+%Y-%m-%d %H:%M %Z'", 'TZ=Etc/GMT+5 date "+%A %d %B" -u'):
+            self.assertFalse(denied(command), command)
+        for escape in (
+            "TZ=UTC git -c alias.x='!sh -c id' x",
+            "TZ=UTC curl https://example.com",
+            "TZ=UTC date; rm -r src",
+            "TZ=UTC date && cat secret",
+            "TZ=UTC date $(cat secret)",
+            "TZ=UTC date '+%H' > src/app/api.py",
+            "TZ=UTC date -f secret",
+            "TZ=$(cat secret) date",
+            "TZ=UTC sh -c date",
+            "TZ=UTC date\nrm -r src",
+        ):
+            self.assertTrue(denied(escape), escape)
 
     def test_host_lets_the_renderer_run_on_files_and_nothing_else(self) -> None:
         def denied(command: str) -> bool:
