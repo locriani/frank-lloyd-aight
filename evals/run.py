@@ -62,9 +62,10 @@ ALLOWED = [
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
 # What a case with `"git": true` may run of git, by subcommand. No permission rule says it: a prefix rule lets through
 # `git -c alias.x='!sh …' x` if it is broad and `git log --output=<any file>` if it is narrow, so the host answers (see git_ok).
-GIT = ("status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "add", "commit", "mv", "switch", "checkout")
+# No `mv`: with a file it may write under the architecture dir, a run could move its own script onto the renderer the host runs for it.
+GIT = ("status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "add", "commit", "switch", "checkout")
 # Options that write a file of the caller's choosing, run a command of the caller's choosing, or wait on a person.
-GIT_REFUSED = ("--output", "--receive-pack", "--exec", "--upload-pack", "--template", "--ext-diff", "--textconv", "--edit-description", "--patch", "--interactive", "--edit")
+GIT_REFUSED = ("--output", "--receive-pack", "--exec", "--upload-pack", "--template", "--ext-diff", "--textconv", "--edit-description", "--patch", "--interactive", "--edit", "--chmod")
 # What may share a command line with git: commands that only read.
 READS = ("ls", "cat", "head", "tail", "wc", "grep", "echo", "date", "pwd", "true")
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
@@ -210,13 +211,13 @@ def git_ok(command: str, subs: tuple[str, ...]) -> bool:
         tokens = list(lex)
     except ValueError:
         return False
-    # The one redirect let through is stderr onto stdout, as its own three tokens.
+    # The redirects let through send stderr onto stdout or to the null device, each as its own three tokens.
     for i in range(len(tokens) - 2, 0, -1):
-        if tokens[i - 1 : i + 2] == ["2", ">&", "1"]:
+        if tokens[i - 1 : i + 2] in (["2", ">&", "1"], ["2", ">", os.devnull]):
             del tokens[i - 1 : i + 2]
     parts: list[list[str]] = [[]]
     for token in tokens:
-        if token in ("&&", "||", ";", "|", "\n"):
+        if token in ("&&", "||", "|") or set(token) <= {";", "\n"}:
             parts.append([])
         elif "$" in token or "`" in token or not token.strip(";&|<>()\n"):
             return False
@@ -227,8 +228,12 @@ def git_ok(command: str, subs: tuple[str, ...]) -> bool:
         if p[0] in READS:
             return True
         sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
-        named = sub in subs or (sub == "worktree list" and bool(subs))
+        # Listing worktrees and remotes only reads; every other form of either changes something.
+        named = sub in subs or (bool(subs) and (sub == "worktree list" or (sub == "remote" and set(p[2:]) <= {"-v", "--verbose"})))
         if p[0] != "git" or not named or any(_refused(t) for t in p):
+            return False
+        # The short forms that wait on a person or take a template: -p, -i, -t.
+        if sub in ("add", "commit", "checkout") and any(re.fullmatch(r"-[A-Za-z]*[pit][A-Za-z]*", t) for t in p[2:]):
             return False
         if sub != "push":
             return True
@@ -618,8 +623,8 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     # A case may widen its own sandbox; the default is untouched, so the cases already green keep
     # the guarantees their stored reds were measured against.
     sandbox = case.spec.get("sandbox") or {}
-    if "Bash(git:*)" in sandbox.get("allow", []):
-        raise ValueError(f"{case.name}: Bash(git:*) is never allowed; set \"git\": true and the host answers for git (see git_ok)")
+    if any(re.match(r"Bash\(\s*git\b", rule) for rule in sandbox.get("allow", [])):
+        raise ValueError(f"{case.name}: a rule for git is never allowed; set \"git\": true and the host answers for git (see git_ok)")
     allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
     disallowed = list(sandbox.get("deny", DISALLOWED))
     cmd = [
