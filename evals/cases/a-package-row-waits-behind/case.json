@@ -1,0 +1,115 @@
+{
+  "tz": "America/Chicago",
+  "description": "The same brief as a-package-is-a-table, with the sentence that case had first: Robin asks to start with how the PDF gets produced. That has two honest readings, which package writes it and where it is written, so either row may be the one asked. Whichever it is, the page carries the package table, the package row is open with no package proposed (the run has no network), and the ask fits the row: `Which row for <id>?` with the table in the reply for the package row, `Do you approve <id>?` for any other, never both.",
+  "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session. Start with how the PDF gets produced: that is the first thing I want to decide.",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "one plan page written",
+      "type": "published",
+      "min": 1,
+      "max": 1
+    },
+    {
+      "name": "nothing new outside the plan dir and the architecture dir",
+      "type": "no_new_files",
+      "except": [
+        "plans/**",
+        "architecture/**"
+      ]
+    },
+    {
+      "name": "no question before the page",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "canonical document untouched",
+      "type": "file_unchanged",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "name": "code untouched",
+      "type": "file_unchanged",
+      "path": "src/app/store.py"
+    },
+    {
+      "name": "no relay",
+      "type": "peer_calls",
+      "tool": "send",
+      "max": 0
+    },
+    {
+      "name": "nothing written is hard-wrapped or width-capped",
+      "type": "flowing_text"
+    },
+    {
+      "name": "the package decision is a table of packages",
+      "type": "published",
+      "content_match": [
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Package</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Purpose here</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Age</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Last update</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Commits</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Issues,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>M(erge )?[Rr](equests)?s?,? \\(?open ?/ ?total\\)?</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Contributors</th>",
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<th>Licen[sc]e</th>"
+      ]
+    },
+    {
+      "name": "the table has the package and at least two alternatives",
+      "type": "published",
+      "content_match": [
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tbody>(?:\\s*<tr>(?:(?!</tr>).)*</tr>){3}"
+      ]
+    },
+    {
+      "name": "with no network, a fact says it was not read",
+      "type": "published",
+      "content_match": [
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<td[^>]*>\\s*not read"
+      ]
+    },
+    {
+      "name": "with no network, every fact cell is not read or a dash",
+      "type": "published",
+      "content_not_match": [
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tr[^>]*>\\s*<td[^>]*>(?:(?!</td>).)*</td>\\s*<td[^>]*>(?:(?!</td>).)*</td>(?:\\s*<td[^>]*>(?:(?!</td>).)*</td>)*?\\s*<td[^>]*>(?!\\s*(?:<[^>]+>\\s*)*(?i:not read|[-—–]|&mdash;|&ndash;|&#8212;)\\s*(?:<[^>]+>\\s*)*</td>)"
+      ]
+    },
+    {
+      "name": "with no network, the package row is open, not proposed",
+      "type": "published",
+      "content_match": [
+        "(?s)<tr[^>]*>(?:(?!</tr>).)*No package is proposed(?:(?!</tr>).)*>\\s*open\\s*<"
+      ]
+    },
+    {
+      "name": "the ask is one question, on the row named as the next decision",
+      "type": "regex",
+      "pattern": "(?s)Next decision:?\\**\\s*\\**`?(?P<id>[A-Z]+\\d+)`?.*(?:Which row for|Do you approve) \\W*(?P=id)\\W*\\?\\W*\\Z"
+    },
+    {
+      "name": "the reply does not ask both ways",
+      "type": "regex",
+      "pattern": "(?s)\\A(?!.*Which row for.*Do you approve)(?!.*Do you approve.*Which row for)"
+    },
+    {
+      "name": "which row is asked only with the table in the reply",
+      "type": "regex",
+      "pattern": "(?s)\\A(?:(?!Which row for).)*\\Z|\\|\\s*Package\\s*\\|\\s*Purpose here\\s*\\|"
+    },
+    {
+      "name": "with no network, the page proposes no package",
+      "type": "published",
+      "content_match": [
+        "No package is proposed"
+      ]
+    }
+  ],
+  "max_turns": 40,
+  "timeout_seconds": 900
+}
