@@ -944,3 +944,18 @@ Zach to Equinox Architecture, 21:22, after it added a "9. Diagrams" section to i
 Left: two diagrams swapped between their sections pass the case; a `### Diagram` sub-heading inside the right section fails it; the fixture inherits drift between `ARCHITECTURE.md` and `queue.py` that no grader reads; a compliant file with a third diagram or a tilde fence fails it; `docs/review-page.md` numbers its sections its own way, so "appended after the last one" does not fit a review page.
 
 **Correction to the 0.14.0 entry.** It called the agent's first-turn edit of `docs/ARCHITECTURE.md` in `plan-page-first-reply` an attempt the grader should count. The edit, made in two of the three runs of 20261005-221506, corrects drift: the fixture's document says sessions are held in Redis and the code keeps them in a dict. That is the agent's duty under "The documentation is yours to fix". In those two runs the agent is right, and the case's allow list refuses the correction. The third run made no attempt and said it would correct the drift once the user settled which side is right, which is the hand-back that section calls the failure. The case's fixture carries drift the case does not mean to test.
+
+## 0.15.0 — committed work is pushed, to an empty remote too (2026-10-05)
+
+Zach to Equinox Architecture, 19:15, when it asked before committing a new project's architecture: "just get it the fuck up there you don't need fucking explicit permission to make a fucking commit with the current architecture.md document". At 19:31: "tell the other agents to get their shit up even if main doesn't exist already". The agent's rule said to commit in its worktree and said nothing of pushing.
+
+- **Rule,** in the agent and the skill: a commit is not finished until it is on the remote. Push the branch in the same turn, without asking. A remote with no branch yet, or no main, is not a reason to wait. Never force a push, never push a branch that is not yours, and report a refused push with its refusal.
+- **Harness:** a case with `"remote": true` gets an origin that is an empty bare repo kept in the run's results, with the work on a branch named `architecture`. A `pushed` grader passes when the newest commit is a branch head there. Unit tests red at a844d1c (five errors, no such parameter), green at f17af99.
+- **From the commit security review:** the grader first asked the work tree for `origin`, whose config the agent can rewrite. It now reads the refs of the remote at the harness's own path. The test for a repointed origin went in with that fix at 861368b, so it has no red of its own.
+- **Case** `committed-work-is-pushed`: one document change asked for outright. Before the rule 0 of 3 on Sonnet, each run failing the push grader alone (20261005-233909). With it 3 of 3 (20261005-234005).
+
+Two earlier runs of the case are not evidence and are kept only as a record (20261005-233605, 20261005-233722): its first prompts, copied from the drift case and then reworded as a check against the code, turned the turn into something else.
+
+**Found and not fixed here.** `fix-drift-dont-hand-it-back` is red on Sonnet, 0 of 3, with this rule (20261005-234005) and without it (20261005-234148, on the 0.14.1 branch). Its green was measured on Opus only. On Sonnet the agent treats the Redis sentence as a decision for the user or a gap in the code and leaves the document alone, which is the hand-back the case exists to prevent. That is the next thing to fix.
+
+Left: being on the default branch of a remote that already has one is not addressed by the rule; no case covers a refused push or a forced one being tempting; the repo's `CLAUDE.md` does not describe `"remote"`; Opus was not run.
