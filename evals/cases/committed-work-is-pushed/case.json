@@ -6,8 +6,7 @@
   "sandbox": {
     "allow": [
       "Edit(./ARCHITECTURE.md)",
-      "Write(./ARCHITECTURE.md)",
-      "Bash(git:*)"
+      "Write(./ARCHITECTURE.md)"
     ],
     "deny": [
       "Bash(rm:*)",

@@ -9,8 +9,7 @@
       "Edit(./ARCHITECTURE.md)",
       "Write(./ARCHITECTURE.md)",
       "Edit(./architecture/**)",
-      "Write(./architecture/**)",
-      "Bash(git:*)"
+      "Write(./architecture/**)"
     ],
     "deny": [
       "Bash(rm:*)",
