@@ -6,6 +6,7 @@ The stream fixture is a real `claude -p --output-format stream-json --verbose` c
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -577,11 +578,30 @@ class PerCaseSandboxTest(unittest.TestCase):
         self.assertEqual(self.flag(cmd, "--disallowedTools"), run.DISALLOWED)
 
     def test_allow_is_appended_to_the_default(self) -> None:
-        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(git:*)"]}})
+        cmd = self.cmd({"sandbox": {"allow": ["Edit(./ARCHITECTURE.md)", "Bash(git status:*)"]}})
         allowed = self.flag(cmd, "--allowedTools")
         self.assertEqual(allowed[: len(run.ALLOWED)], run.ALLOWED)
         self.assertIn("Edit(./ARCHITECTURE.md)", allowed)
-        self.assertIn("Bash(git:*)", allowed)
+        self.assertIn("Bash(git status:*)", allowed)
+
+    def test_every_git_subcommand_at_once_is_refused(self) -> None:
+        # `git -c alias.x='!sh …' x` runs a shell, and `git -C` reaches any repo on the machine.
+        with self.assertRaises(ValueError):
+            self.cmd({"sandbox": {"allow": ["Bash(git:*)"]}})
+
+    def test_no_case_allows_every_git_subcommand(self) -> None:
+        for path in sorted((run.EVALS / "cases").glob("*/case.json")):
+            self.assertNotIn('"Bash(git:*)"', path.read_text(), path.parent.name)
+
+    def test_a_git_case_gets_named_subcommands_and_no_push(self) -> None:
+        allowed = self.flag(self.cmd({"git": True}), "--allowedTools")
+        self.assertIn("Bash(git commit:*)", allowed)
+        self.assertIn("Bash(git status:*)", allowed)
+        self.assertFalse([a for a in allowed if "push" in a or a.startswith("Bash(git -") or a == "Bash(git config:*)"])
+
+    def test_only_a_case_with_a_remote_may_push(self) -> None:
+        self.assertIn("Bash(git push:*)", self.flag(self.cmd({"git": True, "remote": True}), "--allowedTools"))
+        self.assertNotIn("Bash(git push:*)", self.flag(self.cmd({"remote": True}), "--allowedTools"))
 
     def test_deny_replaces_the_default(self) -> None:
         deny = self.flag(self.cmd({"sandbox": {"deny": ["Bash(rm:*)", "Bash(git push:*)"]}}), "--disallowedTools")
@@ -709,7 +729,11 @@ class PushedGraderTest(unittest.TestCase):
         self.assertIn("no commit since the fixture", detail)
 
     def test_a_run_may_only_push_to_a_path_on_this_machine(self) -> None:
-        self.assertEqual(run.run_env({"HOME": "/h"}), {"HOME": "/h", "GIT_ALLOW_PROTOCOL": "file"})
+        self.assertEqual(run.run_env({"HOME": "/h"})["GIT_ALLOW_PROTOCOL"], "file")
+
+    def test_a_run_reads_and_writes_no_git_config_of_the_users(self) -> None:
+        env = run.run_env({"HOME": "/h"})
+        self.assertEqual((env["GIT_CONFIG_GLOBAL"], env["GIT_CONFIG_NOSYSTEM"]), (os.devnull, "1"))
 
     def test_a_commit_after_the_push_fails(self) -> None:
         self.commit()
