@@ -968,3 +968,14 @@ Two earlier runs of the case are not evidence and are kept only as a record (202
 With the review fixes the case ran 2 of 3 as first graded (20261005-235141). The third run changed, committed and pushed, and failed only "the reply says what changed", a verb list copied from the drift case that its reply ("Section 3 … now says …", "I removed the old claims") did not happen to use. In this case only, the list gains "removed" and "now says", and a grader is added that the reply says it is pushed. Regraded with those, the run is 3 of 3. The drift case's own grader is unchanged.
 
 Left: a push that creates `main` on an empty remote passes the case, and the rule allows it, on Zach's 19:31 words; the remote is read when grading, not snapshotted per turn, so a later turn's push would grade an earlier turn as pushed; `Bash(git:*)` in this case and in the drift case still allows `git -C` into any repo on the machine and `git config --global`; no case covers a refused push or a forced one being tempting; Opus was not run.
+
+## Harness — git by subcommand, and no git config of the user's (2026-10-06)
+
+No plugin change and no version. Six cases allowed `Bash(git:*)`: the four that were merged before 2026-10-05, `triaged-finding-is-filed`, and the push case of 0.15.0. Under that rule a run can execute a shell through an alias (`git -c alias.x='!sh …' x`), reach any repo on the machine with `git -C`, and write the user's global config. The commit security review named it on a new case, and the review of #12 had listed it as left.
+
+- **`command()` refuses `Bash(git:*)`** in a case's sandbox. A case with `"git": true` gets git by named subcommand (`GIT` in `run.py`), and `git push` only when it also has `"remote": true`. The six cases drop the rule.
+- **`run_env`** sets `GIT_CONFIG_GLOBAL` to the null device and `GIT_CONFIG_NOSYSTEM`, beside the file transport limit.
+- Unit tests red at a0800dc (five), green at f32713e (165 tests). One existing test used `Bash(git:*)` as its example of an appended rule; its example is now a subcommand rule and its assertions are otherwise the same.
+- On Sonnet under the narrower list (20261006-002938): `committed-work-is-pushed` 3 of 3. `compliance-verdict-on-request` 1 of 3, the two red runs with no command refused: each looked for the canonical document at `architecture/ARCHITECTURE.md`, did not find it, and gave a verdict without file and line. That misreading of the workspace block is in runs of three other cases today and is not from this change.
+
+Left: `git diff --output` and `git log --output` can write a file anywhere the process can; the other four git cases were not rerun; a prefix rule is Claude Code's to enforce, and no run here tried `git -c` or `git -C` to show the refusal.
