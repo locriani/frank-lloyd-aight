@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -59,10 +60,13 @@ ALLOWED = [
 ]
 # The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")
-# What a case with `"git": true` may run, by subcommand. Never `Bash(git:*)`: `git -c alias.x='!sh …' x` runs a shell and
-# `git -C` reaches any repo on the machine. A prefix rule per subcommand refuses both, since neither starts with one.
-GIT = [f"Bash(git {sub}:*)" for sub in (
-    "status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "worktree list", "add", "commit", "mv", "switch", "checkout")]
+# What a case with `"git": true` may run of git, by subcommand. No permission rule says it: a prefix rule lets through
+# `git -c alias.x='!sh …' x` if it is broad and `git log --output=<any file>` if it is narrow, so the host answers (see git_ok).
+GIT = ("status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "add", "commit", "mv", "switch", "checkout")
+# Options that write a file of the caller's choosing, run a command of the caller's choosing, or wait on a person.
+GIT_REFUSED = ("--output", "--receive-pack", "--exec", "--upload-pack", "--template", "--ext-diff", "--textconv", "--edit-description", "--patch", "--interactive", "--edit")
+# What may share a command line with git: commands that only read.
+READS = ("ls", "cat", "head", "tail", "wc", "grep", "echo", "date", "pwd", "true")
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
 # These reach real Claude sessions on this machine. No eval run may expose them.
 PEER_TOOLS = ("ListAgents", "SendMessage")
@@ -178,7 +182,44 @@ def run_env(base: Mapping[str, str]) -> dict[str, str]:
     """The environment a run inherits, with git held to the file transport and cut off from the user's own config:
     a case that allows push can reach a repo on this machine, never a network remote with the user's credentials,
     and a run neither reads the user's aliases and helpers nor writes to them."""
-    return {**base, "GIT_ALLOW_PROTOCOL": "file", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    return {
+        **base, "GIT_ALLOW_PROTOCOL": "file", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+        # Over the work tree's own config, which a run can reach: no hook runs, and nothing waits on an editor or a prompt.
+        "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": os.devnull,
+        "GIT_EDITOR": "true", "GIT_TERMINAL_PROMPT": "0",
+    }
+
+
+def git_subcommands(spec: Mapping[str, Any]) -> tuple[str, ...]:
+    """The git subcommands a case's runs may use: none without `"git": true`, and push only with a remote to push to."""
+    return (GIT + (("push",) if spec.get("remote") else ())) if spec.get("git") else ()
+
+
+def git_ok(command: str, subs: tuple[str, ...]) -> bool:
+    """Whether the host lets a whole Bash command through for a git case. Every part of it must be one the host can vouch for:
+    an allowed git subcommand with no refused option, or a command that only reads. Anything it cannot read is refused."""
+    lex = shlex.shlex(command.replace(" 2>&1", ""), posix=True, punctuation_chars=";&|<>()\n")
+    lex.whitespace, lex.whitespace_split, lex.commenters = " \t", True, ""
+    try:
+        tokens = list(lex)
+    except ValueError:
+        return False
+    parts: list[list[str]] = [[]]
+    for token in tokens:
+        if token in ("&&", "||", ";", "|", "\n"):
+            parts.append([])
+        elif "$" in token or "`" in token or not token.strip(";&|<>()\n"):
+            return False
+        else:
+            parts[-1].append(token)
+    parts = [p for p in parts if p]
+    def part_ok(p: list[str]) -> bool:
+        if p[0] in READS:
+            return True
+        sub = " ".join(p[1:3]) if p[1:2] == ["worktree"] else "".join(p[1:2])
+        named = sub in subs or (sub == "worktree list" and bool(subs))
+        return p[0] == "git" and named and not any(t.startswith(GIT_REFUSED) for t in p)
+    return any(p[0] == "git" for p in parts) and all(part_ok(p) for p in parts)
 
 
 def init_repo(work: Path, remote: Path | None = None) -> str:
@@ -562,9 +603,8 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     # the guarantees their stored reds were measured against.
     sandbox = case.spec.get("sandbox") or {}
     if "Bash(git:*)" in sandbox.get("allow", []):
-        raise ValueError(f"{case.name}: Bash(git:*) is never allowed; set \"git\": true and the harness allows git by subcommand")
-    git = (GIT + (["Bash(git push:*)"] if case.spec.get("remote") else [])) if case.spec.get("git") else []
-    allowed = ALLOWED + git + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
+        raise ValueError(f"{case.name}: Bash(git:*) is never allowed; set \"git\": true and the host answers for git (see git_ok)")
+    allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
     disallowed = list(sandbox.get("deny", DISALLOWED))
     cmd = [
         "claude", "-p",
@@ -642,6 +682,7 @@ def drive_turns(
     close_grace: float = 60,
     answers: list[dict[str, Any] | None] | None = None,
     host_log: Path | None = None,
+    git: tuple[str, ...] = (),
 ) -> list[Turn]:
     """Feed each prompt as a stream-json user message; a turn ends at its `result` event.
 
@@ -700,7 +741,7 @@ def drive_turns(
                 if line.strip():
                     events.append(json.loads(line))
                     if events[-1].get("type") == "control_request":
-                        denied = _answer_control_request(proc, events[-1], (answers or [None] * n)[n - 1] if answers and n - 1 < len(answers) else None, host_log)
+                        denied = _answer_control_request(proc, events[-1], (answers or [None] * n)[n - 1] if answers and n - 1 < len(answers) else None, host_log, git)
                         if denied:
                             host_denied.add(denied)
                     if events[-1].get("type") == "result":
@@ -721,7 +762,7 @@ def drive_turns(
     return turns
 
 
-def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: dict[str, Any] | None, host_log: Path | None) -> str | None:
+def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: dict[str, Any] | None, host_log: Path | None, git: tuple[str, ...] = ()) -> str | None:
     """Reply to one control_request on stdin. Returns the tool_use_id when the host denied it."""
     req = ev.get("request", {})
     denied = None
@@ -731,7 +772,7 @@ def _answer_control_request(proc: subprocess.Popen, ev: dict[str, Any], answer: 
             updated = answer_question(req.get("input", {}), answer)
             data: dict[str, Any] = {"behavior": "allow", "updatedInput": updated}
             row = {"tool": "AskUserQuestion", "questions": req.get("input", {}).get("questions", []), "answers": updated.get("answers", {}), "tool_use_id": req.get("tool_use_id"), "at": at}
-        elif req.get("tool_name") == "Bash" and RENDER.fullmatch(req.get("input", {}).get("command", "")):
+        elif req.get("tool_name") == "Bash" and (RENDER.fullmatch(command := req.get("input", {}).get("command", "")) or git_ok(command, git)):
             data, row = {"behavior": "allow", "updatedInput": req["input"]}, None
         else:
             data = {"behavior": "deny", "message": "blocked by eval harness"}
@@ -1057,7 +1098,7 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
             if "peers" in turn_spec:
                 (out / "peers-sessions.json").write_text(render((case_root / turn_spec["peers"]).read_text(), ctx))
 
-        turns = drive_turns(cmd, [t.get("prompt") for t in spec["turns"]], work, env, spec.get("timeout_seconds", 300), snapshot, wait_seconds=spec.get("wait_seconds", 180), before_turn=before_turn, answers=[t.get("answer") for t in spec["turns"]], host_log=calls_log)
+        turns = drive_turns(cmd, [t.get("prompt") for t in spec["turns"]], work, env, spec.get("timeout_seconds", 300), snapshot, wait_seconds=spec.get("wait_seconds", 180), before_turn=before_turn, answers=[t.get("answer") for t in spec["turns"]], host_log=calls_log, git=git_subcommands(spec))
     except TimeoutError as exc:
         return [], f"timeout: {exc}", {}
     shutil.copytree(work, out / "fixture", dirs_exist_ok=True)
