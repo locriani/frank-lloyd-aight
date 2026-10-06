@@ -67,7 +67,7 @@ CLOCK = re.compile(r"""TZ=[\w/+-]+ date(?: (?:[-+][\w%:.-]*|'[-+][\w%:., -]*'|"[
 # No `mv`: with a file it may write under the architecture dir, a run could move its own script onto the renderer the host runs for it.
 GIT = ("status", "log", "diff", "show", "branch", "rev-parse", "ls-files", "add", "commit", "switch", "checkout")
 # Options that write a file of the caller's choosing, run a command of the caller's choosing, or wait on a person.
-GIT_REFUSED = ("--output", "--receive-pack", "--exec", "--upload-pack", "--template", "--ext-diff", "--textconv", "--edit-description", "--patch", "--interactive", "--edit", "--chmod", "--gpg-sign")
+GIT_REFUSED = ("--output", "--receive-pack", "--exec", "--upload-pack", "--template", "--ext-diff", "--textconv", "--edit-description", "--patch", "--interactive", "--edit", "--chmod", "--gpg-sign", "--help")
 # What may share a command line with git: commands that only read.
 READS = ("ls", "cat", "head", "tail", "wc", "grep", "echo", "date", "pwd", "true")
 DISALLOWED = ["Bash(git commit:*)", "Bash(git add:*)", "Bash(git push:*)", "Bash(rm:*)", "Bash(rmdir:*)"]
@@ -641,7 +641,7 @@ def command(case: Case, arm: str, model: str, mcp_config: dict[str, Any] | None 
     # A case may widen its own sandbox; the default is untouched, so the cases already green keep
     # the guarantees their stored reds were measured against.
     sandbox = case.spec.get("sandbox") or {}
-    if any(re.match(r"Bash\(\s*(?:\S*/)?git\b", rule) for rule in sandbox.get("allow", [])):
+    if any(re.match(r"Bash\([^)]*\bgit(?![\w-])", rule) for rule in sandbox.get("allow", [])):
         raise ValueError(f"{case.name}: a rule for git is never allowed; set \"git\": true and the host answers for git (see git_ok)")
     allowed = ALLOWED + list(sandbox.get("allow", [])) + (PEER_MOCK_TOOLS if "peers" in mcp_config["mcpServers"] else [])
     # The host answers for a git case's git; a default deny rule would refuse the commit before the host was asked.
