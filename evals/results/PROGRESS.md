@@ -1086,7 +1086,7 @@ Mine, not Zach's: "age" is the date of the first release, with the repository's 
 
 Left: no run had a network, so no case shows a table filled with read facts, only that unread ones say so, and the two no-network graders would be wrong for a run that could read a registry; the green tables name alternatives the run did not read, and some Purpose cells still say what a library can do from memory; the row count does not check that three rows are three packages; the Gauntlet-wide rule that Zach approves every new package is unchanged and is not tested here.
 
-## 0.15.5, 2026-10-06: a package nobody read is not proposed
+## 0.15.5 — a package nobody read is not proposed (2026-10-06)
 
 From the second review of #20, which approved it with four findings; Zach, 11:36: "fix them all".
 
