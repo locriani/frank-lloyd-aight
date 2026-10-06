@@ -9,7 +9,7 @@ The page Frank Lloyd AIght writes in a planning session, and rewrites in place e
 - Path: `<pages dir>/<subject>-plan.html` when the `## Architecture` block names a pages dir; otherwise `<plan dir>/<subject>-plan.html`. One file per plan, rewritten at the same path every turn. Never a second page for the same plan.
 - If the block names a URL where the pages dir is served, the address is `<url>/<subject>-plan.html`. Without one, give the file path and say the page is not served. Never paste the HTML into the reply, and never open a browser at it: the user decides when to look.
 - This file is the page of record. A copy published anywhere else is made only when the user asks for one, and from this file.
-- The file is a whole document, because nothing adds a skeleton when it is served. Its first lines are exactly the four under Head.
+- The file is a whole document, because nothing adds a skeleton when it is served. Its first lines are exactly the five under Head.
 - No external script. A paragraph is one line in the source, and nothing caps the width of the page or its text (see the agent's Writing section).
 
 ## Head
@@ -66,6 +66,7 @@ q{color:var(--muted);font-style:italic}
 .pill{display:inline-block;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:3px;white-space:nowrap}
 .pill.done{background:var(--accent-soft);color:var(--accent)}
 .pill.open{background:var(--open-soft);color:var(--open)}
+.next{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px}
 pre{margin:0;font-family:var(--mono);font-size:.85rem;line-height:1.6;background:var(--paper);border:1px solid var(--rule);padding:14px 16px;overflow-x:auto}
 .note{font-size:.85rem;color:var(--muted)}
 ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
@@ -91,9 +92,35 @@ ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
 
 `turn N` counts the turns of this planning session, from 1. `Open` is the number of rows whose pill reads proposed, open or under review. Other facts are the plan's own, each one measured or read.
 
+## Next decision
+
+The first thing under the header, before section 1, and it has no number. It holds the one decision the user is asked to make now, written so that it can be read cold: someone who has not read the rest of the page, or the conversation, can answer it.
+
+```html
+<section id="next" class="next">
+  <h2>Next decision: K1, the question in plain words</h2>
+  <p><b>The problem.</b> What is unsettled and why it has to be settled now, in two or three sentences, with no id standing in for an explanation.</p>
+  <p><b>The proposal.</b> One proposal. A table when it has parts.</p>
+  <p><b>What it costs.</b> What the proposal gives up or makes harder.</p>
+  <p><b>Basis.</b> Read in SOURCE. Not read: WHAT.</p>
+  <p><b>What it does not decide.</b> The neighbouring questions this answer leaves open.</p>
+  <h3>Waiting behind it</h3>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>The question</th></tr>
+    <tr><td class="id">K2</td><td>The row's question as one full sentence.</td></tr>
+  </table></div>
+</section>
+```
+
+- **One decision.** One row's id in the heading and one proposal in the body. Several changes are never put under one id: each change the user could accept or refuse on its own is its own row, and the others wait behind this one.
+- **No status.** Nothing already decided is retold here, and no row is named by its id alone.
+- **Checked first.** Before a proposal goes here it is checked against the Decided table and against what the brief asks for and rules out. A proposal that contradicts either is not made.
+- **Waiting behind it** lists the other open rows in the order they should be settled, each as a full-sentence question. When nothing else is open, the table is replaced by one sentence saying so.
+- When no row is open, the section says that nothing waits on the user.
+
 ## Sections
 
-Every section is `<section id="sN">` with `<h2>N. Title</h2>` on the line after it. Sections 1 to 5 are fixed. A subject the plan grows (the data model, the deployment, one module in depth) is appended as section 6, 7 and so on, in the order it arrived. A section is never inserted and never renumbered, because the user points at the numbers across turns.
+Every numbered section is `<section id="sN">` with `<h2>N. Title</h2>` on the line after it. Sections 1 to 5 are fixed. A subject the plan grows (the data model, the deployment, one module in depth) is appended as section 6, 7 and so on, in the order it arrived. A section is never inserted and never renumbered, because the user points at the numbers across turns.
 
 | # | Title | Body |
 |---|---|---|
