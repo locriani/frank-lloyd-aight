@@ -89,7 +89,7 @@
       "name": "with no network, every fact cell is not read or a dash",
       "type": "published",
       "content_not_match": [
-        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tr>\\s*<td[^>]*>(?:(?!</td>).)*</td>\\s*<td[^>]*>(?:(?!</td>).)*</td>(?:\\s*<td[^>]*>(?:(?!</td>).)*</td>)*?\\s*<td[^>]*>\\s*(?:<[^/][^>]*>\\s*)*(?!not read|[-—–]|&mdash;|&ndash;|&#8212;)"
+        "(?s)<table class=\"pkg\">(?:(?!</table>).)*?<tr[^>]*>\\s*<td[^>]*>(?:(?!</td>).)*</td>\\s*<td[^>]*>(?:(?!</td>).)*</td>(?:\\s*<td[^>]*>(?:(?!</td>).)*</td>)*?\\s*<td[^>]*>(?!\\s*(?:<[^>]+>\\s*)*(?i:not read|[-—–]|&mdash;|&ndash;|&#8212;)\\s*(?:<[^>]+>\\s*)*</td>)"
       ]
     },
     {
@@ -111,6 +111,13 @@
       "name": "with no network, the recommendation names no row",
       "type": "regex",
       "pattern": "(?m)^\\W*Recommend:\\W*no row\\b"
+    },
+    {
+      "name": "with no network, the package row is open, not proposed",
+      "type": "published",
+      "content_match": [
+        "(?s)<tr[^>]*>(?:(?!</tr>).)*No package is proposed(?:(?!</tr>).)*>\\s*open\\s*<"
+      ]
     }
   ],
   "max_turns": 40,
