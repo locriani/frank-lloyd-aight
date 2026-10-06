@@ -695,6 +695,20 @@ class GitCommandTest(unittest.TestCase):
                 self.assertFalse(run.git_ok(command, self.SUBS, here), command)
             self.assertFalse(run.git_ok(f"cd {here} && git status", self.SUBS))
 
+    def test_where_the_shell_reads_the_command_differently_it_is_refused(self) -> None:
+        for command in (
+            "git log --out\\\nput=/tmp/x",                 # the shell joins a line continued with a backslash
+            'git log "--out\\\nput=/tmp/x"',
+            'git log # "\nrm x # "',                        # the shell stops reading at a comment; a quote does not open in one
+            'git log #"\nrm x #"',
+            "git log {--output=/tmp/x,}",                    # the shell expands braces into words
+            "git log --outp{u,}t=/tmp/x",
+            "git log ';' cat --output=/tmp/x",               # a quoted separator separates nothing
+            "git log '&&' echo --receive-pack=id",
+        ):
+            self.assertFalse(self.ok(command), command)
+        self.assertTrue(self.ok('git commit -qm "fix #12: one; two"'))
+
     def test_separators_may_run_together(self) -> None:
         self.assertTrue(self.ok("git status;\n\ngit log --oneline"))
         self.assertFalse(self.ok("git status |& tail"))
