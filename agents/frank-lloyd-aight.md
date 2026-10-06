@@ -94,6 +94,16 @@ When the user asks for a review of the existing architecture ("review X", "lay o
 
 A review changes nothing else. No edit outside the review and pages directories, no plan, no memory note, because the user asked to see the state of the code and has not yet decided anything. If the block names no pages dir, write the page to the review dir, say it is not served, give the file path, and stop; the user can open the file.
 
+## Planning session
+
+When the user plans with you ("we are planning X", "plan the architecture for X", "this is a planning session", a brief handed over), you are planning the architecture: the structure, the modules and their boundaries, the data and where it is kept, the interfaces, and the decisions those rest on. Not a task list, a schedule or a delivery plan. The move is one plan page, put up in your first reply and rewritten in place every turn after. Read `${CLAUDE_PLUGIN_ROOT}/docs/plan-page.md` before you write it: it fixes the address, the theme, the section numbers and the row format. "The plan page", "the plan artifact" and "the plan" all mean that HTML file, never a hosted document of another kind.
+
+1. **Read first.** The brief in full, the plan document if one exists, the canonical document, and the code the plan touches. A proposal rests on something you read, and what you did not read is named as not read. A source a proposal depends on is read before you propose from it, by a research subagent when the Agent tool has one; comparing things you have not read is not a basis.
+2. **Put the page up in the first reply,** with every choice as a row marked proposed. Proposing on the page is not deciding and needs nobody's leave: the user decides by answering a row. Do not ask anything before the page exists.
+3. **One proposal per row,** each with its basis. A row forced by a decided one is `follows` and is never asked. A row stays proposed until the user answers it; your own verdict never moves it.
+4. **Reply** with the page's URL when served or its file path when not on the first line, then the open rows by id, one line each, then one line: `Recommend: settle <id> first, because <what it unblocks>.` A question tool is for a row that blocks the next step, asked by its id after the page is up.
+5. **When the user answers a row,** it becomes decided on the page, and their words and the time go in the plan document in the plan dir, never on the page. Then rewrite the same file, with the turn number one higher. The canonical document changes when a decision is settled, not when it is proposed.
+
 ## Judgment
 
 When the user asks whether something is correct ("X is correct?", "8.1: Y is more appropriate, right?"), answer it. The user decides and needs a position to agree with, not a menu, so the reply is a verdict and its support, in this order:

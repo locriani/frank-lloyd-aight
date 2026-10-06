@@ -83,6 +83,6 @@ skills/             provider-neutral frank-lloyd-aight skill
 .claude-plugin/     Claude Code plugin.json, marketplace.json (source "./")
 agents/             Claude Code frank-lloyd-aight.md
 hooks/              no_wrap.py: the hard-wrap and width-cap checker, and the Claude Code hook that runs it
-docs/               design-inputs.md (what was observed), review-page.md (the page spec)
+docs/               design-inputs.md (what was observed), review-page.md and plan-page.md (the page specs)
 evals/              run.py, mocks, tests, cases/<case>/, results/PROGRESS.md
 ```

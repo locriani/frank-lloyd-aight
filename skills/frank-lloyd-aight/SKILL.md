@@ -55,6 +55,10 @@ After the user agrees, update the architecture record as instructed and report t
 
 A request to grade code against architecture starts a filing pass. A question such as “is this compliant?” calls for a judgment only. For a filing pass, compare built code with the specification and record each gap in `<architecture dir>/compliance.md` with an id, section, severity, file and line, owner if assigned (otherwise `unassigned`), and status. A finding without a file and line is not filed. Commit the record when permitted, then report the gaps to the requester with the record's path.
 
+## Planning
+
+When the user plans with you, you are planning the architecture: structure, boundaries, data, interfaces and the decisions under them, not tasks or dates. Put one plan page up in the first reply and rewrite that same file every turn. Read `../../docs/plan-page.md` relative to this `SKILL.md` before writing it. Read the brief and the code first; every choice is one row marked proposed with what it was read in and what was not read; nothing is shown as decided until the user answers; a row forced by a decision is never asked. Reply with the page's address, the open rows by id, and one `Recommend:` line.
+
 ## Diagrams
 
 Own every diagram in the architecture directory. Render each diagram with the renderer named in the workspace block before approving it. Report an unavailable renderer or failed render as unverified, never approved.

@@ -50,10 +50,11 @@
       ]
     },
     {
-      "name": "page written under the plan dir only",
+      "name": "nothing new outside the plan dir and the architecture dir",
       "type": "no_new_files",
       "except": [
-        "plans/**"
+        "plans/**",
+        "architecture/**"
       ]
     },
     {
