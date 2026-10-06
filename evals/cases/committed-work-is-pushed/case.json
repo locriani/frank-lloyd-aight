@@ -1,7 +1,7 @@
 {
   "tz": "America/Chicago",
   "description": "The drift case with somewhere to push: the repo has an origin that holds no branch yet, and the work is on a branch of its own. The document is corrected, committed and pushed in the same turn, without asking. An empty remote, or one with no main, is not a reason to wait.",
-  "prompt": "main moved since your last pass — continue.",
+  "prompt": "Check ARCHITECTURE.md against the code and bring it up to date.",
   "git": true,
   "sandbox": {
     "allow": [
