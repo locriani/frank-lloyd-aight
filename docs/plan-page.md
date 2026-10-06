@@ -66,7 +66,6 @@ q{color:var(--muted);font-style:italic}
 .pill{display:inline-block;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:3px;white-space:nowrap}
 .pill.done{background:var(--accent-soft);color:var(--accent)}
 .pill.open{background:var(--open-soft);color:var(--open)}
-.next{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px}
 pre{margin:0;font-family:var(--mono);font-size:.85rem;line-height:1.6;background:var(--paper);border:1px solid var(--rule);padding:14px 16px;overflow-x:auto}
 .note{font-size:.85rem;color:var(--muted)}
 ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
@@ -100,7 +99,7 @@ The first thing under the header, before section 1, and it has no number. It hol
 <section id="next" class="next">
   <h2>Next decision: K1, the question in plain words</h2>
   <p><b>The problem.</b> What is unsettled and why it has to be settled now, in two or three sentences, with no id standing in for an explanation.</p>
-  <p><b>The proposal.</b> One proposal. A table when it has parts.</p>
+  <p><b>The proposal.</b> One proposal. When it has parts, a table follows this paragraph.</p>
   <p><b>What it costs.</b> What the proposal gives up or makes harder.</p>
   <p><b>Basis.</b> Read in SOURCE. Not read: WHAT.</p>
   <p><b>What it does not decide.</b> The neighbouring questions this answer leaves open.</p>
@@ -113,7 +112,7 @@ The first thing under the header, before section 1, and it has no number. It hol
 ```
 
 - **One decision.** One row's id in the heading and one proposal in the body. Several changes are never put under one id: each change the user could accept or refuse on its own is its own row, and the others wait behind this one.
-- **No status.** Nothing already decided is retold here, and no row is named by its id alone.
+- **No status.** The section is not a report of what has been decided, and no row is named by its id alone. A decided row this decision rests on is named with what it decided, in a clause.
 - **Checked first.** Before a proposal goes here it is checked against the Decided table and against what the brief asks for and rules out. A proposal that contradicts either is not made.
 - **Waiting behind it** lists the other open rows in the order they should be settled, each as a full-sentence question. When nothing else is open, the table is replaced by one sentence saying so.
 - When no row is open, the section says that nothing waits on the user.
