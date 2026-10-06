@@ -660,6 +660,7 @@ class PushedGraderTest(unittest.TestCase):
         self.rec = record(at(9, 0), at(9, 5))
         self.rec.fixture_dir = self.work
         self.rec.git_base = run.init_repo(self.work, self.remote)
+        self.rec.remote = self.remote
 
     def git(self, *args: str) -> str:
         return subprocess.run(["git", "-C", str(self.work), *args], check=True, capture_output=True, text=True).stdout.strip()
@@ -689,6 +690,14 @@ class PushedGraderTest(unittest.TestCase):
         self.commit()
         self.git("push", "-q", "-u", "origin", "HEAD")
         self.assertTrue(run.grade({"type": "pushed"}, self.rec)[0])
+
+    def test_a_repointed_origin_is_not_the_remote(self) -> None:
+        other = self.remote.parent / "other.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(other)], check=True, capture_output=True)
+        self.commit()
+        self.git("remote", "set-url", "origin", str(other))
+        self.git("push", "-q", "-u", "origin", "HEAD")
+        self.assertFalse(run.grade({"type": "pushed"}, self.rec)[0])
 
     def test_a_commit_after_the_push_fails(self) -> None:
         self.commit()

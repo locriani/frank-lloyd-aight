@@ -191,15 +191,16 @@ def init_repo(work: Path, remote: Path | None = None) -> str:
 
 
 def _pushed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
-    """The agent's newest commit is a branch head on origin. Read from origin itself, not from the local tracking refs."""
-    if rec.git_base is None:
-        return False, "case does not set \"git\": true"
+    """The agent's newest commit is a branch head in the remote the harness made. The remote is found by the harness's own path
+    and its refs are read in place: the agent can rewrite the work tree's config, so `origin` there is never asked or followed."""
+    if rec.git_base is None or rec.remote is None:
+        return False, "case does not set \"git\": true and \"remote\": true"
     def git(*args: str) -> str:
-        return subprocess.run(["git", "-C", str(rec.fixture_dir), *args], capture_output=True, text=True).stdout
-    head = git("rev-parse", "HEAD").strip()
+        return subprocess.run(["git", *args], capture_output=True, text=True).stdout
+    head = git("-C", str(rec.fixture_dir), "rev-parse", "HEAD").strip()
     if head == rec.git_base:
         return False, "no commit since the fixture"
-    heads = {l.split()[0] for l in git("ls-remote", "--heads", "origin").splitlines() if l.strip()}
+    heads = set(git("--git-dir", str(rec.remote), "for-each-ref", "--format=%(objectname)", "refs/heads").split())
     return head in heads, f"HEAD {head[:7]} is {'on' if head in heads else 'not on'} the remote ({len(heads)} branch(es) there)"
 
 
@@ -242,6 +243,7 @@ class RunRecord:
     mock_calls: list[dict[str, Any]] = field(default_factory=list)
     before_dir: Path | None = None
     git_base: str | None = None
+    remote: Path | None = None
 
     @property
     def peer_calls(self) -> list[dict[str, Any]]:
@@ -769,6 +771,7 @@ def grade_turns(spec: dict[str, Any], turns: list[Turn], tz: str, out: Path, cal
             mock_calls=in_turn,
             before_dir=out / ("fixture-before" if snap == 1 else f"fixture-turn{snap - 1}"),
             git_base=git_base,
+            remote=out / "remote.git" if (out / "remote.git").is_dir() else None,
         )
         for i, g in enumerate(turn_spec["graders"]):
             passed, why = grade(g, rec)
