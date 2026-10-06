@@ -79,6 +79,25 @@
       "pattern": "(?m)^\\**Recommend:\\**\\s+\\S"
     },
     {
+      "name": "the page opens on one next decision, readable cold",
+      "type": "published",
+      "content_match": [
+        "\\.next\\{",
+        "<section id=\"next\" class=\"next\">\\s*<h2>Next decision: [A-Z]+\\d+, \\S",
+        "<b>The problem\\.</b>",
+        "<b>The proposal\\.</b>",
+        "<b>What it costs\\.</b>",
+        "<b>Basis\\.</b>",
+        "<h3>Waiting behind it</h3>",
+        "<th>The question</th>"
+      ]
+    },
+    {
+      "name": "reply restates the one pending decision in full",
+      "type": "regex",
+      "pattern": "(?s)Next decision: [A-Z]+\\d+, .*The problem.*The proposal.*Do you approve [A-Z]+\\d+\\?"
+    },
+    {
       "name": "canonical document untouched",
       "type": "file_unchanged",
       "path": "docs/ARCHITECTURE.md"
