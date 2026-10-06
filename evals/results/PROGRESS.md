@@ -930,20 +930,22 @@ Left: the `<h3>` in the section has no rule in the fixed stylesheet; three ids i
 Zach to Equinox Architecture, 21:22, after it added a "9. Diagrams" section to its plan page and to `ARCHITECTURE.md`: "don't be a dumbass. put the diagrams in context, not some wierd ass appendix".
 
 - **Rule,** in the agent, the skill and `docs/plan-page.md`: a diagram sits in the section it explains, beside the table or text it draws, with its legend above it; never a diagrams section or appendix; a subject no section covers gets its own numbered section.
-- **Case** `diagram-in-its-section`: two diagrams asked for in a document that has a section for each subject. On placement it does not discriminate: before the rule every run put each diagram in its section (20261005-230530), and Equinox's appendix came out of a long planning session, which one turn does not reproduce. On the legend it does: see the review round below. With the rule: 3 of 3, and `plan-page-first-reply` 3 of 3 (20261005-230657).
+- **Case** `diagram-in-its-section`: two diagrams asked for in a document that has a section for each subject. On placement it does not discriminate: before the rule every run put each diagram in its section (20261005-230530), and Equinox's appendix came out of a long planning session, which one turn does not reproduce. On the legend it does: see the review round below. With the rule: 3 of 3 as first graded and 2 of 3 under the graders at head, and `plan-page-first-reply` 3 of 3 (20261005-230657).
 
 **Review round.** The reviewer blocked the first head on one clause of the correction below, now fixed, and found two things about the case. Nothing graded the legend, which 0 of 3 documents had before the rule and 3 of 3 with it. And the renderer grader passed on a refused call: two stored runs passed while their replies said nothing was rendered.
 
 - **Harness:** `tool_used` takes `"ran": true`, which counts toward a min only the calls that were let through. Unit test red at 21424a7, green at 98309a0 (151 tests). The renderer graders of all three diagram cases carry it; nothing is loosened.
 - **Case:** a legend grader. By regrade against the fixture as it was, before the rule 0 of 3 (20261005-230530) and with it 2 of 3 (20261005-230657), the third failing only because its renderer call, `python3 -I tools/mermaid-check.py …`, was refused.
-- **Agent and skill:** the renderer runs as its own command with no added flags and not chained to another; an uncovered subject's section is appended after the last one.
+- **Agent and skill:** the renderer runs as its own command, with nothing between the interpreter and its path, its own options after the file, and not chained to another; an uncovered subject's section is appended after the last one.
 - **With all of it:** the three diagram cases 3 of 3 each on Sonnet, with no renderer call refused in the new case (20261005-232030).
 
-**Second review round.** The legend grader as first written failed compliant legends (one opening on bold or a file name, ending in a parenthesis, or holding a pipe) and passed any sentence above the fence, the section's own intro included. A second version wanted the line to name a shape or an edge, and that failed a stored run whose legends read "The diagram shows the calls in the table above…", which the rule as written allows. It now wants any line of prose directly above the fence, in any markup, that the fixture did not already hold. `Diagram:` or `TODO.` above a fence passes it. With `"ran"`, a max let refused attempts through against its own comment; red at the test commit before the fix, and a max now counts every attempt.
+**Second review round.** The legend grader as first written failed compliant legends (one opening on bold or a file name, ending in a parenthesis, or holding a pipe) and passed any sentence above the fence, the section's own intro included. A second version wanted the line to name a shape or an edge, and that failed a stored run whose legends read "The diagram shows the calls in the table above…", which the rule as written allows. It now wants any line of prose directly above the fence, in any markup, that the fixture did not already hold. `Diagram:` or `TODO.` above a fence passes it. With `"ran"`, a max let refused attempts through against its own comment; red at the test commit fa9e211 before the fix, and a max now counts every attempt.
 
 Left: two diagrams swapped between their sections pass the case; a `### Diagram` sub-heading inside the right section fails it; the fixture inherits drift between `ARCHITECTURE.md` and `queue.py` that no grader reads; a compliant file with a third diagram or a tilde fence fails it; `docs/review-page.md` numbers its sections its own way, so "appended after the last one" does not fit a review page.
 
 **Correction to the 0.14.0 entry.** It called the agent's first-turn edit of `docs/ARCHITECTURE.md` in `plan-page-first-reply` an attempt the grader should count. The edit, made in two of the three runs of 20261005-221506, corrects drift: the fixture's document says sessions are held in Redis and the code keeps them in a dict. That is the agent's duty under "The documentation is yours to fix". In those two runs the agent is right, and the case's allow list refuses the correction. The third run made no attempt and said it would correct the drift once the user settled which side is right, which is the hand-back that section calls the failure. The case's fixture carries drift the case does not mean to test.
+
+**Third review round.** The renderer sentence said "no added flags", and the renderer the workspace names deletes each SVG unless it is given `--keep` or `--outdir`, so a plan page built to the sentence had no diagram. It now forbids only what goes before the renderer's path and chaining; the renderer's own options follow the file. The fixture renderer takes no options, so no case sees the difference. Rerun on Sonnet with the new sentence, three runs a case: `diagram-in-its-section`, `diagram-rendered-before-approval` and `diagram-shows-real-structure` all green (20261006-010507).
 
 ## 0.15.0 — committed work is pushed, to an empty remote too (2026-10-05)
 
@@ -969,6 +971,8 @@ With the review fixes the case ran 2 of 3 as first graded (20261005-235141). The
 
 Left: a push that creates `main` on an empty remote passes the case, and the rule allows it, on Zach's 19:31 words; the remote is read when grading, not snapshotted per turn, so a later turn's push would grade an earlier turn as pushed; `Bash(git:*)` in this case and in the drift case still allows `git -C` into any repo on the machine and `git config --global`; no case covers a refused push or a forced one being tempting; Opus was not run.
 
+**Third review round.** Approved, with two things fixed here. The test that the remote's path reaches the grader had no commit in it, so the grader answered before reading the remote and the test pinned only that a remote was set; it now grades a committed run false before the push and true after, and a tag pushed to the remote is tested as not a branch. And the transport limit is narrower than this entry and `CLAUDE.md` say: `GIT_ALLOW_PROTOCOL=file` holds git's own transports (fetch, push, clone, archive, submodules), not a git subcommand with a network client of its own (`lfs`, `imap-send`, `send-email`), which a case allowing `Bash(git:*)` can still run. The sentence in `CLAUDE.md` becomes true in #14, where a run's git is held to named subcommands, and is left for it. Filed, not fixed: `origin` is hard-coded in the rule; a fetch into the remote from the work tree passes `pushed` without a push; the forced-push pattern misses a tab before `--force` and calls `git push … && git ls-remote origin | cut -f 2` forced; two graders copied from the drift case do nothing here.
+
 ## Harness — the host answers for git; runs see none of the user's git config (2026-10-06)
 
 No plugin change and no version. Six cases allowed `Bash(git:*)`: the four merged before 2026-10-05, `triaged-finding-is-filed`, and the push case of 0.15.0. Under that rule a run can execute a shell through an alias (`git -c alias.x='!sh …' x`), reach any repo on the machine with `git -C`, and write the user's global config. The commit security review named it, and the review of #12 had listed it as left.
@@ -978,13 +982,13 @@ No plugin change and no version. Six cases allowed `Bash(git:*)`: the four merge
 - every part is an allowed subcommand (`GIT`; `push` only with `"remote": true`; listing worktrees and remotes) or a command that only reads (`READS`);
 - no option that writes a file, runs a command or waits on a person, abbreviated or not, in any part;
 - a push goes to `origin` as one plain ref at most, with no refspec and no force;
-- no substitution, no brace, no comment, no continued line, and no redirect but `2>&1` and `2>/dev/null`;
-- `cd` and `-C` are let through only when they name the run's own directory;
+- no substitution, no backslash, no brace, no comment, no quoted separator, and no redirect but `2>&1` and `2>/dev/null`;
+- `cd`, and `-C` on git alone, are let through only when they name the run's own directory by its absolute path;
 - no `git mv`, with which a run could move its own file onto the renderer the host runs for it.
 
 `run_env` cuts every run off from the user's global and system git config, points `core.hooksPath` at the null device over the work tree's own config, and sets `GIT_EDITOR=true` and `GIT_TERMINAL_PROMPT=0`.
 
-**How it got there.** Five rounds, each of the first four found wanting by the commit security review or by the reviewer of #14:
+**How it got there.** Six rounds, each of the first five found wanting by the commit security review or by the reviewer of #14:
 
 | Round | Red | Green | What the round before it had let through |
 |---|---|---|---|
@@ -993,18 +997,21 @@ No plugin change and no version. Six cases allowed `Bash(git:*)`: the four merge
 | Review of #14 | 86250cc | 150d0c8 | `git mv -f`, `--chmod`, `-p` `-i` `-t`, a second spelling of the git rule; and it refused `git remote -v` and `2>/dev/null`, which runs chain to a commit |
 | The run's own directory | 62194b2 | 85373ef | nothing; it refused `cd <own directory>` and `git -C <own directory>`, and two stored runs lost their commit to that |
 | Where the shell reads differently | acec8c9 | e2e75dc | a continued line, a comment, a brace expansion and a quoted separator, each carrying `--output=` |
+| Second review of #14 | 2083a3e | b6cc918 | `make -C <own directory> -f architecture/x.mk`, relabelled as git by the `-C` rewrite of the round before, which ran a makefile a run may write; `git push origin HEAD ';' echo --force`, a forced push past the push check; `-t/x`; a relative `cd` read against the harness's directory |
 
 The pipeline was red at every commit from 96aab3b to 86250cc, 81b76cb and 1b13708 included, and not only for the tests meant to fail: the new test class had been inserted in the middle of `PerCaseSandboxTest`, which left one existing test in a class without its helpers. The reviewer found it; 86250cc moved it back. Two existing tests changed: the example rule in `test_allow_is_appended_to_the_default` is now `Bash(wc:*)`, since a git rule is refused, and the whole-environment assertion the hook test lost is restored as a test of its own.
 
-**On Sonnet.** `committed-work-is-pushed` is 3 of 3 under the host check in each of three runs (20261006-002938, -003541, -004349). The five other git cases are red on Sonnet with and without this change. Run 20261006-005118, three runs a case, on this branch at 85373ef and on its base at 05730c5:
+The second review also found that a case with `"git": true` and no `sandbox.deny` of its own still carried the default deny rules for commit, add and push, so the six cases worked only because each restates its deny list. A git case's default no longer denies git. And nothing tested that the host is handed the case's git and the run's directory; a turn through the fake CLI now does.
+
+**On Sonnet.** `committed-work-is-pushed` is 3 of 3 under the host check in four runs (20261006-002938, -003541, -004349, and -011139 at b6cc918). The other git cases are red or unsteady on Sonnet with and without this change. Run 20261006-005118, three runs a case, on this branch at 85373ef and on its base at 05730c5, runs passed of three:
 
 | Case | Base, `Bash(git:*)` | This branch |
 |---|---|---|
-| `compliance-verdict-on-request` | red | green |
-| `fix-drift-dont-hand-it-back` | red | red |
-| `standalone-compliance` | red | red |
-| `triaged-finding-is-filed` | red | red |
+| `compliance-verdict-on-request` | 2 | 3 |
+| `fix-drift-dont-hand-it-back` | 0 | 0 |
+| `standalone-compliance` | 0 | 2 |
+| `triaged-finding-is-filed` | 0 | 0 |
 
-In that run the host refused no git command on this branch; every refusal on both sides was a shell loop or a `find`, which the harness has always refused. `compliance-is-filed-to-the-builder` was not in the pair and is 0 of 3 on both sides in earlier runs. The pair ran one round before e2e75dc and was not repeated after it.
+Neither difference is an effect of this change that the runs can show: `compliance-verdict-on-request` made no Bash call on either side. In that run the host refused no command made only of git and reads on this branch; every refusal on both sides was a shell loop, a `find` or a `$(…)`, two of them with a git part chained on. At b6cc918 `standalone-compliance` and `triaged-finding-is-filed` were red again (20261006-011139). `compliance-is-filed-to-the-builder` was not in the pair and is 0 of 3 on both sides in earlier runs.
 
-Left: `cat`, `grep` and `git diff --no-index` can read any file the process can; the option list is a deny list, not an allow list per subcommand; behind a quoted separator a short `-p` or `-i` still reaches `git add`, untested in a run; a glob is not refused; five git cases are red on Sonnet for reasons this change did not make and does not fix; runs edit the document through `python3 -` in the shell before falling back to Edit, which the harness refuses and the agent's rules do not forbid.
+Left: `cat`, `grep` and `git diff --no-index` can read any file the process can; the option list is a deny list, not an allow list per subcommand, and the short forms are checked on three subcommands only; a glob is not refused; `command()` refuses a rule whose first word is `git` and not `Bash(/usr/bin/git:*)` or a bare `Bash`; a commit message holding a backslash, a `$` or a backtick is refused with its commit; five git cases are red on Sonnet for reasons this change did not make and does not fix; runs edit the document through `python3 -` in the shell before falling back to Edit, which the harness refuses and the agent's rules do not forbid.
