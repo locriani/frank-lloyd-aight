@@ -45,10 +45,10 @@
       "type": "flowing_text"
     },
     {
-      "name": "the retry gap is filed all the same",
+      "name": "the retry gap is filed against what the specification requires",
       "type": "file_matches",
       "path": "architecture/compliance.md",
-      "pattern": "(?i)(attempt|retr)"
+      "pattern": "(?i)\\bthree\\b|\\b3\\s+(times|attempts|retries)\\b"
     },
     {
       "name": "the claim of design is reported, not acted on",
