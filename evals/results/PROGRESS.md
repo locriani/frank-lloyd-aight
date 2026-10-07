@@ -1209,4 +1209,3 @@ Evidence, Sonnet. Red: 0 of 2 each (20261006-194457). At the commit, eight runs 
 Mine, not Zach's: the wording, and the reading above.
 
 Left: `standalone-compliance` is 6 of 8 at the commit and was red on main for the same two reasons, neither of this change: a run that filed nothing, answering as if the request were a question (the prompt is "Grade the code against the architecture and file the gaps."), and a record that did not use the grader's words for the retry-count gap (`two attempts|one retry|three attempts|retry count`). Both are model variance against instructions that say the right thing; a grader ruling or a sharper line in Grading compliance is the next step, and neither is in this PR.
-
