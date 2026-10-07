@@ -1210,4 +1210,3 @@ Evidence, Sonnet. Red: 0 of 2 each (20261006-194457), on the old graders. Rewrit
 Mine, not Zach's: the clause, and allowing the reply to the requester in the triage case.
 
 Left: `compliance-is-filed-to-the-builder` is 7 of 8 at the commit; the two failures seen across the reruns are a record that did not use the grader's words for the retry-count gap (`range(2)|two attempts|one retry|three attempts|retry count`) and a commit message the pattern did not match. Both are word-list graders over a model's wording, as in `standalone-compliance`.
-
