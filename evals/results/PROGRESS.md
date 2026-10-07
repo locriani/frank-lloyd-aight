@@ -1195,3 +1195,19 @@ Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the 
 Mine, not Zach's: the form `path:line`.
 
 Left: `judgment-not-survey` is flaky on main and this change does not touch it. In 20261006-201859 it failed once in five, on "names adjustments" (a reply that wrote "Keeping"), and the case has two word-list graders. The first form of this change put `path:line` on the reasons in Judgment and made it 4 of 5 red on "gives reasons" (20261006-202153), because the replies became bare cited bullets; a `Reasons:` label then fixed that, but the label is itself a match for the grader (`reasons?`), and in 3 of the 8 green runs the adjustments grader was satisfied by a word inside a reason (`instead`, `drop`, `change`) and not by the adjustments line. Both were dropped. The case needs a ruling on its graders, which is Zach's: `Adjustments:` and the `No adjustments` that Judgment prescribes do not match `\badjust\b`, and `reasons?` is matched by anything that says "reason". Under house rule 11 they are not mine to change.
+
+## 0.15.10 — the two filing cases expect the standalone agent; a plain request to grade is the filing pass (2026-10-06)
+
+Zach, 2026-10-06 19:44: "fix the red evals". `compliance-is-filed-to-the-builder` and `triaged-finding-is-filed` were red 2 of 2 on main (20261006-194457). Their fixture blocks name a session tool, an implementer and a coordinator, and they expected the owner `4200-impl` in the record and a message to each. 0.10.1 ("Keep Frank Lloyd AIght standalone", Zach, 2026-09-25) took that relay out of the agent, and the cases were never changed.
+
+I tried the other direction first (0.15.10 as PR #27, the relay restored when the block names sessions): 8 of 8 on both cases, and the reviewer approved it, but it contradicts the repo's own `CLAUDE.md:14` and 0.10.1. Zach ruled, by AskUserQuestion at 21:3x: "Standalone wins". #27 was closed unmerged.
+
+- **Case change (Zach's ruling, house rule 11).** Both cases now expect the record's owner to be `unassigned` and no message to the implementer. `compliance-is-filed-to-the-builder` expects no message at all (the requester is the user, answered in the reply). `triaged-finding-is-filed` allows the reply to the coordinator that asked, since that is the requester, and forbids a message to the implementer. The graders for the record, its file and line, the commit, the specification kept, the code untouched and no question asked are unchanged. Only the owner pattern and the send graders changed, and the case descriptions say why.
+- **Agent change.** One clause: "Grade the code against the architecture" is the filing pass in any case and with or without "and file the gaps". On the cases as rewritten, the first rerun on the unchanged agent had 2 of 8 builder-case runs file nothing, answering as if the request were a question (20261006-213756).
+
+Evidence, Sonnet. Red: 0 of 2 each (20261006-194457), on the old graders. Rewritten cases, unchanged agent: `triaged-finding-is-filed` 8 of 8, `compliance-is-filed-to-the-builder` 6 of 8 (20261006-213756). With the clause: 7 of 8 and 8 of 8 (20261006-214852).
+
+Mine, not Zach's: the clause, and allowing the reply to the requester in the triage case.
+
+Left: `compliance-is-filed-to-the-builder` is 7 of 8 at the commit; the two failures seen across the reruns are a record that did not use the grader's words for the retry-count gap (`range(2)|two attempts|one retry|three attempts|retry count`) and a commit message the pattern did not match. Both are word-list graders over a model's wording, as in `standalone-compliance`.
+
