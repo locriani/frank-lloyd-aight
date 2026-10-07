@@ -79,6 +79,11 @@
       "message_match": "(?i)(complian|deviat|defect|queue|conform)"
     },
     {
+      "name": "the report identifies the record",
+      "type": "regex",
+      "pattern": "architecture/compliance\\.md"
+    },
+    {
       "name": "a fact is reported, not asked about",
       "type": "tool_used",
       "tool": "AskUserQuestion",
