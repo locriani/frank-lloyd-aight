@@ -1195,3 +1195,17 @@ Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the 
 Mine, not Zach's: the form `path:line`.
 
 Left: `judgment-not-survey` is flaky on main and this change does not touch it. In 20261006-201859 it failed once in five, on "names adjustments" (a reply that wrote "Keeping"), and the case has two word-list graders. The first form of this change put `path:line` on the reasons in Judgment and made it 4 of 5 red on "gives reasons" (20261006-202153), because the replies became bare cited bullets; a `Reasons:` label then fixed that, but the label is itself a match for the grader (`reasons?`), and in 3 of the 8 green runs the adjustments grader was satisfied by a word inside a reason (`instead`, `drop`, `change`) and not by the adjustments line. Both were dropped. The case needs a ruling on its graders, which is Zach's: `Adjustments:` and the `No adjustments` that Judgment prescribes do not match `\badjust\b`, and `reasons?` is matched by anything that says "reason". Under house rule 11 they are not mine to change.
+
+## 0.15.12 — the drift fixture records the decision that makes section 3 stale (2026-10-06)
+
+Zach, 2026-10-06 19:44: "fix the red evals". `fix-drift-dont-hand-it-back` was red in 2 of 2 runs on main (20261006-194457). The fixture's §3 says sessions are held in Redis; `store.py` says it is process-local by design and has no Redis client; the case expects the agent to correct its own document and commit. The agent handed it back ("whether §3 stands is yours to decide"), because the only evidence the build was meant was the code's own docstring, which is the thing under grading, and the agent is right not to take that as a decision (the same line the review rule of 0.15.7 draws).
+
+Zach approved the test change by AskUserQuestion at 21:3x: "Yes: rule plus fixture evidence".
+
+- **Fixture evidence.** `architecture/flow.md` in the case's fixture records the decision, in the form the review cases already use: "Redis was considered for the session store and dropped on 2026-09-10: one process is enough at this size, and `store.py` holds sessions in memory by design." No grader changed.
+- **No rule added.** The rule Zach approved (a code comment alone moves a description but never a requirement) is not in this PR: on the unchanged agent, with the decision on record, `fix-drift-dont-hand-it-back` is 5 of 5 and the sibling case below is 5 of 5, so no rule is needed to make either pass, and an instruction nothing measures is YAGNI (Zach, 21:33: "we prefer clean architecture, SOLID, YAGNI, DRY"). It stays available as the one sentence of draft #13.
+- **A case brought over from draft #13.** `a-comment-does-not-move-the-specification`: the publisher's docstring says two attempts are by design; the specification stays, the retry gap is filed, the claim is carried in the row or the reply. It holds a behaviour the agent already has and pins it. One change to it: its sandbox allowed `Bash(git:*)`, which the harness now refuses ("a rule for git is never allowed"), so the allow rule is gone; nothing else in it changed.
+
+Evidence, Sonnet. Red: `fix-drift-dont-hand-it-back` 0 of 2 (20261006-194457). With the decision on record, unchanged agent: both cases 5 of 5 (20261006-214432).
+
+Left: #13 can be closed, and is, by this PR's merge note. The two fixtures are copies of the compliance fixture, as every case's is; a shared fixture directory would remove 18 copies and is a change to the harness, not mine here.
