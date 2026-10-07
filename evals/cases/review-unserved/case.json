@@ -106,10 +106,11 @@
         "class=\"num\">9<",
         "class=\"tag\">9\\.1<",
         "href=\"#s9\"",
-        "queue\\.py:\\d+"
+        "queue\\.py:\\d+",
+        "class=\"tag\">9\\.\\d+</span>(?:</th>\\s*<td[^>]*>)?\\s*(?:§|section\\s*)\\s*2\\b"
       ],
       "content_not_match": [
-        "class=\"tag\">9\\.\\d+</span>\\s*(?:§|section\\s*)\\s*3\\b"
+        "class=\"tag\">9\\.\\d+</span>(?:</th>\\s*<td[^>]*>)?\\s*(?:§|section\\s*)\\s*3\\b"
       ]
     },
     {
