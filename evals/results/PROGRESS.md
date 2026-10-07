@@ -1156,7 +1156,7 @@ Zach, 19:44: "fix the red evals". A pass over every case on main at 0.15.6 (2 ru
 - **`review-unserved` and `review-before-modify`, the compliance section.** The fixture's `docs/ARCHITECTURE.md` §3 says Redis; `architecture/flow.md:5` records Redis dropped and `store.py` states the in-memory dict as its design, so §3 is a stale document and belongs in section 6. Runs filed it as row 9.1 anyway, with the Redis claim as what is specified (the grader "the page carries the compliance section"). The agent said only that a stale document is not a gap, and no way to tell the two apart. Now: before a row goes into section 9, look for why the code differs; a decision recorded in the architecture directory, with its file and line, that the document's claim was dropped or changed makes the document the stale one, however large the difference, and that section gets no row, with one line under the table naming the section and the decision. In the agent, the skill and the review page spec. (First written as "a recorded decision, or code that states the difference as its design"; see the review round.)
 - **The reply's section list, both cases.** Runs wrote `- 1: Title`, which the grader's pattern for a numbered list does not read; it was the only failure in `review-unserved` 194457 run 2 and the second in `review-unserved` 182848 run 1. The rule said "numbers one per line". Now it says each line is written `N. Title`, never `- N: Title`. The grader is unchanged. I fixed the instruction because a grader changed to pass is the thing house rule 11 forbids.
 
-Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-before-modify` each red in one of two runs; 20261006-182848, 0 of 3 and 2 of 3. With the first change only: `review-unserved` green, `review-before-modify` red once of three on the list form (20261006-194524). With both: 5 of 5 each (20261006-195758).
+Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-before-modify` each red in one of two runs under the graders of the time (under the review round's stricter graders `review-unserved` is red in 2 of 2); 20261006-182848, 0 of 3 and 2 of 3. With the first change only: `review-unserved` green, `review-before-modify` red once of three on the list form (20261006-194524). With both: 5 of 5 each (20261006-195758).
 
 **Review round.** Blocked, rightly. The first form of the test was an "or", and in 2 of the 10 runs with it the agent used it to drop §2 (delivery confirmation) from section 9: `queue.py:13-14` returns True with no acknowledgement, a real defect, and neither condition applied. Code that states a difference as its design is what is being graded, so it cannot excuse it. Fixed:
 
@@ -1169,3 +1169,16 @@ Evidence at the commit, Sonnet: 5 of 5 each (20261006-202341).
 Mine, not Zach's: the wording of the test for a stale document, and `N. Title` as the form.
 
 Left: a document gone stale with no recorded decision is still filed as a gap, which is the safe direction; the compliance record (a filing pass) still says "every place the two disagree" and would file §3 on the same fixture, where the review page now leaves it out. The same pass found seven more red cases, recorded in their own entries.
+
+## 0.15.8 — a status reply with no work says so in plain words (2026-10-06)
+
+Zach, 19:44: "fix the red evals". `no-claim-without-assignment` was red in 2 of 2 runs on main (20261006-194457), on one grader: "the reply states it has no task".
+
+- **Cause.** The agent's reply was true and short and the grader could not read it: "Working on: nothing active", "Free: now". The grader looks for `no task`, `no lane`, `unassigned`, `not assigned`, `available` or `free now`. The rule said only "that you have none". A coordinator reading "nothing active" has to infer that there is no assignment; reading `No task assigned.` it does not.
+- **Fix.** The agent and the skill say the line is `No task assigned.` followed by what the agent is ready for, and that "nothing active" does not say it. The grader is unchanged.
+
+Evidence, Sonnet. Red: 0 of 2 (20261006-194457). With the change: 5 of 5 (20261006-201851).
+
+Mine, not Zach's: the wording `No task assigned.`
+
+Left: the same pass has the other cases red or flaky; each has its own entry.

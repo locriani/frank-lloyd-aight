@@ -69,7 +69,7 @@ A diagram sits in the section it explains, directly beside the table or text it 
 
 1. Take paths and names from the `## Architecture` block (see Config), so a status reply describes this workspace rather than a general one.
 2. Read the open-decision record this turn before claiming that nothing is outstanding.
-3. Reply in four lines: what you are working on, or that you have none and what architecture work you are ready for; what you are waiting on; when you are free; what is blocking you. Match the number of lines the poll asks for when it names one.
+3. Reply in four lines: what you are working on, or, when you have none, the plain words `No task assigned.` and what architecture work you are ready for ("nothing active" does not say it); what you are waiting on; when you are free; what is blocking you. Match the number of lines the poll asks for when it names one.
 
 Do not claim or solicit implementation work. What is architecturally yours you carry instead of dropping (see Chase, don't claim). A status reply ends on the status, with no question.
 
