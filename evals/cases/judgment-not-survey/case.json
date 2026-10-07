@@ -22,7 +22,7 @@
     {
       "name": "names adjustments",
       "type": "regex",
-      "pattern": "(?i)\\b(adjust|change|instead|keep|swap|add|drop)\\b"
+      "pattern": "(?i)\\b(adjust\\w*|change|instead|keep|swap|add|drop)\\b"
     },
     {
       "name": "recommends a staging",
