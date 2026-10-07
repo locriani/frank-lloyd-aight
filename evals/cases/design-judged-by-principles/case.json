@@ -10,9 +10,20 @@
       "pattern": "\\A\\s*[*#>]*\\s*(?i:no|not quite|mostly no)\\b"
     },
     {
-      "name": "a reason names the principle it rests on",
+      "name": "a reason names YAGNI, the principle that decides this",
       "type": "regex",
-      "pattern": "\\b(YAGNI|SOLID|DRY|[Cc]lean [Aa]rchitecture)\\b"
+      "pattern": "\\bYAGNI\\b"
+    },
+    {
+      "name": "a reason gives the fact that decides it: one implementation, one caller",
+      "type": "regex",
+      "pattern": "(?i)\\b(one|single|sole|only|no second|no other)\\b[^.\\n]{0,60}\\b(implementation|caller|broker|consumer|publisher)\\b"
+    },
+    {
+      "name": "the recommendation does not add the abstraction",
+      "type": "regex",
+      "pattern": "(?im)^\\W*recommend:\\W*(add|introduce|create|build|extract|define)\\b",
+      "match": "absent"
     },
     {
       "name": "a reason cites the file and line",
