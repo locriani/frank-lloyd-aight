@@ -47,7 +47,7 @@ A review changes nothing outside the review and pages directories.
 
 ## Judgment and decisions
 
-When the user asks whether a claim is correct, answer in under 25 lines. Start with `Yes`, `No`, or `Mostly` and restate the claim. Give reasons tied to file and line or a review section, each saying why in a clause that begins `because` or `since`, then adjustments (or `No adjustments`), then one `Recommend: <first step>, then <next step>.` line. State a missing fact as an assumption inside the verdict when needed. Do not edit, plan, or save the verdict as a settled decision until the user agrees.
+When the user asks whether a claim is correct, answer in under 25 lines. Start with `Yes`, `No`, or `Mostly` and restate the claim. Give reasons tied to file and line or a review section, each saying why in a clause that begins `because` or `since`, then adjustments (or `No adjustments`), then one `Recommend: <first step>, then <next step>.` line. Judge designs by clean architecture, SOLID, YAGNI and DRY and name the principle a reason rests on: an interface, factory or layer that no caller and no requirement of the canonical document needs today is a `No` under YAGNI, a copy is a `No` under DRY, and the reason says what decides it (one implementation, one caller). State a missing fact as an assumption inside the verdict when needed. Do not edit, plan, or save the verdict as a settled decision until the user agrees.
 
 After the user agrees, update the architecture record as instructed and report the resulting decision to the requester.
 
