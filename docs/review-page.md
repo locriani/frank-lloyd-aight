@@ -37,7 +37,7 @@ Every section is `<section id="sN">` with `<h2><span class="num">N</span>Title</
 | 6 | Where they disagree | `div.table-wrap > table`: columns Topic, one per state present (header text plus its chip), What it decides. Rows: `<th scope="row"><span class="tag">6.N</span>Topic</th>`, one `td` per state, last cell `td.why` with one sentence. |
 | 7 | Migration roadmap | `div.table-wrap > table.roadmap`: #, step, status (a chip: `done`, `inflight`, `designed`, or `hot` for waiting on a decision), green when. |
 | 8 | Open decisions | `ol.decisions` of `li`: `<span class="did">8.N</span>`, `<div><h4>title</h4><p>one paragraph: the choice, what each side costs</p><div class="src">where it comes from: 6.N, a file, a document section</div></div>`. Every undecided row of section 6 appears here. |
-| 9 | Where the code departs from the specification | `div.table-wrap > table`: columns #, Section, Severity, Specified, Built, Where. Rows `<th scope="row"><span class="tag">9.N</span>§M</th>`, then the severity as `<span class="chip hot">high</span>` for a gap that breaks what the section exists to guarantee and plain text otherwise, one sentence of what the document specifies, one of what the code does, and `file:line`. Always present: with nothing to report it reads "No gaps: every section of the specification is met by the code as built." |
+| 9 | Where the code departs from the specification | `div.table-wrap > table`: columns #, Section, Severity, Specified, Built, Where. Rows `<th scope="row"><span class="tag">9.N</span>§M</th>`, then the severity as `<span class="chip hot">high</span>` for a gap that breaks what the section exists to guarantee and plain text otherwise, one sentence of what the document specifies, one of what the code does, and `file:line`. Always present: with nothing to report it reads "No gaps: every section of the specification that is not left out below is met by the code as built." A section left out as stale has one line of `p.note` under the table: `§N is not a row: DECISION (FILE:LINE) records that its claim was dropped.` |
 
 Figures: `figure > div.fig-scroll > svg` with `role="img"`, an `aria-label` that says in one sentence what the figure shows, and a `viewBox` around 960 wide. `figcaption` opens with the state chip, then `chip hot` when anything is marked, then one sentence of what is not drawn. Arrowheads come from one `<marker>` per figure; text that crosses a line gets `class="halo"`.
 
@@ -65,11 +65,11 @@ A node is a noun; a verb goes on the edge label. A figure never mixes states wit
 - Counts are measured (`wc -l`, `git log --oneline | wc -l`, the test runner's own summary), never estimated. A count that was not measured is left out.
 - Nothing on the page is a recommendation. The page is the shared reference; verdicts come when the user asks by number. The words "recommend" and "should" do not appear on it.
 - A design document that contradicts itself gets both readings in section 6 and a row in section 8.
-- Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect.
+- Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect. The test, before a row is written: is there a decision recorded in the architecture directory, with its file and line, that the document's claim was dropped or changed? Then the document went stale and the section gets no row, however large the difference. Code that states the difference as its design corroborates such a decision and is never enough alone, because the code is what is graded. Every other difference is a row, wording that can be read two ways included (the row says which reading was taken). One line under the table names each section left out and the decision that took it out.
 
 ## The reply after writing
 
-The page's URL or file path on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). State when the file is not served. No recommendation, no question. The user reads, then discusses by number.
+The page's URL or file path on the first line, then the section list with numbers (one line each, written `N. Title`, never `- N: Title`), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). State when the file is not served. No recommendation, no question. The user reads, then discusses by number.
 
 ## Stylesheet
 
@@ -473,6 +473,7 @@ html { scroll-behavior: smooth; }
         <thead><tr><th scope="col">#</th><th scope="col">Section</th><th scope="col">Severity</th><th scope="col">Specified</th><th scope="col">Built</th><th scope="col">Where</th></tr></thead>
         <tbody><tr><th scope="row"><span class="tag">9.1</span>§N</th><td>TOPIC</td><td><span class="chip hot">high</span></td><td>WHAT THE DOCUMENT SAYS</td><td>WHAT THE CODE DOES</td><td><code>FILE:LINE</code></td></tr></tbody>
       </table></div>
+      <p class="note">§N is not a row: DECISION (FILE:LINE) records that its claim was dropped. (Only when a section was left out.)</p>
     </section>
 
     <footer class="src-list">Built DATE HH:MM TZ from: COMMIT on BRANCH; WORKTREE at COMMIT; DOCUMENTS.</footer>

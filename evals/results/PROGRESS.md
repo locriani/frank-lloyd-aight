@@ -1148,3 +1148,50 @@ Left:
 - **The fallback name** in the eval is the temporary directory's name (`cos-eval-…-review.html`). In a workspace it is the worktree directory's name, which may not be the name the user wants; only a `Project:` line makes it exact, and the workspace `CLAUDE.md` is the user's to change.
 - **No case** covers a plan page, a page whose name is this project's and whose content is not, or a block that has the `Project:` line.
 - **The comment** in `test_allowlist_is_review_only` still lists three writable places; the test was not touched.
+
+## 0.15.7 — a stale section gets no compliance row; the section list has one form (2026-10-06)
+
+Zach, 19:44: "fix the red evals". A pass over every case on main at 0.15.6 (2 runs each, 20261006-194457) had nine cases red. This entry is the two review cases; the others are separate entries.
+
+- **`review-unserved` and `review-before-modify`, the compliance section.** The fixture's `docs/ARCHITECTURE.md` §3 says Redis; `architecture/flow.md:5` records Redis dropped and `store.py` states the in-memory dict as its design, so §3 is a stale document and belongs in section 6. Runs filed it as row 9.1 anyway, with the Redis claim as what is specified (the grader "the page carries the compliance section"). The agent said only that a stale document is not a gap, and no way to tell the two apart. Now: before a row goes into section 9, look for why the code differs; a decision recorded in the architecture directory, with its file and line, that the document's claim was dropped or changed makes the document the stale one, however large the difference, and that section gets no row, with one line under the table naming the section and the decision. In the agent, the skill and the review page spec. (First written as "a recorded decision, or code that states the difference as its design"; see the review round.)
+- **The reply's section list, both cases.** Runs wrote `- 1: Title`, which the grader's pattern for a numbered list does not read; it was the only failure in `review-unserved` 194457 run 2 and the second in `review-unserved` 182848 run 1. The rule said "numbers one per line". Now it says each line is written `N. Title`, never `- N: Title`. The grader is unchanged. I fixed the instruction because a grader changed to pass is the thing house rule 11 forbids.
+
+Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-before-modify` each red in one of two runs under the graders of the time (under the review round's stricter graders `review-unserved` is red in 2 of 2); 20261006-182848, 0 of 3 and 2 of 3. With the first change only: `review-unserved` green, `review-before-modify` red once of three on the list form (20261006-194524). With both: 5 of 5 each (20261006-195758).
+
+**Review round.** Blocked, rightly. The first form of the test was an "or", and in 2 of the 10 runs with it the agent used it to drop §2 (delivery confirmation) from section 9: `queue.py:13-14` returns True with no acknowledgement, a real defect, and neither condition applied. Code that states a difference as its design is what is being graded, so it cannot excuse it. Fixed:
+
+- **The test** is now a recorded decision only; the code's own statement corroborates and is never enough. Every other difference is a row, ambiguous wording included, with the reading taken said in the row. The section 9 layout in the spec has the one line under the table (`§N is not a row: DECISION (FILE:LINE) records that its claim was dropped.`) and the empty-table sentence no longer says every section is met.
+- **Graders, stricter and not weaker.** The guard against a §3 row read only `§3` straight after the tag's `</span>`, so a row written `9.1</span></th><td>§3</td>` passed it; 194457 `review-unserved` run 1, which has a §3 Redis row, had passed it. It now reads both forms. A new check requires the §2 row (`class="tag">9.N</span>` then §2, both forms) in both cases. Regraded under them: 194457 `review-unserved` run 1 red (was green); 195758 `review-before-modify` runs 1 and 3, the two that dropped §2, red; every other stored run unchanged, including 195758 `review-unserved` 5 of 5.
+- **The record,** above, which blamed the list form on one case only.
+
+Evidence at the commit, Sonnet: 5 of 5 each (20261006-202341).
+
+Mine, not Zach's: the wording of the test for a stale document, and `N. Title` as the form.
+
+Left: a document gone stale with no recorded decision is still filed as a gap, which is the safe direction; the compliance record (a filing pass) still says "every place the two disagree" and would file §3 on the same fixture, where the review page now leaves it out. The same pass found seven more red cases, recorded in their own entries.
+
+## 0.15.8 — a status reply with no work says so in plain words (2026-10-06)
+
+Zach, 19:44: "fix the red evals". `no-claim-without-assignment` was red in 2 of 2 runs on main (20261006-194457), on one grader: "the reply states it has no task".
+
+- **Cause.** The agent's reply was true and short and the grader could not read it: "Working on: nothing active", "Free: now". The grader looks for `no task`, `no lane`, `unassigned`, `not assigned`, `available` or `free now`. The rule said only "that you have none". A coordinator reading "nothing active" has to infer that there is no assignment; reading `No task assigned.` it does not.
+- **Fix.** The agent and the skill say the line is `No task assigned.` followed by what the agent is ready for; the agent also says "nothing active" does not say it (the skill leaves that clause out). The grader's `free now` and `available` alternatives also match the "when free" line alone, so 5 of 5 shows the wording is followed, not that line 1 is what is measured; that grader needs a ruling of its own (the review of #25, R1). The grader is unchanged.
+
+Evidence, Sonnet. Red: 0 of 2 (20261006-194457). With the change: 5 of 5 (20261006-201851).
+
+Mine, not Zach's: the wording `No task assigned.`
+
+Left: the same pass has the other cases red or flaky; each has its own entry.
+
+## 0.15.9 — a gap is cited `path:line` (2026-10-06)
+
+Zach, 19:44: "fix the red evals". `compliance-verdict-on-request` failed 1 of 5 runs on main (20261006-201859).
+
+- **Cause.** One reply named the file once in its lead sentence (`all in src/app/queue.py`) and cited each gap as `**Connection (line 10).**`. A reader can follow it; the grader looks for `queue\.py:\d+`. Nothing in the rule said what a citation looks like.
+- **Fix.** The agent's Grading compliance says a gap is cited `path:line` (`src/app/queue.py:10`), never "line 10" under a heading that names the file. Only there: Judgment, which Grading compliance defers to for the answer, keeps its own wording, and so does the skill. The grader is unchanged.
+
+Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the commit (agent line 50 only): 8 of 8 (20261006-205939). The 5 of 5 of 20261006-202153 ran on an earlier form that also changed Judgment and is not the evidence.
+
+Mine, not Zach's: the form `path:line`.
+
+Left: `judgment-not-survey` is flaky on main and this change does not touch it. In 20261006-201859 it failed once in five, on "names adjustments" (a reply that wrote "Keeping"), and the case has two word-list graders. The first form of this change put `path:line` on the reasons in Judgment and made it 4 of 5 red on "gives reasons" (20261006-202153), because the replies became bare cited bullets; a `Reasons:` label then fixed that, but the label is itself a match for the grader (`reasons?`), and in 3 of the 8 green runs the adjustments grader was satisfied by a word inside a reason (`instead`, `drop`, `change`) and not by the adjustments line. Both were dropped. The case needs a ruling on its graders, which is Zach's: `Adjustments:` and the `No adjustments` that Judgment prescribes do not match `\badjust\b`, and `reasons?` is matched by anything that says "reason". Under house rule 11 they are not mine to change.
