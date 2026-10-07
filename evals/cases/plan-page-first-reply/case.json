@@ -11,8 +11,8 @@
       "max": 1,
       "content_match": [
         "(?i)\\A<!doctype html>\\s*<meta charset=\"utf-8\">",
-        "--accent:\\s*#1c6a49",
-        "padding-inline:\\s*clamp\\(16px,\\s*5vw,\\s*72px\\)",
+        "--designed:\\s*#2c58a0",
+        "padding-inline:\\s*20px",
         "<section id=\"s1\">\\s*<h2>1\\. Decided</h2>",
         "<section id=\"s2\">\\s*<h2>2\\. Open</h2>",
         "<section id=\"s3\">\\s*<h2>3\\. Structure</h2>",

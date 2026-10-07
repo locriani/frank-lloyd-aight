@@ -19,59 +19,14 @@ The page Frank Lloyd AIght writes in a planning session, and rewrites in place e
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SUBJECT Plan</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
 ```
 
 ## Stylesheet
 
-Copied whole and never changed: every plan page has the same theme. There is no pill class beyond `done` and `open`; the word inside the pill carries the status.
+The plan page uses the same `docs/page-theme.css` as the review page (`${CLAUDE_PLUGIN_ROOT}/docs/page-theme.css`). Read it and put it in the page's `<style>` whole, never changed, so every plan page has the same theme as every review.
 
-```html
-<style>
-:root{
-  --bg:#f2f5f1; --paper:#fbfcfa; --ink:#17211c; --muted:#5b6a62; --rule:#cfd9d2;
-  --accent:#1c6a49; --accent-soft:#dcebe2; --open:#8a5a00; --open-soft:#f5e9cf;
-  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-}
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#101613; --paper:#161e1a; --ink:#e4ece7; --muted:#93a39a; --rule:#2b3831;
-  --accent:#6fcf9f; --accent-soft:#1c3328; --open:#e3b65a; --open-soft:#3a2e12; color-scheme:dark } }
-:root[data-theme="dark"]{
-  --bg:#101613; --paper:#161e1a; --ink:#e4ece7; --muted:#93a39a; --rule:#2b3831;
-  --accent:#6fcf9f; --accent-soft:#1c3328; --open:#e3b65a; --open-soft:#3a2e12; color-scheme:dark }
-
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding-inline:clamp(16px,5vw,72px);padding-block:28px 56px}
-main{display:flex;flex-direction:column;gap:36px}
-h1,h2{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0}
-h1{font-size:2rem;line-height:1.15}
-h2{font-size:1.25rem;padding-bottom:6px;border-bottom:2px solid var(--ink)}
-p{margin:0}
-section{display:flex;flex-direction:column;gap:14px}
-.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-header{display:flex;flex-direction:column;gap:10px}
-.facts{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:.9rem;color:var(--muted)}
-.facts b{color:var(--ink);font-weight:600}
-.next{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px}
-
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.9rem}
-th,td{text-align:left;vertical-align:top;padding:8px 12px 8px 0;border-bottom:1px solid var(--rule)}
-th{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
-td.id{font-family:var(--mono);white-space:nowrap;color:var(--muted)}
-td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0;padding-left:12px}
-tr.total td{border-top:2px solid var(--ink);border-bottom:none;font-weight:600}
-q{color:var(--muted);font-style:italic}
-.pill{display:inline-block;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;padding:1px 7px;border-radius:3px;white-space:nowrap}
-.pill.done{background:var(--accent-soft);color:var(--accent)}
-.pill.open{background:var(--open-soft);color:var(--open)}
-pre{margin:0;font-family:var(--mono);font-size:.85rem;line-height:1.6;background:var(--paper);border:1px solid var(--rule);padding:14px 16px;overflow-x:auto}
-.note{font-size:.85rem;color:var(--muted)}
-ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px}
-.diagram{background:#fff;border-radius:8px;padding:12px;overflow-x:auto;margin:12px 0}.diagram svg{display:block;margin:0 auto;height:auto}
-</style>
-```
+There is no pill class beyond `done` and `open`; the word inside the pill carries the status.
 
 ## Header
 
