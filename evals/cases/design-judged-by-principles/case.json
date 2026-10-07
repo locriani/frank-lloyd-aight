@@ -1,0 +1,57 @@
+{
+  "tz": "America/Chicago",
+  "description": "Zach prefers clean architecture, SOLID, YAGNI and DRY. Robin asks whether a Publisher interface and a factory, for a broker that has one implementation and no second caller, is more appropriate. The verdict is No, and a reason names the principle it rests on.",
+  "prompt": "The publisher in src/app/queue.py should get an abstract Publisher interface and a factory so the broker can be swapped later, which is more appropriate, correct?",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "verdict on the first line, and it is no",
+      "type": "regex",
+      "pattern": "\\A\\s*[*#>]*\\s*(?i:no|not quite|mostly no)\\b"
+    },
+    {
+      "name": "a reason names the principle it rests on",
+      "type": "regex",
+      "pattern": "\\b(YAGNI|SOLID|DRY|[Cc]lean [Aa]rchitecture)\\b"
+    },
+    {
+      "name": "a reason cites the file and line",
+      "type": "regex",
+      "pattern": "\\b[\\w/.-]+\\.py:\\d+"
+    },
+    {
+      "name": "recommends",
+      "type": "regex",
+      "pattern": "(?i)recommend"
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "no trailing question",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    },
+    {
+      "name": "under 25 lines",
+      "type": "reply_lines",
+      "max": 25
+    },
+    {
+      "name": "no edits",
+      "type": "tool_used",
+      "tool": "Write|Edit",
+      "max": 0
+    },
+    {
+      "name": "no new files",
+      "type": "no_new_files"
+    }
+  ],
+  "max_turns": 12,
+  "timeout_seconds": 300
+}

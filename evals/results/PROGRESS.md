@@ -1225,3 +1225,16 @@ Evidence, Sonnet. Red on main: 3 of 8 green (20261006-213356). With the grader c
 Mine, not Zach's: the clause, and the choice of `because` or `since`.
 
 Left: 7 of 8. The one red (run 8) reasons in plain sentences with no causal word ("so the app can run as one process only", "Nothing therefore justifies"), against a grader that reads three words. Reasons that carry no marker are the grader's limit, not the agent's: whether to widen the reasons grader (`therefore|which means|so`) is Zach's, and I have not.
+
+## 0.15.13 — designs are judged by clean architecture, SOLID, YAGNI and DRY, and the reply names the principle (2026-10-06)
+
+Zach, 2026-10-06 21:33: "needs a fix: we prefer clean architecture, SOLID, YAGNI, DRY". 23:20, on the open decision about it: "it doesn't name them, that's probably the problem" and, on the drift rule, took the recommendation to keep agent line 95 and drop #13's rule. The agent, the skill and the docs named none of the four (grep, main at cc9a60b).
+
+- **Agent and skill change.** Judgment gains one paragraph: every design, in a verdict or a proposal, is judged by clean architecture, SOLID, YAGNI and DRY, and a reason names the principle it rests on. An interface, factory, layer or copy that no caller needs today fails YAGNI or DRY and the verdict is `No`, because what might be needed is not what is needed; policy depending on detail fails clean architecture; a module with two reasons to change fails SOLID. The skill's verdict line carries the same sentence in short.
+- **New case `design-judged-by-principles`.** Fixture is the `judgment-not-survey` one. Robin asks whether `src/app/queue.py`'s publisher should get an abstract `Publisher` interface and a factory so the broker can be swapped later. Graders: the verdict is `No` on the first line, a reason names one of the four principles, a reason cites `file.py:line`, a recommendation, no question back, under 25 lines, no edits, no new files.
+
+Evidence, Sonnet. Red on main: 0 of 5 (20261006-232142), all five fail the principle grader and the `No` grader; the replies open `Mostly` and call the seam justified or reasonable. With the change: 5 of 5 (20261006-232309). Guards in the same run: `compliance-verdict-on-request` 5 of 5; `judgment-not-survey` 4 of 5, the one red on its word-list "gives reasons" grader, as in 0.15.11.
+
+Mine, not Zach's: the wording of the paragraph, the choice of `No` as the verdict for a speculative abstraction, and the case's prompt.
+
+Left: the preference is stated for judgments and proposals only. Grading compliance is unchanged: the specification is the fixed point, and a principle never turns a requirement into a stale section. Whether the review page's section 6 or the plan page should also say which principle a disagreement turns on is not done.
