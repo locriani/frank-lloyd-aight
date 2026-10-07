@@ -1175,7 +1175,7 @@ Left: a document gone stale with no recorded decision is still filed as a gap, w
 Zach, 19:44: "fix the red evals". `no-claim-without-assignment` was red in 2 of 2 runs on main (20261006-194457), on one grader: "the reply states it has no task".
 
 - **Cause.** The agent's reply was true and short and the grader could not read it: "Working on: nothing active", "Free: now". The grader looks for `no task`, `no lane`, `unassigned`, `not assigned`, `available` or `free now`. The rule said only "that you have none". A coordinator reading "nothing active" has to infer that there is no assignment; reading `No task assigned.` it does not.
-- **Fix.** The agent and the skill say the line is `No task assigned.` followed by what the agent is ready for, and that "nothing active" does not say it. The grader is unchanged.
+- **Fix.** The agent and the skill say the line is `No task assigned.` followed by what the agent is ready for; the agent also says "nothing active" does not say it (the skill leaves that clause out). The grader's `free now` and `available` alternatives also match the "when free" line alone, so 5 of 5 shows the wording is followed, not that line 1 is what is measured; that grader needs a ruling of its own (the review of #25, R1). The grader is unchanged.
 
 Evidence, Sonnet. Red: 0 of 2 (20261006-194457). With the change: 5 of 5 (20261006-201851).
 
