@@ -1174,3 +1174,16 @@ Evidence, Sonnet. Red: 0 of 2 (20261006-194457). With the change: 5 of 5 (202610
 Mine, not Zach's: the wording `No task assigned.`
 
 Left: the same pass has the other cases red or flaky; each has its own entry.
+
+## 0.15.9 — a gap is cited `path:line`; a verdict's reasons are headed (2026-10-06)
+
+Zach, 19:44: "fix the red evals". Two cases each failed once in five runs on main (20261006-201859).
+
+- **`compliance-verdict-on-request`, "every gap is cited to a file and line".** One reply named the file once in its lead sentence (`all in src/app/queue.py`) and cited each gap as `**Connection (line 10).**`. A reader can follow it; the grader looks for `queue.py:\d+`. Nothing in the rule said what a citation looks like. Now: `path:line` (`src/app/queue.py:10`), never "line 10" under a heading that names the file, in the agent's Grading compliance and in Judgment, and in the skill.
+- **`judgment-not-survey`, "gives reasons" and "names adjustments".** Reasons that are bullets tied to files carry none of `because`, `since`, `reason`. The first form of the change above put `path:line` on the reasons in Judgment and made it worse, 4 of 5 red on that grader (20261006-202153), because the replies became bare cited bullets. Now Judgment asks for a line `Reasons:` and one bullet per reason; the skill the same.
+
+Evidence, Sonnet. Red: each case 4 of 5 (20261006-201859). With the citation form: `compliance-verdict-on-request` 5 of 5 (20261006-202153). With the `Reasons:` line as well: `judgment-not-survey` 8 of 8 (20261006-202422).
+
+Mine, not Zach's: `path:line`, and the label `Reasons:`.
+
+Left: the grader for adjustments reads `adjust`, `change`, `instead`, `keep`, `swap`, `add`, `drop` as whole words, so `Adjustments:` and the `No adjustments` that Judgment itself prescribes do not match; the case passed 8 of 8 only because replies happened to use another word. It needs a ruling on the grader (`adjust\w*`), which is not mine to make. Both graders are word lists over a reply's wording.
