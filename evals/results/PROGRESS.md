@@ -1161,4 +1161,3 @@ Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-be
 Mine, not Zach's: the wording of the test for a stale document, and `N. Title` as the form.
 
 Left: the test reads the architecture directory and the code's own statement; a document gone stale with neither is still filed as a gap, which is the safe direction. The same pass found seven more red cases, recorded in their own entries.
-
