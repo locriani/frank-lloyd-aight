@@ -1190,7 +1190,7 @@ Zach, 19:44: "fix the red evals". `compliance-verdict-on-request` failed 1 of 5 
 - **Cause.** One reply named the file once in its lead sentence (`all in src/app/queue.py`) and cited each gap as `**Connection (line 10).**`. A reader can follow it; the grader looks for `queue\.py:\d+`. Nothing in the rule said what a citation looks like.
 - **Fix.** The agent's Grading compliance says a gap is cited `path:line` (`src/app/queue.py:10`), never "line 10" under a heading that names the file. Only there: Judgment, which Grading compliance defers to for the answer, keeps its own wording, and so does the skill. The grader is unchanged.
 
-Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the commit: see below.
+Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the commit (agent line 50 only): 8 of 8 (20261006-205939). The 5 of 5 of 20261006-202153 ran on an earlier form that also changed Judgment and is not the evidence.
 
 Mine, not Zach's: the form `path:line`.
 
