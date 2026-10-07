@@ -1148,3 +1148,17 @@ Left:
 - **The fallback name** in the eval is the temporary directory's name (`cos-eval-…-review.html`). In a workspace it is the worktree directory's name, which may not be the name the user wants; only a `Project:` line makes it exact, and the workspace `CLAUDE.md` is the user's to change.
 - **No case** covers a plan page, a page whose name is this project's and whose content is not, or a block that has the `Project:` line.
 - **The comment** in `test_allowlist_is_review_only` still lists three writable places; the test was not touched.
+
+## 0.15.7 — a stale section gets no compliance row; the section list has one form (2026-10-06)
+
+Zach, 19:44: "fix the red evals". A pass over every case on main at 0.15.6 (2 runs each, 20261006-194457) had nine cases red. This entry is the two review cases; the others are separate entries.
+
+- **`review-unserved` and `review-before-modify`, the compliance section.** The fixture's `docs/ARCHITECTURE.md` §3 says Redis; `architecture/flow.md:5` records Redis dropped and `store.py` states the in-memory dict as its design, so §3 is a stale document and belongs in section 6. Runs filed it as row 9.1 anyway, with the Redis claim as what is specified (the grader "the page carries the compliance section"). The agent said only that a stale document is not a gap, and no way to tell the two apart. Now: before a row goes into section 9, look for why the code differs; a decision recorded in the architecture directory against the document, or code that states the difference as its design, makes the document the stale one, however large the difference, and that section gets no row, with one line under the table saying which section was left out and why. In the agent, the skill and the review page spec.
+- **`review-before-modify`, the reply's section list.** Runs wrote `- 1: Title`, which the grader's pattern for a numbered list does not read. The rule said "numbers one per line". Now it says each line is written `N. Title`, never `- N: Title`. The grader is unchanged. I fixed the instruction because a grader changed to pass is the thing house rule 11 forbids.
+
+Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-before-modify` each red in one of two runs; 20261006-182848, 0 of 3 and 2 of 3. With the first change only: `review-unserved` green, `review-before-modify` red once of three on the list form (20261006-194524). With both: 5 of 5 each (20261006-195758).
+
+Mine, not Zach's: the wording of the test for a stale document, and `N. Title` as the form.
+
+Left: the test reads the architecture directory and the code's own statement; a document gone stale with neither is still filed as a gap, which is the safe direction. The same pass found seven more red cases, recorded in their own entries.
+

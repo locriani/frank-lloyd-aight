@@ -65,11 +65,11 @@ A node is a noun; a verb goes on the edge label. A figure never mixes states wit
 - Counts are measured (`wc -l`, `git log --oneline | wc -l`, the test runner's own summary), never estimated. A count that was not measured is left out.
 - Nothing on the page is a recommendation. The page is the shared reference; verdicts come when the user asks by number. The words "recommend" and "should" do not appear on it.
 - A design document that contradicts itself gets both readings in section 6 and a row in section 8.
-- Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect.
+- Section 9 carries **code defects only**: the document specifies something and the code does not do it. A document that has gone stale — it describes what was built once, or what was planned and never built — is not a compliance gap, and belongs in section 6 with the other disagreements, and in section 8 if it needs settling. The specification is the fixed point; a section 9 row says the code is wrong, and saying that about a stale document launders the defect. The test, before a row is written: is there a decision recorded in the architecture directory against what the document says, or does the code state the difference as its design? Then the document went stale and the section gets no row, however large the difference; one line under the table names the section left out and why.
 
 ## The reply after writing
 
-The page's URL or file path on the first line, then the section list with numbers (one line each), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). State when the file is not served. No recommendation, no question. The user reads, then discusses by number.
+The page's URL or file path on the first line, then the section list with numbers (one line each, written `N. Title`, never `- N: Title`), then the one sentence from section 6 that matters most, and the count of section 9's rows when it is not zero ("9: three gaps"). State when the file is not served. No recommendation, no question. The user reads, then discusses by number.
 
 ## Stylesheet
 
