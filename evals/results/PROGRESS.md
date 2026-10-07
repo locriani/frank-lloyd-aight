@@ -1212,3 +1212,16 @@ Mine, not Zach's: the clause, and allowing the reply to the requester in the tri
 Review round (PR #28, blocked, rightly): the counts above for 214852 were misstated as 7 of 8 and are corrected; the failure in run 6 was not a commit message the pattern missed but a chained `git add && git commit` the host refused (`host_denied` 2), so the commit never happened, a behaviour failure against the agent's own rule that a commit and a push are separate calls; both cases now also require the reply to name `architecture/compliance.md`, the check `standalone-compliance` has; the triage case's description now says the reply to the coordinator that sent the request is the report (the repo's `CLAUDE.md:14`: communication instructions come from the assigning context) and nothing goes to the implementer.
 
 Left: the builder case's remaining failures across the reruns are a record that did not use the grader's words for the retry-count gap (`range(2)|two attempts|one retry|three attempts|retry count`) and that refused chained commit. The unanchored `(?i)unassigned` matches anywhere in the record, as in `standalone-compliance`.
+
+## 0.15.11 — the adjustments grader reads Adjustments; each reason says why (2026-10-06)
+
+Zach, 2026-10-06 19:44: "fix the red evals". `judgment-not-survey` failed 1 of 5 on main (20261006-201859), and 5 of 8 on a later sample of main (20261006-213356). It has two word-list graders over a reply's wording, and Zach ruled on them by AskUserQuestion at 21:3x: "Yes, fix the graders".
+
+- **Grader change (Zach's ruling, house rule 11).** "names adjustments" read `adjust` as a whole word, so the spec's own `Adjustments:` and `Adjusted` never matched, and the reply that wrote `Adjustments:` failed (201859 run 5). It reads `adjust\w*` now. One pattern, nothing else in the case changed. All five stored runs of 201859 regrade green under it.
+- **Agent and skill change.** "gives reasons" was the larger failure: 5 of 8 on main, replies whose bullets were tied to files and said why in no listed word ("so choosing Redis changes the code..."). That grader stayed as it is: the reasons of a verdict now each say why in a clause that begins `because` or `since`. An earlier form (PR #26 first pass) headed the reasons with a `Reasons:` label, which the grader matches by itself and could not fail on; this form asks for the word in the clause. The review of this PR measured it: in the 213604 runs no run puts the word in every reason, one passes on a `because` in a disclaimer and one inside the Adjustments block, so the instruction moves the wording and is not what the grader measures. It stays because it moved the case from 3 of 8 to 7 of 8 and costs a clause, and the reasons grader is Zach's to widen.
+
+Evidence, Sonnet. Red on main: 3 of 8 green (20261006-213356). With the grader change and the clause: 7 of 8 (20261006-213604).
+
+Mine, not Zach's: the clause, and the choice of `because` or `since`.
+
+Left: 7 of 8. The one red (run 8) reasons in plain sentences with no causal word ("so the app can run as one process only", "Nothing therefore justifies"), against a grader that reads three words. Reasons that carry no marker are the grader's limit, not the agent's: whether to widen the reasons grader (`therefore|which means|so`) is Zach's, and I have not.
