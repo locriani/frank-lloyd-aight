@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -169,6 +170,80 @@ class WidthCapTest(unittest.TestCase):
         spec = (run.PLUGIN_ROOT / "docs" / "plan-page.md").read_text()
         self.assertEqual(no_wrap.caps(spec), [])
         self.assertEqual(no_wrap.markdown(spec), [])
+
+
+class PageThemeTest(unittest.TestCase):
+    def block(self, text: str, selector: str) -> str:
+        match = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", text)
+        self.assertIsNotNone(match, selector)
+        return match.group(1)
+
+    def test_the_theme_file_exists_and_caps_nothing(self) -> None:
+        path = run.PLUGIN_ROOT / "docs" / "page-theme.css"
+        self.assertTrue(path.is_file())
+        self.assertEqual(no_wrap.caps(path.read_text()), [])
+
+    def test_the_theme_has_the_three_token_blocks(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        for selector in (":root {", "@media (prefers-color-scheme: dark) {", ':root:not([data-theme="light"])', ':root[data-theme="dark"]'):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, text)
+
+    def test_the_two_dark_blocks_hold_the_same_tokens(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        automatic = self.block(text, ':root:not([data-theme="light"])')
+        explicit = self.block(text, ':root[data-theme="dark"]')
+        declarations = r"(--[\w-]+|color-scheme)\s*:\s*([^;]+);"
+        self.assertEqual(
+            {(name, value.strip()) for name, value in re.findall(declarations, automatic)},
+            {(name, value.strip()) for name, value in re.findall(declarations, explicit)},
+        )
+
+    def test_each_dark_block_redefines_every_light_colour(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        light_colours = {
+            name for name in re.findall(r"(--[\w-]+)\s*:", self.block(text, ":root"))
+            if not name.startswith("--f-")
+        }
+        for selector in (':root:not([data-theme="light"])', ':root[data-theme="dark"]'):
+            with self.subTest(selector=selector):
+                dark_tokens = set(re.findall(r"(--[\w-]+)\s*:", self.block(text, selector)))
+                for name in light_colours:
+                    self.assertIn(name, dark_tokens)
+
+    def test_both_dark_blocks_set_color_scheme(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        for selector in (':root:not([data-theme="light"])', ':root[data-theme="dark"]'):
+            with self.subTest(selector=selector):
+                self.assertIn("color-scheme: dark;", self.block(text, selector))
+
+    def test_the_theme_defines_the_review_tokens(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        light = self.block(text, ":root")
+        tokens = (
+            "--ground", "--ground-2", "--paper", "--ink", "--ink-2", "--muted", "--rule", "--deployed",
+            "--inflight", "--inflight-soft", "--designed", "--designed-soft", "--warn", "--warn-soft",
+            "--f-head", "--f-body", "--f-mono",
+        )
+        for token in tokens:
+            with self.subTest(token=token):
+                self.assertRegex(light, re.escape(token) + r"\s*:\s*[^;\s][^;]*;")
+
+    def test_neither_spec_embeds_the_stylesheet(self) -> None:
+        for name in ("review-page.md", "plan-page.md"):
+            with self.subTest(name=name):
+                text = (run.PLUGIN_ROOT / "docs" / name).read_text()
+                self.assertNotIn("--ground:", text)
+                self.assertNotIn("--accent:#1c6a49", text)
+                self.assertNotRegex(text, r"--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}")
+                self.assertNotIn("```css", text)
+                self.assertNotIn("<style>\n", text)
+
+    def test_both_specs_name_the_theme_file(self) -> None:
+        for name in ("review-page.md", "plan-page.md"):
+            with self.subTest(name=name):
+                text = (run.PLUGIN_ROOT / "docs" / name).read_text()
+                self.assertIn("page-theme.css", text)
 
 
 class OtherFilesTest(unittest.TestCase):
