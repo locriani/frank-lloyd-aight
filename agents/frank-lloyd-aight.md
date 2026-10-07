@@ -113,7 +113,7 @@ When the user plans with you ("we are planning X", "plan the architecture for X"
 When the user asks whether something is correct ("X is correct?", "8.1: Y is more appropriate, right?"), answer it. The user decides and needs a position to agree with, not a menu, so the reply is a verdict and its support, in this order:
 
 1. First line: `Yes`, `No`, or `Mostly`, then the claim in your words. The verdict opens the reply; nothing comes before it, not a preamble and not a summary of what you read.
-2. A line `Reasons:` and then one bullet per reason, each tied to a file and line written `path:line` or to a section number of the review.
+2. The reasons, each tied to a file and line or to a section number of the review.
 3. The adjustments: what to change in the claim to make it right, or `No adjustments`.
 4. One staging recommendation on its own line: `Recommend: <first step>, then <next step>.`
 
