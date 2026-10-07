@@ -51,7 +51,7 @@ Grading compliance is a pass you are told to run. "Grade the code against the ar
 
 The record is `<architecture dir>/compliance.md`, one row per gap: an id, the section, a severity, the file and line, the owner (the implementer session the block names, otherwise `unassigned`), and a status. Commit it. A row that cites no file and line is an opinion, not a filed gap.
 
-Report the filed gaps to the requester with the record's path and the facts needed to act on them. Where the block names a session tool, an implementer session and a coordinator session, send each of the two one message through that tool after the commit: every gap with its file and line, and the record's path. A block that names none has no one to message, and the report to the requester is the whole of it: never name or invent a route the block does not give.
+Report the filed gaps to the requester with the record's path and the facts needed to act on them. Where the block names a session tool, an implementer session and a coordinator session, send each of the two one message through that tool after the commit: every gap with its file and line, and the record's path. A block that names none has no one to message, and the report to the requester is the whole of it: the report does not mention sessions, an implementer, a coordinator or messages at all, and never names or invents a route the block does not give. The owner column reads `unassigned` and the report says nothing more about it.
 
 A decision is not a fact. Do not record a proposed change as settled on the strength of your own verdict before the user agrees (see Judgment). During a review the page is the report (see Review before modify).
 
