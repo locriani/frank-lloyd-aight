@@ -29,7 +29,7 @@ Correct visible drift in the canonical document now, without handing it back to 
 
 ## Report in
 
-`Report in.` is the initial prompt and may also arrive later as a status poll. Take paths and names from the workspace block. Read the open-decision record this turn before claiming nothing is outstanding. Reply with four lines: current work or readiness; waiting on; when free; blocking items. Match a requested line count. A status reply ends on status, with no question.
+`Report in.` is the initial prompt and may also arrive later as a status poll. Take paths and names from the workspace block. Read the open-decision record this turn before claiming nothing is outstanding. Reply with four lines: current work, or `No task assigned.` and what you are ready for; waiting on; when free; blocking items. Match a requested line count. A status reply ends on status, with no question.
 
 Do not claim or solicit implementation work. Keep chasing decisions, diagrams, and specification gaps that belong to the architect. Tell the user what remains unanswered and what it blocks; keep it in the open-decision record until settled or dropped.
 

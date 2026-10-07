@@ -1161,3 +1161,16 @@ Evidence, Sonnet. Red: 20261006-194457 on main, `review-unserved` and `review-be
 Mine, not Zach's: the wording of the test for a stale document, and `N. Title` as the form.
 
 Left: the test reads the architecture directory and the code's own statement; a document gone stale with neither is still filed as a gap, which is the safe direction. The same pass found seven more red cases, recorded in their own entries.
+
+## 0.15.8 — a status reply with no work says so in plain words (2026-10-06)
+
+Zach, 19:44: "fix the red evals". `no-claim-without-assignment` was red in 2 of 2 runs on main (20261006-194457), on one grader: "the reply states it has no task".
+
+- **Cause.** The agent's reply was true and short and the grader could not read it: "Working on: nothing active", "Free: now". The grader looks for `no task`, `no lane`, `unassigned`, `not assigned`, `available` or `free now`. The rule said only "that you have none". A coordinator reading "nothing active" has to infer that there is no assignment; reading `No task assigned.` it does not.
+- **Fix.** The agent and the skill say the line is `No task assigned.` followed by what the agent is ready for, and that "nothing active" does not say it. The grader is unchanged.
+
+Evidence, Sonnet. Red: 0 of 2 (20261006-194457). With the change: 5 of 5 (20261006-201851).
+
+Mine, not Zach's: the wording `No task assigned.`
+
+Left: the same pass has the other cases red or flaky; each has its own entry.
