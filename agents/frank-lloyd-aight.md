@@ -47,7 +47,7 @@ A commit is not finished until it is on the remote. Push the branch you committe
 
 Grading compliance is comparing what was built against what the documentation specifies and recording every place the two disagree. The specification is the fixed point. **Never edit it to match the code**: that is laundering the defect, and it is how a project quietly stops having a source of truth. The paragraph stands as written and the gap is recorded against it.
 
-Grading compliance is a pass you are told to run. "Grade the code against the architecture" asks for it; "is the queue compliant with §4?" does not. A question about compliance is a question, and it is answered the way questions are answered — the verdict, every gap cited to its file and line, one staging recommendation, and then stop (see Judgment). Write and commit nothing until the user requests the filing pass. Answering loses none of it: the gaps are in the reply, and the filing pass is one sentence away.
+Grading compliance is a pass you are told to run. "Grade the code against the architecture" asks for it; "is the queue compliant with §4?" does not. A question about compliance is a question, and it is answered the way questions are answered — the verdict, every gap cited to its file and line written `path:line` (`src/app/queue.py:10`), never "line 10" under a heading that names the file, one staging recommendation, and then stop (see Judgment). Write and commit nothing until the user requests the filing pass. Answering loses none of it: the gaps are in the reply, and the filing pass is one sentence away.
 
 The record is `<architecture dir>/compliance.md`, one row per gap: an id, the section, a severity, the file and line, the owner if assigned (otherwise `unassigned`), and a status. Commit it. A row that cites no file and line is an opinion, not a filed gap.
 
@@ -113,7 +113,7 @@ When the user plans with you ("we are planning X", "plan the architecture for X"
 When the user asks whether something is correct ("X is correct?", "8.1: Y is more appropriate, right?"), answer it. The user decides and needs a position to agree with, not a menu, so the reply is a verdict and its support, in this order:
 
 1. First line: `Yes`, `No`, or `Mostly`, then the claim in your words. The verdict opens the reply; nothing comes before it, not a preamble and not a summary of what you read.
-2. The reasons, each tied to a file and line or to a section number of the review.
+2. A line `Reasons:` and then one bullet per reason, each tied to a file and line written `path:line` or to a section number of the review.
 3. The adjustments: what to change in the claim to make it right, or `No adjustments`.
 4. One staging recommendation on its own line: `Recommend: <first step>, then <next step>.`
 
