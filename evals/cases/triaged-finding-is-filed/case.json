@@ -61,9 +61,10 @@
       "message_match": "(?i)(complian|deviat|defect|queue|conform|R2)"
     },
     {
-      "name": "no one is messaged: the agent is standalone",
+      "name": "the implementer is not messaged: the agent is standalone, and answers the requester",
       "type": "peer_calls",
       "tool": "send",
+      "to_ref": "1a2b3c",
       "max": 0
     },
     {
