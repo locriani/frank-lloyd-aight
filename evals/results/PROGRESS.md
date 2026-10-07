@@ -1195,3 +1195,16 @@ Evidence, Sonnet. Red: 4 of 5 on main (20261006-201859). With the change at the 
 Mine, not Zach's: the form `path:line`.
 
 Left: `judgment-not-survey` is flaky on main and this change does not touch it. In 20261006-201859 it failed once in five, on "names adjustments" (a reply that wrote "Keeping"), and the case has two word-list graders. The first form of this change put `path:line` on the reasons in Judgment and made it 4 of 5 red on "gives reasons" (20261006-202153), because the replies became bare cited bullets; a `Reasons:` label then fixed that, but the label is itself a match for the grader (`reasons?`), and in 3 of the 8 green runs the adjustments grader was satisfied by a word inside a reason (`instead`, `drop`, `change`) and not by the adjustments line. Both were dropped. The case needs a ruling on its graders, which is Zach's: `Adjustments:` and the `No adjustments` that Judgment prescribes do not match `\badjust\b`, and `reasons?` is matched by anything that says "reason". Under house rule 11 they are not mine to change.
+
+## 0.15.11 — the adjustments grader reads Adjustments; each reason says why (2026-10-06)
+
+Zach, 2026-10-06 19:44: "fix the red evals". `judgment-not-survey` failed 1 of 5 on main (20261006-201859), and 5 of 8 on a later sample of main (20261006-213356). It has two word-list graders over a reply's wording, and Zach ruled on them by AskUserQuestion at 21:3x: "Yes, fix the graders".
+
+- **Grader change (Zach's ruling, house rule 11).** "names adjustments" read `adjust` as a whole word, so the spec's own `Adjustments:` and `Adjusted` never matched, and the reply that wrote `Adjustments:` failed (201859 run 5). It reads `adjust\w*` now. One pattern, nothing else in the case changed. All five stored runs of 201859 regrade green under it.
+- **Agent and skill change.** "gives reasons" was the larger failure: 5 of 8 on main, replies whose bullets were tied to files and said why in no listed word ("so choosing Redis changes the code..."). That grader stayed as it is: the reasons of a verdict now each say why in a clause that begins `because` or `since`. An earlier form (PR #26 first pass) headed the reasons with a `Reasons:` label, which the grader matches by itself and could not fail on; this form puts the word in the clause, where the reason is.
+
+Evidence, Sonnet. Red on main: 3 of 8 green (20261006-213356). With the grader change and the clause: 7 of 8 (20261006-213604).
+
+Mine, not Zach's: the clause, and the choice of `because` or `since`.
+
+Left: 7 of 8. The one red (run 8) reasons in plain sentences with no causal word ("so the app can run as one process only", "Nothing therefore justifies"), against a grader that reads three words. Reasons that carry no marker are the grader's limit, not the agent's: whether to widen the reasons grader (`therefore|which means|so`) is Zach's, and I have not.
