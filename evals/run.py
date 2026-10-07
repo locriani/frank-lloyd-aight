@@ -50,13 +50,13 @@ DEFAULT_MODEL = "opus"
 # project CLAUDE.md, which is the config channel under test, so it is not used.
 # AskUserQuestion is host-answered under --permission-prompt-tool stdio (see drive_turns); no Agent tool is exposed.
 TOOLS = ["Bash", "Read", "Glob", "Grep", "Write", "Edit", "AskUserQuestion"]
-# Writes only where a review lives: plans, review pages, and the architecture directory. Anything else prompts the host, which denies and records it.
+# Writes only where a review lives: plans, reviews, a pages dir, and the architecture directory. Anything else prompts the host, which denies and records it.
 # The renderer is the one script it may run, and no permission rule can say so safely, so the host answers for it (see RENDER).
 ALLOWED = [
     "Bash(date:*)",
     "Read", "Glob", "Grep",
-    "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./architecture/**)",
-    "Write(./plans/**)", "Write(./reviews/**)", "Write(./architecture/**)",
+    "Edit(./plans/**)", "Edit(./reviews/**)", "Edit(./pages/**)", "Edit(./architecture/**)",
+    "Write(./plans/**)", "Write(./reviews/**)", "Write(./pages/**)", "Write(./architecture/**)",
 ]
 # The whole command, matched in full: the fixture's renderer and plain file arguments. No option before the script, no operator, no substitution.
 RENDER = re.compile(r"python3 tools/mermaid-check\.py(?: [\w./-]+)+")

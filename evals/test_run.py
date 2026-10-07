@@ -86,7 +86,7 @@ class SandboxGuardTest(unittest.TestCase):
     PEER_TOOLS = ("ListAgents", "SendMessage")
 
     def test_allowlist_is_review_only(self) -> None:
-        # The reviewer may write only plans, reviews, and the architecture directory; never move, make, or delete.
+        # The reviewer may write only plans, reviews, a pages dir, and the architecture directory; never move, make, or delete.
         for rule in ("Bash(mv:*)", "Bash(mkdir:*)", "Bash(rm:*)", "Bash(cp:*)", "Edit(./**)", "Write(./**)"):
             self.assertNotIn(rule, run.ALLOWED, rule)
         # A rule that starts at `TZ=` is answered by prefix, so it allows whatever command follows the assignment. The host answers for the clock instead.
@@ -97,6 +97,11 @@ class SandboxGuardTest(unittest.TestCase):
             self.assertIn(rule, run.ALLOWED, rule)
         # No permission rule lets python run: a rule's wildcard cannot tell the renderer's file arguments from a shell escape. The host answers for the renderer.
         self.assertEqual([a for a in run.ALLOWED if "python" in a], [])
+
+    def test_a_served_pages_dir_is_writable(self) -> None:
+        # A block that names a pages dir puts the review page there, so a case with one needs the write let through.
+        for rule in ("Edit(./pages/**)", "Write(./pages/**)"):
+            self.assertIn(rule, run.ALLOWED, rule)
 
     def test_host_lets_the_clock_be_read_in_a_zone_and_nothing_else(self) -> None:
         def denied(command: str) -> bool:
