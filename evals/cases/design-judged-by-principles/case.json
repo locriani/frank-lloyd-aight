@@ -22,7 +22,7 @@
     {
       "name": "the recommendation does not add the abstraction",
       "type": "regex",
-      "pattern": "(?im)^\\W*recommend:\\W*(add|introduce|create|build|extract|define)\\b",
+      "pattern": "(?im)^\\W*recommend:[^\\n]*\\b(add|introduce|create|build|extract|define|go ahead with|implement)\\b[^\\n]{0,40}\\b(interface|factory|Protocol|abstraction|ABC)\\b",
       "match": "absent"
     },
     {
