@@ -199,6 +199,18 @@ class PageThemeTest(unittest.TestCase):
             {(name, value.strip()) for name, value in re.findall(declarations, explicit)},
         )
 
+    def test_each_dark_block_redefines_every_light_colour(self) -> None:
+        text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
+        light_colours = {
+            name for name in re.findall(r"(--[\w-]+)\s*:", self.block(text, ":root"))
+            if not name.startswith("--f-")
+        }
+        for selector in (':root:not([data-theme="light"])', ':root[data-theme="dark"]'):
+            with self.subTest(selector=selector):
+                dark_tokens = set(re.findall(r"(--[\w-]+)\s*:", self.block(text, selector)))
+                for name in light_colours:
+                    self.assertIn(name, dark_tokens)
+
     def test_both_dark_blocks_set_color_scheme(self) -> None:
         text = (run.PLUGIN_ROOT / "docs" / "page-theme.css").read_text()
         for selector in (':root:not([data-theme="light"])', ':root[data-theme="dark"]'):
@@ -223,6 +235,9 @@ class PageThemeTest(unittest.TestCase):
                 text = (run.PLUGIN_ROOT / "docs" / name).read_text()
                 self.assertNotIn("--ground:", text)
                 self.assertNotIn("--accent:#1c6a49", text)
+                self.assertNotRegex(text, r"--[\w-]+\s*:\s*#[0-9a-fA-F]{3,8}")
+                self.assertNotIn("```css", text)
+                self.assertNotIn("<style>\n", text)
 
     def test_both_specs_name_the_theme_file(self) -> None:
         for name in ("review-page.md", "plan-page.md"):
