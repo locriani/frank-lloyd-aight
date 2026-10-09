@@ -1008,6 +1008,101 @@ class TreeDigestTest(unittest.TestCase):
             self.assertNotEqual(run.tree_digest(one), run.tree_digest(two))
 
 
+class ComposedDigestTest(unittest.TestCase):
+    """The digest of layered roots: a later layer's file stands in for an earlier one of the same name."""
+
+    def _tree(self, d: Path, files: dict[str, str]) -> Path:
+        for rel, body in files.items():
+            f = d / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(body)
+        return d
+
+    def test_a_single_root_is_the_tree_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = self._tree(Path(d), {"ARCHITECTURE.md": "# Doc\n", "src/app/api.py": "x = 1\n"})
+            self.assertEqual(run.composed_digest([root]), run.tree_digest(root))
+
+    def test_a_later_layer_stands_in_for_an_earlier_file(self) -> None:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b, tempfile.TemporaryDirectory() as c:
+            base = self._tree(Path(a), {"src/app/store.py": "x = 1\n", "legacy/old_worker.py": "# old\n"})
+            own = self._tree(Path(b), {"src/app/store.py": "x = 2\n"})
+            merged = run.composed_digest([base, own])
+            expected = self._tree(Path(c), {"src/app/store.py": "x = 2\n", "legacy/old_worker.py": "# old\n"})
+            self.assertEqual(merged, run.tree_digest(expected))
+
+    def test_a_file_only_the_case_has_survives_the_merge(self) -> None:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
+            base = self._tree(Path(a), {"src/app/api.py": "x = 1\n"})
+            own = self._tree(Path(b), {"CLAUDE.md": "# Workspace\n"})
+            self.assertNotEqual(run.composed_digest([base, own]), run.tree_digest(base))
+
+
+class FixtureLayersTest(unittest.TestCase):
+    """A case stages the shared base under its own `fixture/`; the case's files are the last word."""
+
+    def _case_dir(self, d: Path, files: dict[str, str] | None = None) -> Path:
+        root = d / "cases" / "a-case"
+        (root / "fixture").mkdir(parents=True)
+        for rel, body in (files or {}).items():
+            f = root / "fixture" / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text(body)
+        return root
+
+    def test_without_a_base_only_the_case_own_fixture_layers(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = self._case_dir(Path(d), {"CLAUDE.md": "# Workspace\n"})
+            self.assertEqual(run.fixture_layers(root, {}), [root / "fixture"])
+
+    def test_a_case_with_neither_base_nor_own_fixture_stages_nothing(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run.fixture_layers(Path(d) / "cases" / "empty", {}), [])
+
+    def test_the_base_layers_under_the_case_own_fixture(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            root = self._case_dir(Path(d), {"src/app/store.py": "x = 1\n"})
+            shared = run.EVALS / "fixtures" / "repo"
+            self.assertEqual(run.fixture_layers(root, {"fixture_base": "repo"}), [shared, root / "fixture"])
+
+    def test_a_missing_named_base_is_refused(self) -> None:
+        # Staging without the base the case asked for would measure a different case silently.
+        with tempfile.TemporaryDirectory() as d:
+            root = self._case_dir(Path(d))
+            with self.assertRaises(ValueError):
+                run.fixture_layers(root, {"fixture_base": "no-such-tree"})
+
+
+class SharedFixtureTest(unittest.TestCase):
+    """Every real case stages the shared repo under its own deltas; the case's divergent files stay its own."""
+
+    def test_every_case_declaring_the_base_resolves_to_it(self) -> None:
+        for case in run.load_cases([]):
+            if case.spec.get("fixture_base"):
+                layers = run.fixture_layers(case.root, case.spec)
+                self.assertEqual(layers[0], run.EVALS / "fixtures" / case.spec["fixture_base"], case.name)
+                self.assertEqual(layers[-1], case.root / "fixture", case.name)
+
+    def test_every_case_renders_without_unknown_tokens(self) -> None:
+        ctx = run.context("America/Chicago", at(9, 0))
+        with tempfile.TemporaryDirectory() as tmp:
+            for case in run.load_cases([]):
+                for layer in run.fixture_layers(case.root, case.spec):
+                    run.render_tree(layer, Path(tmp) / case.name, ctx)
+
+    def test_a_case_diverging_from_the_base_still_changes_the_composed_digest(self) -> None:
+        shared = run.EVALS / "fixtures" / "repo"
+        divergent = [c for c in run.load_cases([])
+                     if c.spec.get("fixture_base")
+                     and (c.root / "fixture" / "src" / "app" / "store.py").is_file()
+                     and (c.root / "fixture" / "src" / "app" / "store.py").read_bytes()
+                     != (shared / "src" / "app" / "store.py").read_bytes()]
+        self.assertTrue(divergent, "the migration's preserved divergences must exist for this test to mean anything")
+        for case in divergent:
+            composed = run.composed_digest(run.fixture_layers(case.root, case.spec))
+            self.assertNotEqual(composed, run.tree_digest(shared), case.name)
+
+
 class RunMetaTest(unittest.TestCase):
     """meta.json carries what a re-grade cannot recover from the stream: the base sha, turn
     boundaries, host denials, and which fixture the run was measured against."""
@@ -1343,7 +1438,8 @@ class RequiredBoundaryCaseTest(unittest.TestCase):
         ctx = run.context(case.spec.get("tz", "America/Chicago"), at(16, 23))
         run.render_value(case.spec, ctx)  # an unknown template token raises KeyError
         with tempfile.TemporaryDirectory() as tmp:
-            run.render_tree(case.root / "fixture", Path(tmp) / "fixture", ctx)
+            for layer in run.fixture_layers(case.root, case.spec):
+                run.render_tree(layer, Path(tmp) / "fixture", ctx)
 
     def test_the_fixture_document_carries_the_requirement(self) -> None:
         doc = (self.load().root / "fixture" / "docs" / "ARCHITECTURE.md").read_text()

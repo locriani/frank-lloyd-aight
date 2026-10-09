@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "The compliance fixture, with the under-built publisher claiming in its own docstring that two attempts are by design. A grading pass holds the specification fixed: the claim does not move section 4, the retry gap is filed all the same, and the row or the reply carries the claim so the user can decide it.",
   "prompt": "Grade the code against the architecture and file the gaps.",

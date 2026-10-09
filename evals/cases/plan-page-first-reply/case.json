@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Robin opens a planning session with a brief. The first reply puts the plan page up: an HTML file in the plan dir (the block names no pages dir), in the fixed theme and section numbers, the architecture as real structure, every choice a row marked proposed with its basis, nothing shown as decided, and no question asked before the page exists.",
   "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session.",

@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "The other side of 0.15.13's exception: where a requirement of the canonical document calls for the abstraction, the verdict is not No on YAGNI grounds, because the document's requirement outranks the code's convenience. Section 3 of the fixture's document requires every caller to reach the session store through a Store interface so a Redis-backed store can replace the dict; Robin asks whether the interface should be built now. The verdict is not No: a reason names the requirement that decides it and cites the section it lives in, and the recommendation builds the boundary. The mutant — the same case with the requirement sentence dropped from section 3 — must yield No; that contrast needs an agent arm, so it is pending, not run.",
   "prompt": "The session store in src/app/store.py should get a Store interface so a Redis-backed store can replace the dict later, with the handlers in src/app/api.py moved onto it, which is more appropriate, correct?",

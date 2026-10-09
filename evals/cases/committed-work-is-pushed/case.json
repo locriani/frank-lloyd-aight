@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "A document change the user asked for, in a repo whose origin holds no branch yet, with the work on a branch of its own. The change is made, committed and pushed in the same turn, without asking. An empty remote, or one with no main, is not a reason to wait.",
   "prompt": "Redis was dropped: sessions are held in the process-local dict, by design, and the app runs as one process. Update section 3 of ARCHITECTURE.md to say so.",

@@ -29,7 +29,7 @@ import queue
 import tempfile
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from datetime import time as dtime
@@ -295,19 +295,30 @@ def _pushed(g: dict[str, Any], rec: RunRecord) -> tuple[bool, str]:
     return head in heads, f"HEAD {head[:7]} is {'on' if head in heads else 'not on'} the remote ({len(heads)} branch(es) there)"
 
 
-def tree_digest(root: Path) -> str:
-    """Content hash of a fixture tree: every relative path and its bytes, `.git` excluded.
+def composed_digest(roots: Sequence[Path]) -> str:
+    """Content hash of layered fixture trees: every relative path and its winning bytes, `.git` excluded.
 
-    Digest the case's *source* fixture, never the rendered copy -- rendering substitutes
-    `{{today}}`, so a rendered tree hashes differently tomorrow for no reason that matters.
+    A later root's file stands in for an earlier one of the same relative path, so a case's own
+    fixture is the last word on any file the shared base also carries. Digest the *source*
+    fixtures, never the rendered copy -- rendering substitutes `{{today}}`, so a rendered tree
+    hashes differently tomorrow for no reason that matters.
     """
+    files: dict[str, bytes] = {}
+    for root in roots:
+        for f in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.relative_to(root).parts):
+            files[str(f.relative_to(root))] = f.read_bytes()
     h = hashlib.sha256()
-    for f in sorted(p for p in root.rglob("*") if p.is_file() and ".git" not in p.relative_to(root).parts):
-        h.update(str(f.relative_to(root)).encode())
+    for rel in sorted(files):
+        h.update(rel.encode())
         h.update(b"\0")
-        h.update(f.read_bytes())
+        h.update(files[rel])
         h.update(b"\0")
     return "sha256:" + h.hexdigest()
+
+
+def tree_digest(root: Path) -> str:
+    """Content hash of a fixture tree: every relative path and its bytes, `.git` excluded."""
+    return composed_digest([root])
 
 
 def render_tree(src: Path, dst: Path, ctx: dict[str, str]) -> None:
@@ -535,6 +546,24 @@ def load_cases(patterns: list[str]) -> list[Case]:
             continue
         cases.append(Case(name, spec_path.parent, json.loads(spec_path.read_text())))
     return cases
+
+
+def fixture_layers(case_root: Path, spec: Mapping[str, Any]) -> list[Path]:
+    """A case's fixture source trees, in layer order: the shared base named by `fixture_base`
+    (a directory under `evals/fixtures/`), then the case's own `fixture/`, whose files are the
+    last word on any path the base also carries. A case naming a missing base fails the run:
+    staging without the base it asked for would measure a different case silently."""
+    layers: list[Path] = []
+    base = spec.get("fixture_base")
+    if base:
+        shared = EVALS / "fixtures" / str(base)
+        if not shared.is_dir():
+            raise ValueError(f"fixture_base {base!r}: no such shared fixture under {EVALS / 'fixtures'}")
+        layers.append(shared)
+    own = case_root / "fixture"
+    if own.is_dir():
+        layers.append(own)
+    return layers
 
 
 def _pages_written(rec: RunRecord) -> list[Path]:
@@ -1086,8 +1115,9 @@ def regrade(run_dir: Path, cases_root: Path | None = None, unverified: bool = Fa
     if not (case_dir / "case.json").exists():
         return [], f"case {meta['case']!r} no longer exists under {cases_root}"
     spec = json.loads((case_dir / "case.json").read_text())
-    if (case_dir / "fixture").is_dir() and meta.get("fixture_digest") is not None:
-        now = tree_digest(case_dir / "fixture")
+    layers = fixture_layers(case_dir, spec)
+    if layers and meta.get("fixture_digest") is not None:
+        now = composed_digest(layers)
         if meta.get("fixture_digest") != now:
             return [], (f"fixture for {meta['case']!r} has changed since this run "
                         f"({meta.get('fixture_digest')} -> {now}); its stream measures a different case")
@@ -1108,9 +1138,10 @@ def run_one(case: Case, arm: str, model: str, out: Path) -> tuple[list[tuple[str
     # Fixture lives outside this repo so the sidecar's own CLAUDE.md is not discovered upward.
     work = Path(tempfile.mkdtemp(prefix="cos-eval-"))
     try:
-        if (case.root / "fixture").is_dir():
-            render_tree(case.root / "fixture", work, ctx)
-            render_tree(case.root / "fixture", out / "fixture-before", ctx)
+        layers = fixture_layers(case.root, spec)
+        for layer in layers:
+            render_tree(layer, work, ctx)
+            render_tree(layer, out / "fixture-before", ctx)
         # A case that owns a document needs a repo to commit into; the fixture snapshot keeps it.
         # The remote lives with the results, so a stored run can be regraded against it.
         git_base = init_repo(work, out / "remote.git" if spec.get("remote") else None) if spec.get("git") else None
@@ -1157,10 +1188,10 @@ def run_turns(spec: dict[str, Any], arm: str, model: str, out: Path, work: Path,
         "notional_usd": round(sum((st.result or {}).get("total_cost_usd", 0) for st in streams), 4),
         "denials": sum(len(st.denied_ids | t.host_denied) for st, t in zip(streams, turns)),
     }
-    fixture_src = case_root / "fixture"
+    layers = fixture_layers(case_root, spec)
     (out / "meta.json").write_text(json.dumps(
         run_meta(case_root.name, arm, model, git_base, turns, meta,
-                 tree_digest(fixture_src) if fixture_src.is_dir() else None), indent=1))
+                 composed_digest(layers) if layers else None), indent=1))
     if not streams or streams[0].result is None:
         return [], "claude produced no result for turn 1", meta
     ok, detail = check_arm(streams[0].init, arm, agent_flag_used="--agent" in cmd and arm != "agent", model=model, needs_peers="peers" in spec)

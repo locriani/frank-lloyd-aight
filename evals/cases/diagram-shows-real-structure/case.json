@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Robin asks for a module diagram of the app package. Frank writes one that shows the real structure, each module with its functions and their signatures as read from the code, renders it with the renderer the block names, and changes no code.",
   "prompt": "Draw the module diagram for src/app and put it in architecture/modules.md.",

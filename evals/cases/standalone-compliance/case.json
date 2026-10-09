@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "With no publisher, coordinator, implementer, or peer tools in the workspace, Frank grades code against the architecture, files all three queue gaps locally, reports the record to the user, and leaves the specification and code untouched.",
   "prompt": "Grade the code against the architecture and file the gaps.",
