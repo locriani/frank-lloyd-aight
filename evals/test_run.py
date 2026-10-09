@@ -1382,5 +1382,51 @@ class RequiredBoundaryCaseTest(unittest.TestCase):
         self.assertFalse(verdicts["the recommendation builds the required boundary"][0])
 
 
+class ServedClaimTest(unittest.TestCase):
+    """Ruling (a), review-unserved: the grader matches the served-claim, not one negation phrasing.
+
+    Run 1 of 20261007-111424 wrote "It isn't served" and failed `(?i)not served`; every page
+    check in the case passed. The contrast: the recorded wording and the plain wording both
+    pass, and a reply silent about serving — or one claiming the page is served — still fails.
+    """
+
+    GRADER = "reply says not served"
+
+    def grade_reply(self, reply: str) -> tuple[bool, str]:
+        cases = run.load_cases(["review-unserved"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.stream.last_text = reply
+        return run.grade(g, rec)
+
+    def test_the_recorded_isnt_served_wording_passes(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html; it isn't served — "
+            "the block names no pages dir. Sections 1 through 8, compliance at 9.\n"
+        )
+        self.assertTrue(ok, detail)
+
+    def test_the_plain_not_served_wording_still_passes(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html; it is not served — "
+            "the block names no pages dir.\n"
+        )
+        self.assertTrue(ok, detail)
+
+    def test_a_reply_silent_about_serving_fails(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html. "
+            "Sections 1 through 8, compliance at 9.\n"
+        )
+        self.assertFalse(ok, detail)
+
+    def test_a_reply_claiming_served_fails(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is served at http://127.0.0.1:8787/architecture-review.html.\n"
+        )
+        self.assertFalse(ok, detail)
+
+
 if __name__ == "__main__":
     unittest.main()
