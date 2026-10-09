@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Robin asks for a review of the existing architecture before discussing changes. One page is written into the pages dir, where pages.py serves it, per the review page spec (numbered sections, state chips, section 6 delta table, section 8 decisions, sources footer), written under the pages dir only; nothing else changes, nobody is messaged, no recommendation and no question.",
   "prompt": "Review the existing architecture using artifacts and I will start discussing modifications.",

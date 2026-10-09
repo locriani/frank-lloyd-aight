@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Robin asks whether a review item is correct. The reply is a verdict on its first line, then reasons, adjustments, and one staging recommendation, under 25 lines; no question back, no edit, and no relay before Robin agrees.",
   "prompt": "8.1: Redis is more appropriate, correct?",

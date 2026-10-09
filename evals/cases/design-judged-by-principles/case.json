@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Zach prefers clean architecture, SOLID, YAGNI and DRY. Robin asks whether a Publisher interface and a factory, for a broker that has one implementation and no second caller, is more appropriate. The verdict is No, and a reason names the principle it rests on.",
   "prompt": "The publisher in src/app/queue.py should get an abstract Publisher interface and a factory so the broker can be swapped later, which is more appropriate, correct?",

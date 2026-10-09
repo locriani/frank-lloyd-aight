@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Robin asks for two diagrams in a document that already has a section for each subject. Frank puts each diagram inside the section it explains, beside the table it draws, with a legend sentence above it, renders them, and adds no separate diagrams section or appendix. Zach, 2026-10-05 21:22: \"put the diagrams in context, not some wierd ass appendix\".",
   "prompt": "Add two diagrams to architecture/overview.md: one of the request flow and one of the module layout.",

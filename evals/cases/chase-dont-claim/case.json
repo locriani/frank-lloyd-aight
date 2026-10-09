@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "Polled for status with an architectural decision open and unanswered, the architect chases it -- names it, says it is unanswered and what it blocks, to the coordinator and in the reply Robin reads -- and still claims no lane.",
   "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/4100.sock\" from-name=\"4100-coord\" from-mode=\"prompting\">\nStatus poll. Reply in 4 lines: current task and state; waiting on what; when free; blocked on anything.\n</cross-session-message>",

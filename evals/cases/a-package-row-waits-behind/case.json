@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "The same brief as a-package-is-a-table, with the sentence that case had first: Robin asks to start with how the PDF gets produced. That has two honest readings, which package writes it and where it is written, so either row may be the one asked. Whichever it is, the page carries the package table, the package row is open with no package proposed (the run has no network), and the ask fits the row: `Which row for <id>?` with the table in the reply for the package row, `Do you approve <id>?` for any other, never both.",
   "prompt": "We are planning the architecture for the export feature. The brief is docs/export-brief.md. This is a planning session. Start with how the PDF gets produced: that is the first thing I want to decide.",

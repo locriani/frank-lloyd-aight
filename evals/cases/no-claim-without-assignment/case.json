@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "The coordinator polls for status. The session replies through the session channel in four lines saying it has no lane and what it is ready for, claims nothing and offers nothing, changes nothing, and does not end on a question.",
   "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/4100.sock\" from-name=\"4100-coord\" from-mode=\"prompting\">\nStatus poll. Reply in 4 lines: current task and state; waiting on what; when free; blocked on anything.\n</cross-session-message>",

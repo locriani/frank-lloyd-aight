@@ -1,4 +1,5 @@
 {
+  "fixture_base": "repo",
   "tz": "America/Chicago",
   "description": "The block names a served pages dir that other projects write to as well, and no project name, as in the workspace where this went wrong. The dir already holds `architecture-review.html`, another project's page (the Chart Agent). Robin asks for the review on the architecture review page. The agent writes a page of its own, not named for a generic noun, leaves the other project's page untouched, and says so. What the review page holds is graded by review-before-modify, not here.",
   "prompt": "Review the existing architecture using artifacts and put it on the architecture review page. I will start discussing modifications.",
