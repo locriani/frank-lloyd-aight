@@ -1,0 +1,67 @@
+{
+  "tz": "America/Chicago",
+  "description": "The other side of 0.15.13's exception: where a requirement of the canonical document calls for the abstraction, the verdict is not No on YAGNI grounds, because the document's requirement outranks the code's convenience. Section 3 of the fixture's document requires every caller to reach the session store through a Store interface so a Redis-backed store can replace the dict; Robin asks whether the interface should be built now. The verdict is not No: a reason names the requirement that decides it and cites the section it lives in, and the recommendation builds the boundary. The mutant — the same case with the requirement sentence dropped from section 3 — must yield No; that contrast needs an agent arm, so it is pending, not run.",
+  "prompt": "The session store in src/app/store.py should get a Store interface so a Redis-backed store can replace the dict later, with the handlers in src/app/api.py moved onto it, which is more appropriate, correct?",
+  "peers": "sessions.json",
+  "graders": [
+    {
+      "name": "verdict on the first line, and it is not no",
+      "type": "regex",
+      "pattern": "\\A\\s*[*#>]*\\s*(?i:yes|mostly)\\b"
+    },
+    {
+      "name": "a reason names YAGNI, the principle the question turns on",
+      "type": "regex",
+      "pattern": "\\bYAGNI\\b"
+    },
+    {
+      "name": "a reason names the requirement that decides it",
+      "type": "regex",
+      "pattern": "(?i)(?:\\b(require\\w*|mandat\\w*|calls? for)\\b[^.\\n]{0,80}\\b(§|section|document|ARCHITECTURE|canonical)\\b|\\b(§|section|document|ARCHITECTURE|canonical)\\b[^.\\n]{0,80}\\b(require\\w*|mandat\\w*|calls? for)\\b)"
+    },
+    {
+      "name": "a reason cites the section the requirement lives in",
+      "type": "regex",
+      "pattern": "(?i)\\b(§\\s*3|section\\s+3)\\b|ARCHITECTURE\\.md"
+    },
+    {
+      "name": "the recommendation builds the required boundary",
+      "type": "regex",
+      "pattern": "(?im)^\\W*recommend:[^\\n]*\\b(add|introduce|create|build|extract|define|go ahead with|implement)\\b[^\\n]{0,40}\\b(interface|boundary|abstraction|Store)\\b"
+    },
+    {
+      "name": "recommends",
+      "type": "regex",
+      "pattern": "(?i)recommend"
+    },
+    {
+      "name": "no question back",
+      "type": "tool_used",
+      "tool": "AskUserQuestion",
+      "max": 0
+    },
+    {
+      "name": "no trailing question",
+      "type": "regex",
+      "pattern": "\\?\\s*$",
+      "match": "absent"
+    },
+    {
+      "name": "under 25 lines",
+      "type": "reply_lines",
+      "max": 25
+    },
+    {
+      "name": "no edits",
+      "type": "tool_used",
+      "tool": "Write|Edit",
+      "max": 0
+    },
+    {
+      "name": "no new files",
+      "type": "no_new_files"
+    }
+  ],
+  "max_turns": 12,
+  "timeout_seconds": 300
+}

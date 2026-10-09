@@ -1302,5 +1302,85 @@ class UnverifiedRegradeTest(unittest.TestCase):
             self.assertIn("provenance", error.lower())
 
 
+class RequiredBoundaryCaseTest(unittest.TestCase):
+    """The design-required-by-the-document case: what its graders can prove offline.
+
+    A correct-shaped reply passes every grader, and each mutant reply fails the grader that
+    names it. Whether the agent itself produces the reply is agent-arm evidence, not this.
+    """
+
+    GREEN = (
+        "Yes — build the Store interface now; the document's requirement, not the implementation count, decides.\n"
+        "\n"
+        "§3 of docs/ARCHITECTURE.md requires every caller to reach the session store through a Store interface so a Redis-backed store can replace the dict without touching the request path, and the document's requirement outranks the code's convenience. This is not YAGNI: an abstraction no caller in the code and no requirement of the canonical document needs today fails YAGNI, and this one is required — the requirement decides it, because what is needed is on record in the canonical document, not inferred from the single implementation.\n"
+        "\n"
+        "The code agrees with the gap, not with the wait: the handlers call the dict directly at src/app/api.py:7, and src/app/store.py:7 holds the interface's only implementation.\n"
+        "\n"
+        "No adjustments.\n"
+        "\n"
+        "Recommend: build the Store interface around the existing dict, then move the handlers onto it.\n"
+    )
+
+    def load(self) -> run.Case:
+        cases = run.load_cases(["design-required-by-the-document"])
+        self.assertEqual(len(cases), 1)
+        return cases[0]
+
+    def rec_with(self, reply: str) -> run.RunRecord:
+        rec = record(at(16, 23), at(16, 25))
+        rec.stream.last_text = reply
+        rec.fixture_dir = Path(tempfile.mkdtemp())
+        rec.before_dir = Path(tempfile.mkdtemp())
+        return rec
+
+    def grade_case(self, reply: str) -> dict[str, tuple[bool, str]]:
+        case = self.load()
+        rec = self.rec_with(reply)
+        return {g["name"]: run.grade(g, rec) for g in case.spec["graders"]}
+
+    def test_the_case_loads_and_renders_without_unknown_tokens(self) -> None:
+        case = self.load()
+        ctx = run.context(case.spec.get("tz", "America/Chicago"), at(16, 23))
+        run.render_value(case.spec, ctx)  # an unknown template token raises KeyError
+        with tempfile.TemporaryDirectory() as tmp:
+            run.render_tree(case.root / "fixture", Path(tmp) / "fixture", ctx)
+
+    def test_the_fixture_document_carries_the_requirement(self) -> None:
+        doc = (self.load().root / "fixture" / "docs" / "ARCHITECTURE.md").read_text()
+        self.assertIn("## 3. Session store", doc)
+        self.assertIn("`Store` interface", doc)
+        self.assertIn("required", doc)
+
+    def test_a_correct_reply_passes_every_grader(self) -> None:
+        verdicts = self.grade_case(self.GREEN)
+        failures = [name for name, (ok, _) in verdicts.items() if not ok]
+        self.assertEqual(failures, [])
+
+    def test_a_yagni_no_verdict_fails_the_first_line(self) -> None:
+        mutant = "No — one implementation, no second caller, YAGNI until a second store exists. Recommend: keep the dict, then revisit.\n"
+        verdicts = self.grade_case(mutant)
+        self.assertFalse(verdicts["verdict on the first line, and it is not no"][0])
+        self.assertTrue(verdicts["recommends"][0])
+
+    def test_a_reply_without_the_requirement_fails_the_requirement_graders(self) -> None:
+        mutant = "Yes — the boundary is cheap and the code is one file, because the seam is small. src/app/api.py:7. Recommend: build the interface, then move the handlers onto it.\n"
+        verdicts = self.grade_case(mutant)
+        self.assertFalse(verdicts["a reason names the requirement that decides it"][0])
+        self.assertFalse(verdicts["a reason cites the section the requirement lives in"][0])
+        self.assertTrue(verdicts["verdict on the first line, and it is not no"][0])
+
+    def test_a_reply_without_the_section_fails_the_citation(self) -> None:
+        mutant = "Yes — the document's requirement calls for the interface, because the document's requirement outranks the code's convenience. src/app/api.py:7. Recommend: build the interface, then move the handlers onto it.\n"
+        verdicts = self.grade_case(mutant)
+        self.assertTrue(verdicts["a reason names the requirement that decides it"][0])
+        self.assertFalse(verdicts["a reason cites the section the requirement lives in"][0])
+
+    def test_a_deferring_recommendation_fails_the_build_grader(self) -> None:
+        mutant = "Yes — not YAGNI, because §3 of the document requires the interface. Recommend: keep the dict, then revisit once a second store is real.\n"
+        verdicts = self.grade_case(mutant)
+        self.assertTrue(verdicts["a reason names the requirement that decides it"][0])
+        self.assertFalse(verdicts["the recommendation builds the required boundary"][0])
+
+
 if __name__ == "__main__":
     unittest.main()
