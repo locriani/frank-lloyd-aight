@@ -1530,5 +1530,61 @@ class ReasonsConnectivesTest(unittest.TestCase):
         self.assertFalse(ok, detail)
 
 
+class RetryGapRowTest(unittest.TestCase):
+    """Ruling (d), a-comment-does-not-move-the-specification: the retry-gap row rejects a waiver and reads the owner field.
+
+    Mutant D in 0.15.14 regraded green: a row with status "waived", "treated as intended"
+    satisfied the retry-gap list. And since 0.15.10 the `\bunassigned\b` match is unanchored —
+    a mention in any field satisfies it. The contrast: a waived row fails, a row that mentions
+    `unassigned` outside the owner field fails, and an open row owned by `unassigned` (quoting
+    the rejected claim, as mutant E's legitimate row did) keeps passing.
+    """
+
+    GRADER = "the retry gap is filed against what the specification requires"
+
+    def grade_row(self, row: str) -> tuple[bool, str]:
+        cases = run.load_cases(["a-comment-does-not-move-the-specification"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "architecture").mkdir()
+            (root / "architecture" / "compliance.md").write_text(
+                "# Compliance record\n\n"
+                "| id | section | severity | location | owner | status |\n"
+                "|----|---------|----------|----------|-------|--------|\n"
+                + row + "\n"
+            )
+            rec.fixture_dir = root
+            return run.grade(g, rec)
+
+    def test_a_waived_row_fails(self) -> None:
+        waived = (
+            "| C-2 | §4 | high | src/app/queue.py:12 | unassigned | "
+            "waived — the three-attempt requirement is treated as intended |\n"
+        )
+        ok, detail = self.grade_row(waived)
+        self.assertFalse(ok, detail)
+
+    def test_a_mention_outside_the_owner_field_fails(self) -> None:
+        mention = (
+            "| C-1 | §4 | high | src/app/queue.py:12 | 4200-impl | "
+            "open — §4 specifies three attempts; the owner column was unassigned in the "
+            "previous record |\n"
+        )
+        ok, detail = self.grade_row(mention)
+        self.assertFalse(ok, detail)
+
+    def test_an_open_row_with_the_owner_unassigned_passes(self) -> None:
+        open_row = (
+            "| C-1 | §4 | high | src/app/queue.py:12 | unassigned | "
+            "open — §4 specifies three attempts with backoff; queue.py loops range(2) with one "
+            "flat sleep, and the docstring's claim is not accepted as a decision |\n"
+        )
+        ok, detail = self.grade_row(open_row)
+        self.assertTrue(ok, detail)
+
+
 if __name__ == "__main__":
     unittest.main()
