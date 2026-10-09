@@ -1476,5 +1476,59 @@ class FirstLineStatusTest(unittest.TestCase):
         self.assertTrue(ok, detail)
 
 
+class ReasonsConnectivesTest(unittest.TestCase):
+    """Ruling (c), judgment-not-survey: the reasons grader reads plain-sentence connectives too.
+
+    Left open in 0.15.11 at 7 of 8: run 8 reasoned in plain sentences ("so the app can run
+    as one process only") with no `because`/`since` marker and failed `\\b(because|since|
+    reasons?)\\b`. The widening (therefore | which means | so) is Zach's; the contrast: the
+    recorded plain reasoning passes, because and since keep passing, and a reply with no
+    reasons at all still fails.
+    """
+
+    GRADER = "gives reasons"
+
+    def grade_reply(self, reply: str) -> tuple[bool, str]:
+        cases = run.load_cases(["judgment-not-survey"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.stream.last_text = reply
+        return run.grade(g, rec)
+
+    def test_the_recorded_plain_reasoning_passes(self) -> None:
+        recorded = (
+            "No — Redis is not the more appropriate choice. The store is a process-local dict "
+            "by design (src/app/store.py:7), so the app can run as one process only; nothing "
+            "therefore justifies a broker at this size. Recommend: keep the dict, then revisit "
+            "if a second process becomes real.\n"
+        )
+        ok, detail = self.grade_reply(recorded)
+        self.assertTrue(ok, detail)
+
+    def test_each_new_connective_passes(self) -> None:
+        for connective, reply in {
+            "therefore": "Mostly — the dict is process-local; therefore a broker buys nothing today. Recommend: keep the dict.",
+            "which means": "No — the store is a dict, which means sessions die on restart; Redis is a redesign, not a correction. Recommend: keep the dict.",
+            "so": "Yes — one caller exists (src/app/api.py:16), so the seam is cheap. Recommend: build it, then move the handler.",
+        }.items():
+            with self.subTest(connective=connective):
+                ok, detail = self.grade_reply(reply + "\n")
+                self.assertTrue(ok, detail)
+
+    def test_because_and_since_still_pass(self) -> None:
+        for reply in (
+            "No — because the store is a process-local dict by design (src/app/store.py:7), a broker buys nothing. Recommend: keep the dict.",
+            "No — since store.py holds sessions in a dict, Redis buys nothing today. Recommend: keep the dict.",
+        ):
+            with self.subTest(reply=reply):
+                ok, detail = self.grade_reply(reply + "\n")
+                self.assertTrue(ok, detail)
+
+    def test_a_reply_without_reasoning_still_fails(self) -> None:
+        ok, detail = self.grade_reply("Yes. Recommend: swap the dict for Redis, then revisit.\n")
+        self.assertFalse(ok, detail)
+
+
 if __name__ == "__main__":
     unittest.main()
