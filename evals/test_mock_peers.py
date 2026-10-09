@@ -95,6 +95,7 @@ class MockPeersServerTest(unittest.TestCase):
         proc.stdin.write(call(2, "send", to="4821-audit", text="b") + "\n" + call(3, "send", to="4821-audit-v2 [a1b2c3]", text="c") + "\n")
         proc.stdin.close()
         rest = [json.loads(l) for l in proc.stdout.read().splitlines() if l.strip()]
+        proc.stdout.close()  # read to EOF: close the reader so no unclosed-file warning is left behind
         proc.wait(timeout=10)
         self.assertNotIn("isError", first["result"])
         self.assertTrue(rest[0]["result"].get("isError"))

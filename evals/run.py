@@ -744,9 +744,12 @@ def drive_turns(
     lines: queue.Queue[str | None] = queue.Queue()
 
     def pump() -> None:
-        for line in proc.stdout:
-            lines.put(line)
-        lines.put(None)
+        try:
+            for line in proc.stdout:
+                lines.put(line)
+        finally:
+            lines.put(None)
+            proc.stdout.close()  # the reader closes the pipe where it sees EOF
 
     threading.Thread(target=pump, daemon=True).start()
     deadline = time.monotonic() + timeout
@@ -800,6 +803,10 @@ def drive_turns(
     finally:
         if proc.poll() is None:
             proc.kill()
+        proc.wait()  # reap: a killed-but-unwaited child warns "subprocess is still running" when collected
+        for pipe in (proc.stdin, proc.stderr):
+            if not pipe.closed:
+                pipe.close()
     return turns
 
 
