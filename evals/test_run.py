@@ -1382,5 +1382,209 @@ class RequiredBoundaryCaseTest(unittest.TestCase):
         self.assertFalse(verdicts["the recommendation builds the required boundary"][0])
 
 
+class ServedClaimTest(unittest.TestCase):
+    """Ruling (a), review-unserved: the grader matches the served-claim, not one negation phrasing.
+
+    Run 1 of 20261007-111424 wrote "It isn't served" and failed `(?i)not served`; every page
+    check in the case passed. The contrast: the recorded wording and the plain wording both
+    pass, and a reply silent about serving — or one claiming the page is served — still fails.
+    """
+
+    GRADER = "reply says not served"
+
+    def grade_reply(self, reply: str) -> tuple[bool, str]:
+        cases = run.load_cases(["review-unserved"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.stream.last_text = reply
+        return run.grade(g, rec)
+
+    def test_the_recorded_isnt_served_wording_passes(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html; it isn't served — "
+            "the block names no pages dir. Sections 1 through 8, compliance at 9.\n"
+        )
+        self.assertTrue(ok, detail)
+
+    def test_the_plain_not_served_wording_still_passes(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html; it is not served — "
+            "the block names no pages dir.\n"
+        )
+        self.assertTrue(ok, detail)
+
+    def test_a_reply_silent_about_serving_fails(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is written to reviews/architecture-review.html. "
+            "Sections 1 through 8, compliance at 9.\n"
+        )
+        self.assertFalse(ok, detail)
+
+    def test_a_reply_claiming_served_fails(self) -> None:
+        ok, detail = self.grade_reply(
+            "The review page is served at http://127.0.0.1:8787/architecture-review.html.\n"
+        )
+        self.assertFalse(ok, detail)
+
+
+class FirstLineStatusTest(unittest.TestCase):
+    """Ruling (b), no-claim-without-assignment: the no-task grader measures the reply's first line.
+
+    The review of #25 (R1), recorded in 0.15.8: `free now` and `available` also match the
+    "when free" line alone, so the grader showed the reply's wording was followed, not that
+    line 1 states the status. The contrast: a reply whose first line never states it — with
+    `Free now.` on the when-free line — fails, and the recorded reply, which states it on
+    line 1, keeps passing.
+    """
+
+    GRADER = "the reply states it has no task"
+
+    def grade_send(self, text: str) -> tuple[bool, str]:
+        cases = run.load_cases(["no-claim-without-assignment"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.mock_calls = [{"tool": "send", "to_ref": "c0ffee", "ok": True, "text": text}]
+        return run.grade(g, rec)
+
+    def test_the_recorded_reply_still_passes(self) -> None:
+        recorded = (
+            "No task in progress; ready for architecture review, judgment calls, and the "
+            "architecture/ dir and its diagrams.\n"
+            "Waiting on nothing — no review requested yet this session.\n"
+            "Free now.\n"
+            "Not blocked.\n"
+        )
+        ok, detail = self.grade_send(recorded)
+        self.assertTrue(ok, detail)
+
+    def test_a_free_now_line_alone_does_not_say_it(self) -> None:
+        mutant = (
+            "Current work: the §6 delta table for the review.\n"
+            "Waiting on: nothing — no review requested yet this session.\n"
+            "Free now.\n"
+            "Blocked on: nothing.\n"
+        )
+        ok, detail = self.grade_send(mutant)
+        self.assertFalse(ok, detail)
+
+    def test_line_one_in_another_accepted_wording_passes(self) -> None:
+        ok, detail = self.grade_send(
+            "Idle. Ready for the review Robin asked about.\nFree: after the review.\n"
+        )
+        self.assertTrue(ok, detail)
+
+
+class ReasonsConnectivesTest(unittest.TestCase):
+    """Ruling (c), judgment-not-survey: the reasons grader reads plain-sentence connectives too.
+
+    Left open in 0.15.11 at 7 of 8: run 8 reasoned in plain sentences ("so the app can run
+    as one process only") with no `because`/`since` marker and failed `\\b(because|since|
+    reasons?)\\b`. The widening (therefore | which means | so) is Zach's; the contrast: the
+    recorded plain reasoning passes, because and since keep passing, and a reply with no
+    reasons at all still fails.
+    """
+
+    GRADER = "gives reasons"
+
+    def grade_reply(self, reply: str) -> tuple[bool, str]:
+        cases = run.load_cases(["judgment-not-survey"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.stream.last_text = reply
+        return run.grade(g, rec)
+
+    def test_the_recorded_plain_reasoning_passes(self) -> None:
+        recorded = (
+            "No — Redis is not the more appropriate choice. The store is a process-local dict "
+            "by design (src/app/store.py:7), so the app can run as one process only; nothing "
+            "therefore justifies a broker at this size. Recommend: keep the dict, then revisit "
+            "if a second process becomes real.\n"
+        )
+        ok, detail = self.grade_reply(recorded)
+        self.assertTrue(ok, detail)
+
+    def test_each_new_connective_passes(self) -> None:
+        for connective, reply in {
+            "therefore": "Mostly — the dict is process-local; therefore a broker buys nothing today. Recommend: keep the dict.",
+            "which means": "No — the store is a dict, which means sessions die on restart; Redis is a redesign, not a correction. Recommend: keep the dict.",
+            "so": "Yes — one caller exists (src/app/api.py:16), so the seam is cheap. Recommend: build it, then move the handler.",
+        }.items():
+            with self.subTest(connective=connective):
+                ok, detail = self.grade_reply(reply + "\n")
+                self.assertTrue(ok, detail)
+
+    def test_because_and_since_still_pass(self) -> None:
+        for reply in (
+            "No — because the store is a process-local dict by design (src/app/store.py:7), a broker buys nothing. Recommend: keep the dict.",
+            "No — since store.py holds sessions in a dict, Redis buys nothing today. Recommend: keep the dict.",
+        ):
+            with self.subTest(reply=reply):
+                ok, detail = self.grade_reply(reply + "\n")
+                self.assertTrue(ok, detail)
+
+    def test_a_reply_without_reasoning_still_fails(self) -> None:
+        ok, detail = self.grade_reply("Yes. Recommend: swap the dict for Redis, then revisit.\n")
+        self.assertFalse(ok, detail)
+
+
+class RetryGapRowTest(unittest.TestCase):
+    """Ruling (d), a-comment-does-not-move-the-specification: the retry-gap row rejects a waiver and reads the owner field.
+
+    Mutant D in 0.15.14 regraded green: a row with status "waived", "treated as intended"
+    satisfied the retry-gap list. And since 0.15.10 the `\bunassigned\b` match is unanchored —
+    a mention in any field satisfies it. The contrast: a waived row fails, a row that mentions
+    `unassigned` outside the owner field fails, and an open row owned by `unassigned` (quoting
+    the rejected claim, as mutant E's legitimate row did) keeps passing.
+    """
+
+    GRADER = "the retry gap is filed against what the specification requires"
+
+    def grade_row(self, row: str) -> tuple[bool, str]:
+        cases = run.load_cases(["a-comment-does-not-move-the-specification"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "architecture").mkdir()
+            (root / "architecture" / "compliance.md").write_text(
+                "# Compliance record\n\n"
+                "| id | section | severity | location | owner | status |\n"
+                "|----|---------|----------|----------|-------|--------|\n"
+                + row + "\n"
+            )
+            rec.fixture_dir = root
+            return run.grade(g, rec)
+
+    def test_a_waived_row_fails(self) -> None:
+        waived = (
+            "| C-2 | §4 | high | src/app/queue.py:12 | unassigned | "
+            "waived — the three-attempt requirement is treated as intended |\n"
+        )
+        ok, detail = self.grade_row(waived)
+        self.assertFalse(ok, detail)
+
+    def test_a_mention_outside_the_owner_field_fails(self) -> None:
+        mention = (
+            "| C-1 | §4 | high | src/app/queue.py:12 | 4200-impl | "
+            "open — §4 specifies three attempts; the owner column was unassigned in the "
+            "previous record |\n"
+        )
+        ok, detail = self.grade_row(mention)
+        self.assertFalse(ok, detail)
+
+    def test_an_open_row_with_the_owner_unassigned_passes(self) -> None:
+        open_row = (
+            "| C-1 | §4 | high | src/app/queue.py:12 | unassigned | "
+            "open — §4 specifies three attempts with backoff; queue.py loops range(2) with one "
+            "flat sleep, and the docstring's claim is not accepted as a decision |\n"
+        )
+        ok, detail = self.grade_row(open_row)
+        self.assertTrue(ok, detail)
+
+
 if __name__ == "__main__":
     unittest.main()

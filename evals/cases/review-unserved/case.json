@@ -73,7 +73,7 @@
     {
       "name": "reply says not served",
       "type": "regex",
-      "pattern": "(?i)not served"
+      "pattern": "(?i)\\b(?:is\\s+not|isn'?t|not)\\s+served\\b"
     },
     {
       "name": "reply gives the file path",

@@ -12,7 +12,7 @@
     {
       "name": "gives reasons",
       "type": "regex",
-      "pattern": "(?i)\\b(because|since|reasons?)\\b"
+      "pattern": "(?i)\\b(because|since|reasons?|therefore|which means|so)\\b"
     },
     {
       "name": "reasons cite a file and line or a section",

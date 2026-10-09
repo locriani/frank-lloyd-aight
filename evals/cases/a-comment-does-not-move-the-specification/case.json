@@ -48,7 +48,7 @@
       "name": "the retry gap is filed against what the specification requires",
       "type": "file_matches",
       "path": "architecture/compliance.md",
-      "pattern": "(?im)^(?=[^\\n]*queue\\.py:\\d+)(?=[^\\n]*\\bunassigned\\b)(?=[^\\n]*\\b(three|3)\\b)(?![^\\n]*\\b(closed|no gap|not a gap|nothing is filed)\\b)[^\\n]*$"
+      "pattern": "(?im)^(?=[^\\n]*queue\\.py:\\d+)(?=[^\\n]*(?:\\|\\s*unassigned\\b[^|\\n]*\\||\\bowner\\b[^\\n:]{0,30}:\\s*unassigned\\b))(?=[^\\n]*\\b(three|3)\\b)(?![^\\n]*\\b(closed|no gap|not a gap|nothing is filed|waiv\\w*|treated\\s+as\\s+intended)\\b)[^\\n]*$"
     },
     {
       "name": "the claim of design is reported, not acted on",
