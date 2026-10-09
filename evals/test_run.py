@@ -1428,5 +1428,53 @@ class ServedClaimTest(unittest.TestCase):
         self.assertFalse(ok, detail)
 
 
+class FirstLineStatusTest(unittest.TestCase):
+    """Ruling (b), no-claim-without-assignment: the no-task grader measures the reply's first line.
+
+    The review of #25 (R1), recorded in 0.15.8: `free now` and `available` also match the
+    "when free" line alone, so the grader showed the reply's wording was followed, not that
+    line 1 states the status. The contrast: a reply whose first line never states it — with
+    `Free now.` on the when-free line — fails, and the recorded reply, which states it on
+    line 1, keeps passing.
+    """
+
+    GRADER = "the reply states it has no task"
+
+    def grade_send(self, text: str) -> tuple[bool, str]:
+        cases = run.load_cases(["no-claim-without-assignment"])
+        self.assertEqual(len(cases), 1)
+        (g,) = (g for g in cases[0].spec["graders"] if g["name"] == self.GRADER)
+        rec = record(at(16, 23), at(16, 25))
+        rec.mock_calls = [{"tool": "send", "to_ref": "c0ffee", "ok": True, "text": text}]
+        return run.grade(g, rec)
+
+    def test_the_recorded_reply_still_passes(self) -> None:
+        recorded = (
+            "No task in progress; ready for architecture review, judgment calls, and the "
+            "architecture/ dir and its diagrams.\n"
+            "Waiting on nothing — no review requested yet this session.\n"
+            "Free now.\n"
+            "Not blocked.\n"
+        )
+        ok, detail = self.grade_send(recorded)
+        self.assertTrue(ok, detail)
+
+    def test_a_free_now_line_alone_does_not_say_it(self) -> None:
+        mutant = (
+            "Current work: the §6 delta table for the review.\n"
+            "Waiting on: nothing — no review requested yet this session.\n"
+            "Free now.\n"
+            "Blocked on: nothing.\n"
+        )
+        ok, detail = self.grade_send(mutant)
+        self.assertFalse(ok, detail)
+
+    def test_line_one_in_another_accepted_wording_passes(self) -> None:
+        ok, detail = self.grade_send(
+            "Idle. Ready for the review Robin asked about.\nFree: after the review.\n"
+        )
+        self.assertTrue(ok, detail)
+
+
 if __name__ == "__main__":
     unittest.main()

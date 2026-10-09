@@ -18,7 +18,7 @@
       "type": "peer_calls",
       "tool": "send",
       "to_ref": "c0ffee",
-      "text_match": "(?i)(idle|no (current |assigned )?(task|lane|work)|nothing (assigned|in flight|yet|open)|not (yet )?assigned|unassigned|available|free now)",
+      "text_match": "(?i)\\A[^\\n]*(idle|no (current |assigned )?(task|lane|work)|nothing (assigned|in flight|yet|open)|not (yet )?assigned|unassigned|available|free now)",
       "min": 1
     },
     {
